@@ -30,8 +30,6 @@ export default {
       accounts: [process.env.PRIVATE_KEY],
     },
     localhost: {
-      url: "http://127.0.0.1:8545/",
-      // accounts: Thanks hardhat
       chainId: 31337,
     },
     // subnet: {
