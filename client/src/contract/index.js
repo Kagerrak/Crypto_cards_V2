@@ -1,9 +1,16 @@
-import contract from "./AVAXGods.json";
+import characterContract from "./characterContract.json";
+import battleSkills from "./battleSkills.json";
+import battleItems from "./battleItems.json";
+import battleContract from "./battleContract.json";
 
-//export const ADDRESS = '0xC6825E381F728a0300f3FD1bf82d9B378FFD83eA'; old one
+export const characterContractAddress = "0x123...";
+export const characterContractABI = characterContract.abi;
 
-// 0x58Bfca0537E79804c4B08545b15e00483ABfD64E
+export const battleSkillsAddress = "0x456...";
+export const battleSkillsABI = battleSkills.abi;
 
-export const ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+export const battleItemsAddress = "0x789...";
+export const battleItemsABI = battleItems.abi;
 
-export const { abi: ABI } = contract;
+export const battleContractAddress = "0xABC...";
+export const battleContractABI = battleContract.abi;
