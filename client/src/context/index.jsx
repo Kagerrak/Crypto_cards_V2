@@ -10,16 +10,28 @@ import Web3Modal from "web3modal";
 import { useNavigate } from "react-router-dom";
 
 import { GetParams } from "../utils/Onboard.js";
-import { ABI, ADDRESS } from "../contract";
+import {
+  characterContractAddress,
+  characterContractABI,
+  battleSkillsAddress,
+  battleSkillsABI,
+  battleItemsAddress,
+  battleItemsABI,
+  battleContractAddress,
+  battleContractABI,
+} from "../contract";
+
 import { createEventListeners } from "./createEventListeners";
 
 const GlobalContext = createContext();
 
 export const GlobalContextProvider = ({ children }) => {
   const [walletAddress, setWalletAddress] = useState("");
-  const [owner, setOwner] = useState("");
   const [battleGround, setBattleGround] = useState("bg-astral");
-  const [contract, setContract] = useState(null);
+  const [characterContract, setCharacterContract] = useState(null);
+  const [battleSkillsContract, setBattleSkillsContract] = useState(null);
+  const [battleItemsContract, setBattleItemsContract] = useState(null);
+  const [battleContract, setBattleContract] = useState(null);
   const [provider, setProvider] = useState(null);
   const [step, setStep] = useState(1);
   const [gameData, setGameData] = useState({
@@ -83,31 +95,51 @@ export const GlobalContextProvider = ({ children }) => {
     window?.ethereum?.on("accountsChanged", updateCurrentWalletAddress);
   }, []);
 
-  //* Set the smart contract and provider to the state
+  //* Set the smart contracts and provider to the state
   useEffect(() => {
-    const setSmartContractAndProvider = async () => {
+    const setSmartContractsAndProvider = async () => {
       const web3Modal = new Web3Modal();
       const connection = await web3Modal.connect();
       const newProvider = new ethers.providers.Web3Provider(connection);
       const signer = newProvider.getSigner();
-      const newContract = new ethers.Contract(ADDRESS, ABI, signer);
-      const contractOwner = await newContract.owner();
+
+      const newCharacterContract = new ethers.Contract(
+        characterContractAddress,
+        characterContractABI,
+        signer
+      );
+      const newBattleSkillsContract = new ethers.Contract(
+        battleSkillsAddress,
+        battleSkillsABI,
+        signer
+      );
+      const newBattleItemsContract = new ethers.Contract(
+        battleItemsAddress,
+        battleItemsABI,
+        signer
+      );
+      const newBattleContract = new ethers.Contract(
+        battleContractAddress,
+        battleContractABI,
+        signer
+      );
 
       setProvider(newProvider);
-      setContract(newContract);
-      setOwner(contractOwner);
+      setCharacterContract(newCharacterContract);
+      setBattleSkillsContract(newBattleSkillsContract);
+      setBattleItemsContract(newBattleItemsContract);
+      setBattleContract(newBattleContract);
     };
 
-    setSmartContractAndProvider();
+    setSmartContractsAndProvider();
   }, [walletAddress]);
 
   //* Activate event listeners for the smart contract
   useEffect(() => {
-    if (step === -1 && contract) {
-      console.log("Event Listening");
+    if (step === -1 && battleContract) {
       createEventListeners({
         navigate,
-        contract,
+        contract: battleContract,
         provider,
         walletAddress,
         setShowAlert,
@@ -116,25 +148,24 @@ export const GlobalContextProvider = ({ children }) => {
         setUpdateGameData,
       });
     }
-  }, [step, contract]);
+  }, [step, battleContract]);
 
   //* Set the game data to the state
   useEffect(() => {
     const fetchGameData = async () => {
-      if (contract) {
-        const fetchedBattles = await contract.getAllBattles();
+      if (battleContract) {
+        const fetchedBattles = await battleContract.getAllBattles();
         const pendingBattles = fetchedBattles.filter(
           (battle) => battle.battleStatus === 0
         );
         let activeBattle = null;
-
         fetchedBattles.forEach((battle) => {
           if (
             battle.players.find(
               (player) => player.toLowerCase() === walletAddress.toLowerCase()
             )
           ) {
-            if (battle.winner.startsWith("0x00") && battle.battleStatus != 2) {
+            if (battle.winner.startsWith("0x00") && battle.battleStatus !== 2) {
               activeBattle = battle;
             }
           }
@@ -145,7 +176,7 @@ export const GlobalContextProvider = ({ children }) => {
     };
 
     fetchGameData();
-  }, [contract, updateGameData, walletAddress]);
+  }, [battleContract, updateGameData, walletAddress]);
 
   //* Handle alerts
   useEffect(() => {
@@ -153,7 +184,6 @@ export const GlobalContextProvider = ({ children }) => {
       const timer = setTimeout(() => {
         setShowAlert({ status: false, type: "info", message: "" });
       }, [5000]);
-
       return () => clearTimeout(timer);
     }
   }, [showAlert]);
@@ -161,8 +191,6 @@ export const GlobalContextProvider = ({ children }) => {
   //* Handle error messages
   useEffect(() => {
     if (errorMessage) {
-      // const parsedErrorMessage = errorMessage?.reason?.slice('execution reverted: '.length).slice(0, -1);
-
       const parsedErrorMessage = errorMessage.reason;
       if (parsedErrorMessage) {
         setShowAlert({
@@ -181,7 +209,10 @@ export const GlobalContextProvider = ({ children }) => {
         player2Ref,
         battleGround,
         setBattleGround,
-        contract,
+        characterContract,
+        battleSkillsContract,
+        battleItemsContract,
+        battleContract,
         gameData,
         walletAddress,
         updateCurrentWalletAddress,
@@ -191,7 +222,6 @@ export const GlobalContextProvider = ({ children }) => {
         setBattleName,
         errorMessage,
         setErrorMessage,
-        owner,
       }}
     >
       {children}
