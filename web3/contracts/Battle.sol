@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import "./CharacterType.sol";
+import "./Character.sol";
 import "./BattleSkills.sol";
 import "hardhat/console.sol";
 
-contract BattleContract {
+contract Battle {
     enum Move {
         ATTACK,
         DEFEND,
@@ -361,7 +361,7 @@ contract BattleContract {
             ((uint256(
                 keccak256(
                     abi.encodePacked(
-                        block.prevrandao,
+                        block.difficulty,
                         block.timestamp,
                         msg.sender
                     )
