@@ -1,9 +1,6 @@
 import { ethers } from "hardhat";
 import copyContracts from "./copy-contracts";
 
-const _metadataUri =
-  "https://gateway.pinata.cloud/ipfs/QmX2ubhtBPtYw75Wrpv6HLb1fhbJqxrnbhDo1RViW3oVoi";
-
 async function deploy(name: string, ...params: [string]) {
   const contractFactory = await ethers.getContractFactory(name);
 
@@ -15,17 +12,17 @@ async function main() {
 
   console.log(`Deploying smart contracts...`);
 
-  const WarriorsAndWizards = (
-    await deploy("WarriorsAndWizards", _metadataUri)
-  ).connect(admin);
-
-  console.log({ WarriorsAndWizards: WarriorsAndWizards.address });
-
   // Deploy BattleSkills contract
   const BattleSkills = await ethers.getContractFactory("BattleSkills");
   const battleSkills = await BattleSkills.deploy();
   await battleSkills.deployed();
   console.log("BattleSkills deployed to:", battleSkills.address);
+
+  // Deploy BattleItems contract
+  const BattleItems = await ethers.getContractFactory("BattleItems");
+  const battleItems = await BattleItems.deploy();
+  await battleItems.deployed();
+  console.log("BattleItems deployed to:", battleItems.address);
 
   // Deploy Character contract
   const Character = await ethers.getContractFactory("Character");
@@ -41,6 +38,9 @@ async function main() {
 
   // Set the BattleSkills contract address in the Character contract
   await character.setBattleSkills(battleSkills.address);
+
+  // Set the BattleItems contract address in the Character contract
+  await character.setBattleItems(battleItems.address);
 
   // Create a new skill
   const skillName = "fire";
@@ -97,7 +97,12 @@ async function main() {
   );
 
   // Copy contract artifacts to client directory
-  await copyContracts();
+  await copyContracts(
+    battle.address,
+    character.address,
+    battleSkills.address,
+    battleItems.address
+  );
 }
 
 main()
