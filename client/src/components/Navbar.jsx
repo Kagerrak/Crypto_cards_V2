@@ -10,10 +10,9 @@ const Navbar = () => {
   const location = useLocation();
   const showNav = location.pathname.includes("battle/") ? false : true;
   const [showLinks, setShowLinks] = useState(false);
-  const { walletAddress, updateCurrentWalletAddress, owner } =
-    useGlobalContext();
+  const { walletAddress, updateCurrentWalletAddress } = useGlobalContext();
 
-  const lOwner = owner.toLowerCase();
+  // const lOwner = owner.toLowerCase();
   const lWalletAddress = walletAddress.toLowerCase();
 
   return (
@@ -221,7 +220,7 @@ const Navbar = () => {
                     </ul>
                   </div>
                 </li>
-                {lOwner === lWalletAddress ? (
+                {/* {lOwner === lWalletAddress ? (
                   <li>
                     <a
                       onClick={() => navigate("/withdraw")}
@@ -235,7 +234,7 @@ const Navbar = () => {
                       Withdraw
                     </a>
                   </li>
-                ) : null}
+                ) : null} */}
               </ul>
             </div>
           </div>
@@ -314,7 +313,7 @@ const Navbar = () => {
                       Shop
                     </a>
                   </li>
-                  {lWalletAddress === lOwner ? (
+                  {/* {lWalletAddress === lOwner ? (
                     <li>
                       <a
                         onClick={() => navigate("/withdraw")}
@@ -328,7 +327,7 @@ const Navbar = () => {
                         Withdraw
                       </a>
                     </li>
-                  ) : null}
+                  ) : null} */}
                 </ul>
               </div>
             )}
