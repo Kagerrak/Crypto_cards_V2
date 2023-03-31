@@ -23,6 +23,7 @@ module.exports = {
         functions: "never",
       },
     ],
+    "react/jsx-no-useless-fragment": 0,
     quotes: [2, "double"],
     "react/no-unescaped-entities": 0,
     "eslintreact/no-danger": 0,
@@ -79,5 +80,6 @@ module.exports = {
         aspects: ["noHref", "invalidHref", "preferButton"],
       },
     ],
+    "operator-linebreak": 0,
   },
 };
