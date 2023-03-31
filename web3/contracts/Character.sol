@@ -60,7 +60,7 @@ contract Character is ERC721Base, ERC1155Holder {
         battleSkills = BattleSkills(_address);
     }
 
-    function setItemContract(address _address) public onlyOwner {
+    function setBattleItems(address _address) public onlyOwner {
         battleItems = BattleItems(_address);
     }
 
