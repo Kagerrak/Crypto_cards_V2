@@ -1,53 +1,43 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { CustomButton, CustomInput, PageHOC, Loader } from "../components";
+import { CustomButton, PageHOC, Loader } from "../components";
 import { useGlobalContext } from "../context";
 
 const Home = () => {
-  const { contract, walletAddress, gameData, setShowAlert, setErrorMessage } =
-    useGlobalContext();
-  const [playerName, setPlayerName] = useState("");
+  const {
+    characterContract,
+    walletAddress,
+    gameData,
+    setShowAlert,
+    setErrorMessage,
+  } = useGlobalContext();
+  const [typeID, setTypeID] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleClick = async () => {
     try {
-      const playerExists = await contract.isPlayer(walletAddress);
+      setIsLoading(true);
+      const tx = await characterContract.newCharacter(typeID, {
+        gasLimit: 500000,
+      });
 
-      if (!playerExists) {
-        setIsLoading(true);
-        const tx = await contract.registerPlayer(playerName, playerName, {
-          gasLimit: 500000,
-        });
+      await tx.wait(1);
 
-        await tx.wait(1);
+      setIsLoading(false);
 
-        setIsLoading(false);
+      setShowAlert({
+        status: true,
+        type: "info",
+        message: `Character of type ${typeID} is being created!`,
+      });
 
-        setShowAlert({
-          status: true,
-          type: "info",
-          message: `${playerName} is being summoned!`,
-        });
-
-        setTimeout(() => navigate("/create-battle"), 8000);
-      }
+      setTimeout(() => navigate("/create-battle"), 8000);
     } catch (error) {
       setErrorMessage(error);
     }
   };
-
-  useEffect(() => {
-    const createPlayerToken = async () => {
-      const playerExists = await contract.isPlayer(walletAddress);
-      const playerTokenExists = await contract.isPlayerToken(walletAddress);
-
-      if (playerExists && playerTokenExists) navigate("/create-battle");
-    };
-
-    if (contract) createPlayerToken();
-  }, [contract]);
 
   useEffect(() => {
     if (gameData?.activeBattle?.battleStatus === 1) {
@@ -62,15 +52,37 @@ const Home = () => {
           <Loader />
         ) : (
           <div className="flex flex-col">
-            <CustomInput
-              label="Name"
-              placeHolder="Enter your player name"
-              value={playerName}
-              handleValueChange={setPlayerName}
-            />
-
+            <div className="flex flex-col justify-between">
+              <label>
+                <input
+                  type="radio"
+                  name="characterType"
+                  value="0"
+                  onChange={(e) => setTypeID(parseInt(e.target.value))}
+                />
+                Warrior
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="characterType"
+                  value="1"
+                  onChange={(e) => setTypeID(parseInt(e.target.value))}
+                />
+                Mage
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="characterType"
+                  value="2"
+                  onChange={(e) => setTypeID(parseInt(e.target.value))}
+                />
+                Rogue
+              </label>
+            </div>
             <CustomButton
-              title="Register"
+              title="Create Character"
               handleClick={handleClick}
               restStyles="mt-6"
             />
