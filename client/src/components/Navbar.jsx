@@ -13,7 +13,7 @@ const Navbar = () => {
   const { walletAddress, updateCurrentWalletAddress } = useGlobalContext();
 
   // const lOwner = owner.toLowerCase();
-  const lWalletAddress = walletAddress.toLowerCase();
+  // const lWalletAddress = walletAddress.toLowerCase();
 
   return (
     <>
