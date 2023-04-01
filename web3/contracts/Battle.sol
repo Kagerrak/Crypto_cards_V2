@@ -12,13 +12,18 @@ contract Battle {
         USE_SKILL
     }
 
+    enum BattleStatus {
+        PENDING,
+        STARTED,
+        ENDED
+    }
+
     struct BattleData {
         string name;
         address[2] players;
         uint256[2] characterIds;
         uint256[2] moves;
-        bool isBattleStarted;
-        bool isBattleEnded;
+        BattleStatus battleStatus;
         address winner;
         uint256[2] initialHealth;
         bool[2] moveSubmitted;
@@ -33,6 +38,9 @@ contract Battle {
     }
 
     mapping(uint256 => BattleData) public battles;
+    uint256[] public activeBattlesId;
+    mapping(uint256 => uint256) private battleIdToActiveIndex;
+
     mapping(address => uint256) public playerOngoingBattle;
     mapping(bytes32 => mapping(address => CharacterProxy))
         private characterProxies;
@@ -40,9 +48,9 @@ contract Battle {
 
     event BattleCreated(uint256 battleId, address creator, uint256 characterId);
     event BattleJoined(uint256 battleId, address joiner, uint256 characterId);
-    event BattleCanceled(uint256 indexed battleId, address indexed player);
+    event BattleCancelled(uint256 indexed battleId, address indexed player);
     event RoundEnded(address[2] damagedPlayers);
-    event BattleEnded(address winner);
+    event BattleEnded(uint256 battleId, address winner);
     event MoveSubmitted(
         uint256 indexed battleId,
         address indexed player,
@@ -102,9 +110,12 @@ contract Battle {
         }
     }
 
-    function createBattle(uint256 characterTokenId) external {
+    function createBattle(
+        string memory _name,
+        uint256 _characterTokenId
+    ) external {
         require(
-            characterContract.ownerOf(characterTokenId) == msg.sender,
+            characterContract.ownerOf(_characterTokenId) == msg.sender,
             "Not the owner of the character"
         );
         require(
@@ -112,36 +123,57 @@ contract Battle {
             "Player already participating in another battle"
         );
 
-        battleCounter++;
         uint256 battleId = battleCounter;
 
-        battles[battleId].players[0] = msg.sender;
-        battles[battleId].characterIds[0] = characterTokenId;
+        BattleData memory newBattle = BattleData({
+            name: _name,
+            players: [msg.sender, address(0)],
+            characterIds: [_characterTokenId, 0],
+            moves: [uint256(0), uint256(0)],
+            battleStatus: BattleStatus.PENDING,
+            winner: address(0),
+            initialHealth: [uint256(0), uint256(0)],
+            moveSubmitted: [false, false]
+        });
+
+        battles[battleId] = newBattle;
+        activeBattlesId.push(battleId);
+        battleIdToActiveIndex[battleId] = activeBattlesId.length - 1;
 
         playerOngoingBattle[msg.sender] = battleId;
 
         // Populate the CharacterProxy for player 1
-        createCharacterProxies(characterTokenId, msg.sender, battleId);
-
-        emit BattleCreated(battleId, msg.sender, characterTokenId);
+        createCharacterProxies(_characterTokenId, msg.sender, battleId);
+        emit BattleCreated(battleId, msg.sender, _characterTokenId);
+        battleCounter++;
     }
 
-    function cancelBattle(uint256 battleId) external {
-        BattleData storage battle = battles[battleId];
+    function cancelBattle(uint256 _battleId) external {
+        BattleData storage battle = battles[_battleId];
+
         require(
             battle.players[0] == msg.sender,
-            "Not the creator of the battle"
+            "Only the creator can cancel the battle"
         );
-        require(!battle.isBattleStarted, "Cannot cancel a started battle");
+        require(
+            battle.battleStatus == BattleStatus.PENDING,
+            "Cannot cancel a started battle"
+        );
 
-        // Remove the ongoing battle for the player
+        battle.battleStatus = BattleStatus.ENDED;
         playerOngoingBattle[msg.sender] = 0;
 
-        // Mark the battle as ended and set the winner to address(0)
-        battle.isBattleEnded = true;
-        battle.winner = address(0);
+        // Remove battle from the activeBattlesId array
+        uint256 index = battleIdToActiveIndex[_battleId];
+        uint256 lastIndex = activeBattlesId.length - 1;
+        uint256 lastBattleId = activeBattlesId[lastIndex];
 
-        emit BattleCanceled(battleId, msg.sender);
+        activeBattlesId[index] = lastBattleId;
+        battleIdToActiveIndex[lastBattleId] = index;
+        activeBattlesId.pop();
+        delete battleIdToActiveIndex[_battleId];
+
+        emit BattleCancelled(_battleId, msg.sender);
     }
 
     function joinBattle(uint256 battleId, uint256 characterTokenId) external {
@@ -155,7 +187,10 @@ contract Battle {
         );
 
         BattleData storage battle = battles[battleId];
-        require(!battle.isBattleStarted, "Battle has already started");
+        require(
+            battle.battleStatus == BattleStatus.PENDING,
+            "Battle has already started"
+        );
         require(
             battle.players[1] == address(0),
             "Battle already has two players"
@@ -163,7 +198,7 @@ contract Battle {
 
         battle.characterIds[1] = characterTokenId;
         battle.players[1] = msg.sender;
-        battle.isBattleStarted = true;
+        battle.battleStatus = BattleStatus.STARTED;
 
         playerOngoingBattle[msg.sender] = battleId;
 
@@ -178,8 +213,10 @@ contract Battle {
         Move move
     ) external onlyParticipant(battleId) {
         BattleData storage battle = battles[battleId];
-        require(battle.isBattleStarted, "Battle has not started");
-        require(!battle.isBattleEnded, "Battle has ended");
+        require(
+            battle.battleStatus == BattleStatus.STARTED,
+            "Battle has not started or has already ended"
+        );
         require(
             move == Move.ATTACK ||
                 move == Move.DEFEND ||
@@ -187,25 +224,15 @@ contract Battle {
             "Invalid move: must be ATTACK, DEFEND, or USE_SKILL"
         );
 
-        if (msg.sender == battle.players[0]) {
-            require(
-                !battle.moveSubmitted[0],
-                "Move already submitted by player 1"
-            );
-            battle.moves[0] = uint256(move);
-            battle.moveSubmitted[0] = true; // Set the flag
-            emit MoveSubmitted(battleId, msg.sender, move);
-        } else if (msg.sender == battle.players[1]) {
-            require(
-                !battle.moveSubmitted[1],
-                "Move already submitted by player 2"
-            );
-            battle.moves[1] = uint256(move);
-            battle.moveSubmitted[1] = true; // Set the flag
-            emit MoveSubmitted(battleId, msg.sender, move);
-        } else {
-            revert("Not a participant of the battle");
-        }
+        uint256 playerIndex = (msg.sender == battle.players[0]) ? 0 : 1;
+        require(
+            !battle.moveSubmitted[playerIndex],
+            "Move already submitted by player"
+        );
+
+        battle.moves[playerIndex] = uint256(move);
+        battle.moveSubmitted[playerIndex] = true; // Set the flag
+        emit MoveSubmitted(battleId, msg.sender, move);
 
         // Add these lines
         console.log(
@@ -361,7 +388,7 @@ contract Battle {
             ((uint256(
                 keccak256(
                     abi.encodePacked(
-                        block.difficulty,
+                        block.prevrandao,
                         block.timestamp,
                         msg.sender
                     )
@@ -389,15 +416,40 @@ contract Battle {
             : _endBattle(_battleId, _battle.players[0]);
     }
 
-    function _endBattle(uint256 battleId, address _winner) internal {
-        BattleData storage battle = battles[battleId];
-        battle.isBattleEnded = true;
-        battle.winner = _winner;
+    function _endBattle(uint256 _battleId, address _winner) internal {
+        battles[_battleId].winner = _winner;
+        battles[_battleId].battleStatus = BattleStatus.ENDED;
 
-        playerOngoingBattle[battle.players[0]] = 0;
-        playerOngoingBattle[battle.players[1]] = 0;
+        uint256 index = battleIdToActiveIndex[_battleId];
+        uint256 lastIndex = activeBattlesId.length - 1;
+        uint256 lastBattleId = activeBattlesId[lastIndex];
 
-        emit BattleEnded(_winner);
+        activeBattlesId[index] = lastBattleId;
+        battleIdToActiveIndex[lastBattleId] = index;
+        activeBattlesId.pop();
+        delete battleIdToActiveIndex[_battleId];
+
+        // Update the playerOngoingBattle mapping for both players
+        address player1 = battles[_battleId].players[0];
+        address player2 = battles[_battleId].players[1];
+        playerOngoingBattle[player1] = 0;
+        playerOngoingBattle[player2] = 0;
+
+        emit BattleEnded(_battleId, _winner);
+    }
+
+    function getBattle(
+        uint256 _battleId
+    ) external view returns (BattleData memory) {
+        return battles[_battleId];
+    }
+
+    function getActiveBattlesId() public view returns (uint256[] memory) {
+        return activeBattlesId;
+    }
+
+    function getActiveBattlesCount() external view returns (uint256) {
+        return activeBattlesId.length;
     }
 
     function getBattleParticipants(
