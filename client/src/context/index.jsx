@@ -139,7 +139,8 @@ export const GlobalContextProvider = ({ children }) => {
     if (step === -1 && battleContract) {
       createEventListeners({
         navigate,
-        contract: battleContract,
+        battleContract,
+        characterContract,
         provider,
         walletAddress,
         setShowAlert,
@@ -154,7 +155,10 @@ export const GlobalContextProvider = ({ children }) => {
   useEffect(() => {
     const fetchGameData = async () => {
       if (battleContract) {
-        const fetchedBattles = await battleContract.getAllBattles();
+        const activeBattlesId = await battleContract.getActiveBattlesId();
+        const fetchedBattles = await Promise.all(
+          activeBattlesId.map((id) => battleContract.getBattle(id))
+        );
         const pendingBattles = fetchedBattles.filter(
           (battle) => battle.battleStatus === 0
         );
@@ -171,7 +175,10 @@ export const GlobalContextProvider = ({ children }) => {
           }
         });
 
-        setGameData({ pendingBattles: pendingBattles.slice(1), activeBattle });
+        setGameData({
+          pendingBattles: pendingBattles,
+          activeBattle,
+        });
       }
     };
 
