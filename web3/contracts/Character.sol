@@ -48,6 +48,8 @@ contract Character is ERC721Base, ERC1155Holder {
         string uri;
     }
 
+    event NewCharacter(uint256 indexed tokenId, uint256 indexed typeId);
+
     mapping(uint256 => CharacterStats) private characterStats;
     mapping(uint256 => CharacterEquips) private characterEquips;
     mapping(uint256 => CharacterType) private characterTypes;
@@ -223,6 +225,9 @@ contract Character is ERC721Base, ERC1155Holder {
 
         // Increment the token ID counter for the next mint
         numCharacters++;
+
+        // Emit the new character event
+        emit NewCharacter(numCharacters - 1, _typeId);
     }
 
     function addStats(
