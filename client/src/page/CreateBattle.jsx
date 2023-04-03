@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { ethers } from "ethers";
 import { useNavigate } from "react-router-dom";
+import {
+  useOwnedNFTs,
+  useContract,
+  ThirdwebNftMedia,
+} from "@thirdweb-dev/react";
+import { characterContractAddress } from "../contract";
 
 import styles from "../styles";
 import { useGlobalContext } from "../context";
@@ -13,20 +18,33 @@ import {
 } from "../components";
 
 const CreateBattle = () => {
-  const { contract, gameData, setBattleName, setErrorMessage, walletAddress } =
-    useGlobalContext();
+  const {
+    characterContract,
+    battleContract,
+    gameData,
+    setBattleName,
+    setErrorMessage,
+    walletAddress,
+  } = useGlobalContext();
   const [waitBattle, setWaitBattle] = useState(false);
   const [battleTempName, setBattleTempName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const refresh = () => window.location.reload(true);
 
+  const { contract: charContract, isLoading: charLoad } = useContract(
+    characterContractAddress
+  );
+
+  const { data: ownedNfts } = useOwnedNFTs(charContract, walletAddress);
+  console.log(ownedNfts);
+
   useEffect(() => {
     if (!walletAddress) navigate("/");
 
     const checkPlayer = async () => {
-      const playerExists = await contract?.isPlayer(walletAddress);
-      if (!playerExists) {
+      const hasCharacter = await characterContract.balanceOf(walletAddress);
+      if (!hasCharacter) {
         navigate("/");
       }
     };
@@ -41,29 +59,32 @@ const CreateBattle = () => {
     if (gameData?.activeBattle?.battleStatus === 0) {
       setWaitBattle(true);
     } else if (gameData?.activeBattle?.battleStatus === 1) {
-      // setWaitBattle(true);
       navigate(`/battle/${gameData.activeBattle.name}`);
     }
   }, [gameData, walletAddress]);
+
+  console.log(ownedNfts);
+
+  let content;
+  if (charLoad && Array.isArray(ownedNfts) && ownedNfts.length > 0) {
+    content = ownedNfts.map((c, i) => <div key={i}>{c.metadata.id}</div>);
+  } else {
+    content = (
+      <div className="text-center">
+        <p>You don't have a character!</p>
+        <p>Create one and join the battle!</p>
+      </div>
+    );
+  }
 
   const handleClick = async () => {
     if (battleTempName === "" || battleTempName.trim() === "") return null;
 
     try {
       setIsLoading(true);
-      const credit = await contract.playerCredit(walletAddress);
-      console.log(ethers.utils.formatEther(credit));
-      if (ethers.utils.formatEther(credit) > 0) {
-        const tx = await contract.createBattle(battleTempName);
-        await tx.wait(1);
-      } else {
-        const fees = await contract.battleFee();
-        const tx = await contract.createBattle(battleTempName, {
-          gasLimit: 500000,
-          value: fees,
-        });
-        await tx.wait(1);
-      }
+
+      const tx = await battleContract.createBattle(battleTempName);
+      await tx.wait(1);
 
       setBattleName(battleTempName);
       setIsLoading(false);
@@ -86,6 +107,7 @@ const CreateBattle = () => {
           value={battleTempName}
           handleValueChange={setBattleTempName}
         />
+        <div>{content}</div>
 
         <CustomButton
           title="Create Battle"
