@@ -85,16 +85,16 @@ async function main() {
     "Approved character contract address for approved operator account"
   );
 
-  // Mint a character with typeId 0 and skillID 0 for owner account
-  await character.mintNewCharacterWithItemAndEquip(0, 0);
-  console.log("Minted character with typeId 0 and skillID 0 for owner account");
+  // // Mint a character with typeId 0 and skillID 0 for owner account
+  // await character.mintNewCharacterWithItemAndEquip(0, 0);
+  // console.log("Minted character with typeId 0 and skillID 0 for owner account");
 
-  // Mint a character with typeId 1 and skillID 0 for approved operator account
-  const characterWithApprovedOperator = character.connect(approvedOperator);
-  await characterWithApprovedOperator.mintNewCharacterWithItemAndEquip(1, 0);
-  console.log(
-    "Minted character with typeId 1 and skillID 0 for approved operator account"
-  );
+  // // Mint a character with typeId 1 and skillID 0 for approved operator account
+  // const characterWithApprovedOperator = character.connect(approvedOperator);
+  // await characterWithApprovedOperator.mintNewCharacterWithItemAndEquip(1, 0);
+  // console.log(
+  //   "Minted character with typeId 1 and skillID 0 for approved operator account"
+  // );
 
   // Copy contract artifacts to client directory
   await copyContracts(
