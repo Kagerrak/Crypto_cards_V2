@@ -45,6 +45,16 @@ const Home = () => {
     }
   }, [gameData]);
 
+  useEffect(() => {
+    const createCharacter = async () => {
+      const hasCharacter = await characterContract.balanceOf(walletAddress);
+
+      if (hasCharacter) navigate("/create-battle");
+    };
+
+    if (characterContract) createCharacter();
+  }, [characterContract, walletAddress]);
+
   return (
     walletAddress && (
       <>
