@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-etherscan";
 
 dotenv.config();
 
@@ -10,6 +11,12 @@ dotenv.config();
 //* Transactions on the C-Chain might take 2-10 seconds -> the ones on the subnet will be much faster
 //* On C-Chain we're relaying on the Avax token to confirm transactions -> on the subnet we can create our own token
 //* You are in complete control over the network and it's inner workings
+const {
+  POLYGON_MUMBAI_RPC_PROVIDER,
+  PRIVATE_KEY,
+  PRIVATE_KEY1,
+  POLYGONSCAN_API_KEY,
+} = process.env;
 
 export default {
   solidity: {
@@ -32,11 +39,18 @@ export default {
     localhost: {
       chainId: 31337,
     },
+    mumbai: {
+      url: POLYGON_MUMBAI_RPC_PROVIDER,
+      accounts: [PRIVATE_KEY, PRIVATE_KEY1],
+    },
     // subnet: {
     //   url: process.env.NODE_URL,
     //   chainId: Number(process.env.CHAIN_ID),
     //   gasPrice: 'auto',
     //   accounts: [process.env.PRIVATE_KEY],
     // },
+  },
+  etherscan: {
+    apiKey: POLYGONSCAN_API_KEY,
   },
 };
