@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 import copyContracts from "./copy-contracts";
+import { verify } from "./verify";
 
 async function deploy(name: string, ...params: [string]) {
   const contractFactory = await ethers.getContractFactory(name);
@@ -103,6 +104,8 @@ async function main() {
     battleSkills.address,
     battleItems.address
   );
+
+  await verify(character.address, []);
 }
 
 main()
