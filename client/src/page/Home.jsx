@@ -19,9 +19,7 @@ const Home = () => {
   const handleClick = async () => {
     try {
       setIsLoading(true);
-      const tx = await characterContract.newCharacter(typeID, {
-        gasLimit: 500000,
-      });
+      const tx = await characterContract.newCharacter(typeID);
 
       await tx.wait(1);
 
@@ -36,6 +34,7 @@ const Home = () => {
       setTimeout(() => navigate("/create-battle"), 8000);
     } catch (error) {
       setErrorMessage(error);
+      setIsLoading(false);
     }
   };
 
@@ -49,7 +48,7 @@ const Home = () => {
     const createCharacter = async () => {
       const hasCharacter = await characterContract.balanceOf(walletAddress);
 
-      if (hasCharacter) navigate("/create-battle");
+      if (hasCharacter.toNumber() > 0) navigate("/create-battle");
     };
 
     if (characterContract) createCharacter();
