@@ -78,7 +78,7 @@ export const GetParams = async () => {
   // 43113 Fuji Testnet
   // 80001 Mumbai
   // 31337 Hardhat localHost
-  if (getChainID() !== 31337) {
+  if (getChainID() !== 80001) {
     response.step = 2;
     return response;
   }
