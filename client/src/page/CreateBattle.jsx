@@ -28,6 +28,7 @@ const CreateBattle = () => {
   } = useGlobalContext();
   const [waitBattle, setWaitBattle] = useState(false);
   const [battleTempName, setBattleTempName] = useState("");
+  const [selectedTokenID, setSelectedTokenID] = useState(null); // new state variable
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const refresh = () => window.location.reload(true);
@@ -44,6 +45,7 @@ const CreateBattle = () => {
 
     const checkPlayer = async () => {
       const hasCharacter = await characterContract.balanceOf(walletAddress);
+      console.log(hasCharacter.toNumber());
       if (!hasCharacter) {
         navigate("/");
       }
@@ -66,8 +68,25 @@ const CreateBattle = () => {
   console.log(ownedNfts);
 
   let content;
-  if (charLoad && Array.isArray(ownedNfts) && ownedNfts.length > 0) {
-    content = ownedNfts.map((c, i) => <div key={i}>{c.metadata.id}</div>);
+  if (charLoad) {
+    content = <Loader />;
+  } else if (Array.isArray(ownedNfts) && ownedNfts.length > 0) {
+    console.log(ownedNfts);
+    content = ownedNfts.map((c) => (
+      <div
+        key={c.metadata.id}
+        className={`${styles.nftContainer} hover:${
+          styles.nftOverlayHover
+        } focus:${styles.nftOverlayHover} ${
+          selectedTokenID === c.metadata.id ? styles.nftSelected : ""
+        }`}
+        onClick={() => setSelectedTokenID(c.metadata.id)}
+      >
+        {console.log(selectedTokenID)}
+        <div className={styles.nftOverlay} />
+        <ThirdwebNftMedia metadata={c.metadata} height={200} />
+      </div>
+    ));
   } else {
     content = (
       <div className="text-center">
@@ -83,7 +102,10 @@ const CreateBattle = () => {
     try {
       setIsLoading(true);
 
-      const tx = await battleContract.createBattle(battleTempName);
+      const tx = await battleContract.createBattle(
+        battleTempName,
+        selectedTokenID
+      );
       await tx.wait(1);
 
       setBattleName(battleTempName);
@@ -107,7 +129,7 @@ const CreateBattle = () => {
           value={battleTempName}
           handleValueChange={setBattleTempName}
         />
-        <div>{content}</div>
+        {content}
 
         <CustomButton
           title="Create Battle"
