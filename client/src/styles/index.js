@@ -134,6 +134,12 @@ const styles = {
 
   linkDropdown:
     "font-rajdhani font-bold text-xl text-white cursor-pointer peer hover:text-siteViolet",
+
+  // new addition for create battle
+  nftContainer: "relative",
+  nftOverlay: "absolute inset-0 opacity-0 transition-opacity",
+  nftOverlayHover: "opacity-50 bg-gray-800 backdrop-filter backdrop-blur-sm",
+  nftSelected: "bg-gray-800 backdrop-filter backdrop-blur-sm",
 };
 
 export default styles;
