@@ -52,7 +52,6 @@ contract Character is ERC721Base, ERC1155Holder {
 
     mapping(uint256 => CharacterStats) private characterStats;
     mapping(uint256 => CharacterEquips) private characterEquips;
-    mapping(uint256 => CharacterType) private characterTypes;
 
     BattleSkills public battleSkills;
     BattleItems public battleItems;
@@ -132,14 +131,14 @@ contract Character is ERC721Base, ERC1155Holder {
             CharacterType(
                 0,
                 "Warrior",
-                "ipfs://QmUyWmpry8Sri9BmsHSQMDBPtnPZkoX6GS7w8ZizpnFX7v"
+                "ipfs://QmZzBmjrjn742Dx8wPHheq8XbzkowWS6xqvLHURTSvLQCo"
             )
         );
         charTypes.push(
             CharacterType(
                 1,
                 "Mage",
-                "ipfs://QmUyWmpry8Sri9BmsHSQMDBPtnPZkoX6GS7w8ZizpnFX7v"
+                "ipfs://QmTYEiXiTzBhYuwuQ7bjS5aqChrefEJZ37as8BDrKYxk1j"
             )
         );
         charTypes.push(
@@ -200,7 +199,7 @@ contract Character is ERC721Base, ERC1155Holder {
         _safeMint(msg.sender, 1);
 
         // Set the token URI for the new token
-        _setTokenURI(numCharacters, characterTypes[_typeId].uri);
+        _setTokenURI(numCharacters, charTypes[_typeId].uri);
 
         // Initialize the character stats and equipment
         CharacterStats memory _stats = CharacterStats(
