@@ -26,7 +26,7 @@ import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <ThirdwebProvider activeChain="localhost">
+    <ThirdwebProvider activeChain="mumbai">
       <GlobalContextProvider>
         <Navbar />
         <OnboardModal />
