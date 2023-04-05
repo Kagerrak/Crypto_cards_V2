@@ -8,7 +8,7 @@ import { player01, player02 } from "../assets";
 import styles from "../styles";
 
 const GameLoad = () => {
-  const { walletAddress, contract, gameData, setErrorMessage } =
+  const { walletAddress, battleContract, gameData, setErrorMessage } =
     useGlobalContext();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -17,9 +17,9 @@ const GameLoad = () => {
   const handleCancel = async () => {
     try {
       setIsLoading(true);
-      const battleName = gameData.activeBattle.name;
-      console.log(battleName);
-      const tx = await contract.cancelBattle(battleName);
+      const { battleId } = gameData.activeBattle;
+      console.log(battleId);
+      const tx = await battleContract.cancelBattle(battleId);
       await tx.wait(1);
       setIsLoading(false);
       navigate("/create-battle");
