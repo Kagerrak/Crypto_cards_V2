@@ -19,6 +19,7 @@ contract Battle {
     }
 
     struct BattleData {
+        uint256 battleId;
         string name;
         address[2] players;
         uint256[2] characterIds;
@@ -126,6 +127,7 @@ contract Battle {
         uint256 battleId = battleCounter;
 
         BattleData memory newBattle = BattleData({
+            battleId: battleCounter,
             name: _name,
             players: [msg.sender, address(0)],
             characterIds: [_characterTokenId, 0],
