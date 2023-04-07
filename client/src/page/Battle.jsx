@@ -18,7 +18,9 @@ import { playAudio } from "../utils/animation.js";
 
 const Battle = () => {
   const {
-    contract,
+    battleContract,
+    battleSkillsContract,
+    battleItemsContract,
     gameData,
     battleGround,
     walletAddress,
@@ -28,6 +30,7 @@ const Battle = () => {
     player1Ref,
     player2Ref,
   } = useGlobalContext();
+
   const [player2, setPlayer2] = useState({});
   const [player2Character, setPlayer2Character] = useState({});
   const [player1Character, setPlayer1Character] = useState({});
@@ -55,13 +58,17 @@ const Battle = () => {
 
         const p1TokenData = await contract.getPlayerToken(player01Address);
         const p2TokenData = await contract.getPlayerToken(player02Address);
-        const player01 = await contract.getPlayer(player01Address);
-        const player02 = await contract.getPlayer(player02Address);
+        const player01 = await battleContract.getCharacterProxy(
+          player01Address
+        );
+        const player02 = await battleContract.getCharacterProxy(
+          player02Address
+        );
 
-        const p1Att = p1TokenData.attackStrength.toNumber();
-        const p1Def = p1TokenData.defenseStrength.toNumber();
+        const p1Att = player01.attack.toNumber();
+        const p1Def = player01.defenseth.toNumber();
 
-        const tokenId = p1TokenData.id.toNumber();
+        const tokenId = player01.id.toNumber();
 
         const p1Character = await contract.gameCharacters(
           p1TokenData.id.toNumber() - 1
@@ -73,13 +80,13 @@ const Battle = () => {
 
         setPlayer1Character({
           ...player1Character,
-          health: p1Character.health,
-          mana: p1Character.mana,
+          health: player01.health,
+          mana: player01.mana,
         });
         setPlayer2Character({
           ...player2Character,
-          health: p2Character.health,
-          mana: p2Character.mana,
+          health: player02.health,
+          mana: player02.mana,
         });
 
         const characterInfo = characters.filter((item) => {
@@ -90,10 +97,10 @@ const Battle = () => {
 
         console.log("hello", { ...characterInfo });
 
-        const p1H = player01.playerHealth.toNumber();
-        const p1M = player01.playerMana.toNumber();
-        const p2H = player02.playerHealth.toNumber();
-        const p2M = player02.playerMana.toNumber();
+        const p1H = player01.health.toNumber();
+        const p1M = player01.mana.toNumber();
+        const p2H = player02.health.toNumber();
+        const p2M = player02.mana.toNumber();
 
         //console.log("p1H",p1H,p1Character.health.toNumber(),p2H,p2Character.health.toNumber());
 
@@ -110,8 +117,8 @@ const Battle = () => {
       }
     };
 
-    if (contract && gameData.activeBattle) getPlayerInfo();
-  }, [contract, gameData, battleName]);
+    if (battleContract && gameData.activeBattle) getPlayerInfo();
+  }, [battleContract, gameData, battleName]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -119,13 +126,13 @@ const Battle = () => {
     }, [2000]);
 
     return () => clearTimeout(timer);
-  }, [contract]);
+  }, [battleContract]);
 
   const makeAMove = async (choice) => {
     playAudio(choice === 1 ? attackSound : defenseSound);
 
     try {
-      await contract.attackOrDefendChoice(choice, battleName, {
+      await battleContract.submitMove(choice, battleName, {
         gasLimit: 200000,
       });
 
