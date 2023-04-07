@@ -182,7 +182,6 @@ export const characters = [
     name: "WIZARD",
     tokenId: 3,
     image: Wizard,
-    tooltip: "A starting level spell, but packs quite a punch.",
     type: "Spells",
     battle_icon: spell,
     value: "Fireball",
