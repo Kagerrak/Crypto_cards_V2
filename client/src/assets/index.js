@@ -180,7 +180,7 @@ export const inns = [
 export const characters = [
   {
     name: "WIZARD",
-    tokenId: 3,
+    characterType: 3,
     image: Wizard,
     type: "Spells",
     battle_icon: spell,
@@ -199,7 +199,7 @@ export const characters = [
   },
   {
     name: "WARRIOR",
-    tokenId: 4,
+    characterType: 4,
     image: Warrior,
     type: "Skills",
     battle_icon: skill,
