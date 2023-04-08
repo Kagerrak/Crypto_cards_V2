@@ -19,8 +19,6 @@ import { playAudio } from "../utils/animation.js";
 const Battle = () => {
   const {
     battleContract,
-    battleSkillsContract,
-    battleItemsContract,
     gameData,
     battleGround,
     walletAddress,
@@ -32,8 +30,6 @@ const Battle = () => {
   } = useGlobalContext();
 
   const [player2, setPlayer2] = useState({});
-  const [player2Character, setPlayer2Character] = useState({});
-  const [player1Character, setPlayer1Character] = useState({});
   const [player1, setPlayer1] = useState({});
   const [character, setCharacter] = useState();
   const { battleName } = useParams();
@@ -56,8 +52,6 @@ const Battle = () => {
           player02Address = gameData.activeBattle.players[0];
         }
 
-        const p1TokenData = await contract.getPlayerToken(player01Address);
-        const p2TokenData = await contract.getPlayerToken(player02Address);
         const player01 = await battleContract.getCharacterProxy(
           player01Address
         );
@@ -68,41 +62,18 @@ const Battle = () => {
         const p1Att = player01.attack.toNumber();
         const p1Def = player01.defenseth.toNumber();
 
-        const tokenId = player01.id.toNumber();
+        const typeId = player01.id.toNumber();
 
-        const p1Character = await contract.gameCharacters(
-          p1TokenData.id.toNumber() - 1
-        );
-
-        const p2Character = await contract.gameCharacters(
-          p2TokenData.id.toNumber() - 1
-        );
-
-        setPlayer1Character({
-          ...player1Character,
-          health: player01.health,
-          mana: player01.mana,
-        });
-        setPlayer2Character({
-          ...player2Character,
-          health: player02.health,
-          mana: player02.mana,
-        });
-
-        const characterInfo = characters.filter((item) => {
-          return item.tokenId === tokenId;
-        })[0];
+        const characterInfo = characters.filter(
+          (item) => item.characterType === typeId
+        )[0];
 
         setCharacter(characterInfo);
-
-        console.log("hello", { ...characterInfo });
 
         const p1H = player01.health.toNumber();
         const p1M = player01.mana.toNumber();
         const p2H = player02.health.toNumber();
         const p2M = player02.mana.toNumber();
-
-        //console.log("p1H",p1H,p1Character.health.toNumber(),p2H,p2Character.health.toNumber());
 
         setPlayer1({
           ...player01,
@@ -129,7 +100,7 @@ const Battle = () => {
   }, [battleContract]);
 
   const makeAMove = async (choice) => {
-    playAudio(choice === 1 ? attackSound : defenseSound);
+    playAudio(choice === 1 ? attackSound : choice === 2 ? defenseSound : null);
 
     try {
       await battleContract.submitMove(choice, battleName, {
@@ -139,7 +110,9 @@ const Battle = () => {
       setShowAlert({
         status: true,
         type: "info",
-        message: `Initiating ${choice === 1 ? "attack" : "defense"}`,
+        message: `Initiating ${
+          choice === 1 ? "attack" : choice === 2 ? "defense" : "skill"
+        }`,
       });
     } catch (error) {
       setErrorMessage(error);
@@ -154,12 +127,7 @@ const Battle = () => {
         <Alert type={showAlert.type} message={showAlert.message} />
       )}
 
-      <PlayerInfo
-        player={player2}
-        playerIcon={player02Icon}
-        character={player2Character}
-        mt
-      />
+      <PlayerInfo player={player2} playerIcon={player02Icon} mt />
 
       <div className={`${styles.flexCenter} flex-col my-10`}>
         <Card
@@ -200,14 +168,16 @@ const Battle = () => {
             handleClick={() => makeAMove(2)}
             restStyles="ml-6 hover:border-red-600"
           />
+
+          {/* <ActionButton
+            imgUrl={skill}
+            handleClick={() => makeAMove(3)}
+            restStyles="ml-6 hover:border-red-600"
+          /> */}
         </div>
       </div>
 
-      <PlayerInfo
-        player={player1}
-        playerIcon={player01Icon}
-        character={player1Character}
-      />
+      <PlayerInfo player={player1} playerIcon={player01Icon} />
 
       <GameInfo />
     </div>
