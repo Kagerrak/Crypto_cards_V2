@@ -31,11 +31,13 @@ contract Battle {
     }
 
     struct CharacterProxy {
+        uint256 id;
         address owner;
         uint256 health;
         uint256 attack;
         uint256 defense;
         uint256 mana;
+        uint256 typeId;
     }
 
     mapping(uint256 => BattleData) public battles;
@@ -93,11 +95,13 @@ contract Battle {
         bytes32 battleKey = keccak256(abi.encodePacked(battleId, player));
 
         CharacterProxy storage p = characterProxies[battleKey][player];
+        p.id = tokenId;
         p.owner = player;
         p.health = characterContract.getCharacterHealth(tokenId);
         p.attack = characterContract.getCharacterAttack(tokenId);
         p.defense = characterContract.getCharacterDefense(tokenId);
         p.mana = characterContract.getCharacterMana(tokenId);
+        p.typeId = characterContract.getCharacterType(tokenId);
 
         console.log("Character proxy created for player", player);
         console.log("Health:", p.health);
@@ -390,7 +394,7 @@ contract Battle {
             ((uint256(
                 keccak256(
                     abi.encodePacked(
-                        block.prevrandao,
+                        block.difficulty,
                         block.timestamp,
                         msg.sender
                     )
