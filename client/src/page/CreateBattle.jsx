@@ -5,8 +5,8 @@ import {
   useContract,
   ThirdwebNftMedia,
 } from "@thirdweb-dev/react";
-import { characterContractAddress } from "../contract";
 
+import { characterContractAddress } from "../contract";
 import styles from "../styles";
 import { useGlobalContext } from "../context";
 import {
