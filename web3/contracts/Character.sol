@@ -103,7 +103,7 @@ contract Character is ERC721Base, ERC1155Holder {
                 100,
                 100,
                 5,
-                0
+                1
             )
         );
         charStats.push(
@@ -121,7 +121,7 @@ contract Character is ERC721Base, ERC1155Holder {
                 100,
                 100,
                 5,
-                0
+                2
             )
         );
     }
@@ -190,6 +190,11 @@ contract Character is ERC721Base, ERC1155Holder {
     function getCharacterMana(uint256 tokenId) public view returns (uint256) {
         CharacterStats storage hero = characterStats[tokenId];
         return hero.mana;
+    }
+
+    function getCharacterType(uint256 tokenId) public view returns (uint256) {
+        CharacterStats storage hero = characterStats[tokenId];
+        return hero.typeId;
     }
 
     function newCharacter(uint256 _typeId) public {
