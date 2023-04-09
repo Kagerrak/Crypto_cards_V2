@@ -31,6 +31,7 @@ const Battle = () => {
 
   const [player2, setPlayer2] = useState({});
   const [player1, setPlayer1] = useState({});
+  const [playersLoaded, setPlayersLoaded] = useState(false);
   const [character, setCharacter] = useState();
   const { battleName } = useParams();
   const navigate = useNavigate();
@@ -52,15 +53,18 @@ const Battle = () => {
           player02Address = gameData.activeBattle.players[0];
         }
 
-        const player01 = await battleContract.getCharacterProxy(
-          player01Address
-        );
-        const player02 = await battleContract.getCharacterProxy(
-          player02Address
-        );
+        const battleId = gameData.activeBattle.battleId;
+
+        const [player01, player02] = await Promise.all([
+          battleContract.getCharacterProxy(battleId, player01Address),
+          battleContract.getCharacterProxy(battleId, player02Address),
+        ]);
+
+        console.log(player01);
 
         const p1Att = player01.attack.toNumber();
-        const p1Def = player01.defenseth.toNumber();
+        console.log(p1Att);
+        const p1Def = player01.defense.toNumber();
 
         const typeId = player01.id.toNumber();
 
@@ -76,20 +80,29 @@ const Battle = () => {
         const p2M = player02.mana.toNumber();
 
         setPlayer1({
-          ...player01,
           att: p1Att,
           def: p1Def,
           health: p1H,
           mana: p1M,
         });
-        setPlayer2({ ...player02, att: "X", def: "X", health: p2H, mana: p2M });
+        setPlayer2({
+          att: "X",
+          def: "X",
+          health: p2H,
+          mana: p2M,
+        });
+        setPlayersLoaded(true);
       } catch (error) {
         setErrorMessage(error.message);
       }
     };
 
-    if (battleContract && gameData.activeBattle) getPlayerInfo();
-  }, [battleContract, gameData, battleName]);
+    if (battleContract && gameData.activeBattle) {
+      getPlayerInfo();
+    }
+  }, [battleContract, gameData.activeBattle, walletAddress]);
+
+  console.log(player1.att);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -127,57 +140,55 @@ const Battle = () => {
         <Alert type={showAlert.type} message={showAlert.message} />
       )}
 
-      <PlayerInfo player={player2} playerIcon={player02Icon} mt />
+      {playersLoaded && (
+        <>
+          <PlayerInfo player={player2} playerIcon={player02Icon} mt />
 
-      <div className={`${styles.flexCenter} flex-col my-10`}>
-        <Card
-          card={player2}
-          title={player2?.playerName}
-          cardRef={player2Ref}
-          playerTwo
-        />
-
-        {character ? (
-          <div className="flex items-center flex-row">
-            <ActionButton
-              imgUrl={character?.battle_icon}
-              handleClick={() => makeAMove(3)}
-              restStyles="ml-6 mt-6 hover:border-red-600"
+          <div className={`${styles.flexCenter} flex-col my-10`}>
+            <Card
+              card={player2}
+              title={player2?.id}
+              cardRef={player2Ref}
+              playerTwo
             />
+
+            {character ? (
+              <div className="flex items-center flex-row">
+                <ActionButton
+                  imgUrl={character?.battle_icon}
+                  handleClick={() => makeAMove(3)}
+                  restStyles="ml-6 mt-6 hover:border-red-600"
+                />
+              </div>
+            ) : (
+              <></>
+            )}
+
+            <div className="flex items-center flex-row">
+              <ActionButton
+                imgUrl={attack}
+                handleClick={() => makeAMove(1)}
+                restStyles="mr-2 hover:border-yellow-400"
+              />
+
+              <Card
+                card={player1}
+                title={player1.id}
+                cardRef={player1Ref}
+                restStyles="mt-3"
+              />
+
+              <ActionButton
+                imgUrl={defense}
+                handleClick={() => makeAMove(2)}
+                restStyles="ml-6 hover:border-red-600"
+              />
+            </div>
           </div>
-        ) : (
-          <></>
-        )}
 
-        <div className="flex items-center flex-row">
-          <ActionButton
-            imgUrl={attack}
-            handleClick={() => makeAMove(1)}
-            restStyles="mr-2 hover:border-yellow-400"
-          />
-
-          <Card
-            card={player1}
-            title={player1?.playerName}
-            cardRef={player1Ref}
-            restStyles="mt-3"
-          />
-
-          <ActionButton
-            imgUrl={defense}
-            handleClick={() => makeAMove(2)}
-            restStyles="ml-6 hover:border-red-600"
-          />
-
-          {/* <ActionButton
-            imgUrl={skill}
-            handleClick={() => makeAMove(3)}
-            restStyles="ml-6 hover:border-red-600"
-          /> */}
-        </div>
-      </div>
-
-      <PlayerInfo player={player1} playerIcon={player01Icon} />
+          <PlayerInfo player={player1} playerIcon={player01Icon} />
+        </>
+      )}
 
       <GameInfo />
     </div>
