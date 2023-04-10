@@ -20,12 +20,12 @@ const {
 
 export default {
   solidity: {
-    version: "0.8.17",
+    version: "0.8.15",
     settings: {
       viaIR: true,
       optimizer: {
         enabled: true,
-        runs: 100,
+        runs: 200,
       },
     },
   },
