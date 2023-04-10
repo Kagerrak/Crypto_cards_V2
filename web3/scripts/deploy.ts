@@ -46,7 +46,7 @@ async function main() {
   // Create a new skill
   const skillName = "fire";
   const damage = 10;
-  const manaCost = 30;
+  const manaCost = 10;
   const statusEffects = [];
   const tokenURI = "https://example.com/fire.json";
   await battleSkills.createSkill(
@@ -106,6 +106,7 @@ async function main() {
   );
 
   await verify(character.address, []);
+  await verify(battle.address, [character.address, battleSkills.address]);
 }
 
 main()
