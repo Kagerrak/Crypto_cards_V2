@@ -16,9 +16,7 @@ import emptyHealthbar from "../assets/empty_healthbar.png";
 // const marginIndexing = (index) =>
 //   index !== healthPoints - 1 ? "mr-1" : "mr-0";
 
-const healthPoints = 100;
-
-const PlayerInfo = ({ player, playerIcon, character, mt }) => (
+const PlayerInfo = ({ player, playerIcon, character, mt, health }) => (
   <div className={`${styles.flexCenter} ${mt ? "mt-auto" : "mb-auto"}`}>
     <img
       data-for={`Player-${mt ? "1" : "2"}`}
@@ -49,7 +47,7 @@ const PlayerInfo = ({ player, playerIcon, character, mt }) => (
         <img
           src={`${fullHealthbar}`}
           style={{
-            width: `${(player.health / 100) * 100}%`,
+            width: `${(player.health / health) * 100}%`,
             height: "115%",
             position: "absolute",
             paddingLeft: "8px",
