@@ -1,6 +1,6 @@
 /* eslint-disable prefer-destructuring */
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import styles from "../styles";
 import { ActionButton, Alert, Card, GameInfo, PlayerInfo } from "../components";
@@ -33,12 +33,16 @@ const Battle = () => {
   const [player1, setPlayer1] = useState({});
   const [playersLoaded, setPlayersLoaded] = useState(false);
   const [character, setCharacter] = useState();
-  const { battleName } = useParams();
+  const [p1InitHP, setP1InitHP] = useState(null);
+  const [p2InitHP, setP2InitHP] = useState(null);
+  const [battleId, setBattleId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const getPlayerInfo = async () => {
       try {
+        setLoading(true);
         let player01Address = null;
         let player02Address = null;
 
@@ -48,12 +52,18 @@ const Battle = () => {
         ) {
           player01Address = gameData.activeBattle.players[0];
           player02Address = gameData.activeBattle.players[1];
+          setP1InitHP(gameData.activeBattle.initialHealth[0].toNumber());
+          setP2InitHP(gameData.activeBattle.initialHealth[1].toNumber());
+          setBattleId(gameData.activeBattle.battleId);
         } else {
           player01Address = gameData.activeBattle.players[1];
           player02Address = gameData.activeBattle.players[0];
+          setP1InitHP(gameData.activeBattle.initialHealth[1].toNumber());
+          setP2InitHP(gameData.activeBattle.initialHealth[0].toNumber());
+          setBattleId(gameData.activeBattle.battleId);
         }
 
-        const battleId = gameData.activeBattle.battleId;
+        console.log(p1InitHP, p2InitHP);
 
         const [player01, player02] = await Promise.all([
           battleContract.getCharacterProxy(battleId, player01Address),
@@ -67,14 +77,21 @@ const Battle = () => {
         const p1Def = player01.defense.toNumber();
 
         const typeId = player01.id.toNumber();
+        console.log(typeId);
 
         const characterInfo = characters.filter(
           (item) => item.characterType === typeId
         )[0];
+        console.log(characterInfo);
 
-        setCharacter(characterInfo);
+        if (characterInfo) {
+          setCharacter(characterInfo);
+        } else {
+          setCharacter(null);
+        }
 
         const p1H = player01.health.toNumber();
+        console.log(p1H);
         const p1M = player01.mana.toNumber();
         const p2H = player02.health.toNumber();
         const p2M = player02.mana.toNumber();
@@ -94,13 +111,15 @@ const Battle = () => {
         setPlayersLoaded(true);
       } catch (error) {
         setErrorMessage(error.message);
+      } finally {
+        setLoading(false);
       }
     };
 
     if (battleContract && gameData.activeBattle) {
       getPlayerInfo();
     }
-  }, [battleContract, gameData.activeBattle, walletAddress]);
+  }, [battleContract, gameData.activeBattle, walletAddress, character]);
 
   console.log(player1.att);
 
@@ -113,10 +132,10 @@ const Battle = () => {
   }, [battleContract]);
 
   const makeAMove = async (choice) => {
-    playAudio(choice === 1 ? attackSound : choice === 2 ? defenseSound : null);
+    playAudio(choice === 0 ? attackSound : choice === 1 ? defenseSound : null);
 
     try {
-      await battleContract.submitMove(choice, battleName, {
+      await battleContract.submitMove(battleId, choice, {
         gasLimit: 200000,
       });
 
@@ -124,13 +143,17 @@ const Battle = () => {
         status: true,
         type: "info",
         message: `Initiating ${
-          choice === 1 ? "attack" : choice === 2 ? "defense" : "skill"
+          choice === 0 ? "attack" : choice === 1 ? "defense" : "skill"
         }`,
       });
     } catch (error) {
       setErrorMessage(error);
     }
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div
@@ -142,7 +165,12 @@ const Battle = () => {
 
       {playersLoaded && (
         <>
-          <PlayerInfo player={player2} playerIcon={player02Icon} mt />
+          <PlayerInfo
+            player={player2}
+            playerIcon={player02Icon}
+            mt
+            health={p2InitHP}
+          />
 
           <div className={`${styles.flexCenter} flex-col my-10`}>
             <Card
@@ -152,22 +180,20 @@ const Battle = () => {
               playerTwo
             />
 
-            {character ? (
+            {character && (
               <div className="flex items-center flex-row">
                 <ActionButton
-                  imgUrl={character?.battle_icon}
-                  handleClick={() => makeAMove(3)}
+                  imgUrl={character.icon}
+                  handleClick={() => makeAMove(2)}
                   restStyles="ml-6 mt-6 hover:border-red-600"
                 />
               </div>
-            ) : (
-              <></>
             )}
 
             <div className="flex items-center flex-row">
               <ActionButton
                 imgUrl={attack}
-                handleClick={() => makeAMove(1)}
+                handleClick={() => makeAMove(0)}
                 restStyles="mr-2 hover:border-yellow-400"
               />
 
@@ -180,13 +206,17 @@ const Battle = () => {
 
               <ActionButton
                 imgUrl={defense}
-                handleClick={() => makeAMove(2)}
+                handleClick={() => makeAMove(1)}
                 restStyles="ml-6 hover:border-red-600"
               />
             </div>
           </div>
 
-          <PlayerInfo player={player1} playerIcon={player01Icon} />
+          <PlayerInfo
+            player={player1}
+            playerIcon={player01Icon}
+            health={p1InitHP}
+          />
         </>
       )}
 
