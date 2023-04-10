@@ -14,8 +14,8 @@ async function mintSkill() {
 
   // Create a new skill
   const skillName = "earth";
-  const damage = 12;
-  const manaCost = 40;
+  const damage = 10;
+  const manaCost = 10;
   const statusEffects = [];
   const tokenURI = "https://example.com/earth.json";
   await battleSkills.createSkill(
