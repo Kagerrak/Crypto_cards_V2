@@ -273,6 +273,8 @@ contract Battle {
             battle.players[1]
         ];
 
+        address[2] memory _damagedPlayers = [address(0), address(0)];
+
         // Handle different move combinations
         if (
             battle.moves[0] == uint256(Move.ATTACK) &&
@@ -289,6 +291,9 @@ contract Battle {
                 : 0;
             proxyA.mana -= 3;
             proxyB.mana -= 3;
+
+            // Both player's health damaged
+            _damagedPlayers = battle.players;
         } else if (
             battle.moves[0] == uint256(Move.DEFEND) &&
             battle.moves[1] == uint256(Move.DEFEND)
@@ -311,6 +316,9 @@ contract Battle {
             }
             proxyA.mana -= 3;
             proxyB.mana += 3;
+
+            // Player 2 health damaged
+            _damagedPlayers[0] = battle.players[1];
         } else if (
             battle.moves[0] == uint256(Move.DEFEND) &&
             battle.moves[1] == uint256(Move.ATTACK)
@@ -325,6 +333,9 @@ contract Battle {
             }
             proxyA.mana += 3;
             proxyB.mana -= 3;
+
+            // Player 1 health damaged
+            _damagedPlayers[0] = battle.players[0];
         }
 
         // USE_SKILL logic here.
@@ -343,6 +354,9 @@ contract Battle {
             proxyB.health = proxyB.health > totalDamage
                 ? proxyB.health - totalDamage
                 : 0;
+
+            // Player 2 health damaged
+            _damagedPlayers[0] = battle.players[1];
         }
 
         if (battle.moves[1] == uint256(Move.USE_SKILL)) {
@@ -359,6 +373,9 @@ contract Battle {
             proxyA.health = proxyA.health > totalDamage
                 ? proxyA.health - totalDamage
                 : 0;
+
+            // Player 1 health damaged
+            _damagedPlayers[0] = battle.players[0];
         }
 
         // Update CharacterProxy mappings
@@ -373,6 +390,8 @@ contract Battle {
             battle.players[1],
             proxyB.health
         );
+
+        emit RoundEnded(_damagedPlayers);
 
         // Check if the battle has ended and declare a winner
         if (proxyA.health == 0 || proxyB.health == 0) {
