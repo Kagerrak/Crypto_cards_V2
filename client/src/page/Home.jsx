@@ -14,6 +14,8 @@ const Home = () => {
   } = useGlobalContext();
   const [typeID, setTypeID] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingGameData, setLoadingGameData] = useState(true);
+
   const navigate = useNavigate();
 
   const handleClick = async () => {
@@ -39,8 +41,11 @@ const Home = () => {
   };
 
   useEffect(() => {
-    if (gameData?.activeBattle?.battleStatus === 1) {
-      navigate(`/battle/${gameData.activeBattle.name}`);
+    if (gameData) {
+      setLoadingGameData(false);
+      if (gameData.activeBattle && gameData.activeBattle.battleStatus === 1) {
+        navigate(`/battle/${gameData.activeBattle.name}`);
+      }
     }
   }, [gameData]);
 
@@ -57,7 +62,7 @@ const Home = () => {
   return (
     walletAddress && (
       <>
-        {isLoading ? (
+        {isLoading || loadingGameData ? (
           <Loader />
         ) : (
           <div className="flex flex-col">
