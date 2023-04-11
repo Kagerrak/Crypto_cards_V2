@@ -24,8 +24,8 @@
   transition: 0.4s ease-out;
   box-shadow: 0px 7px 10px rgba(0, 0, 0, 0.5);
 }
-.selected-card{
-  border:4px solid rgba(127, 70, 240);
+.selected-card {
+  border: 4px solid rgba(127, 70, 240);
 }
 .battle-card:hover:before {
   opacity: 1;
@@ -80,7 +80,7 @@ body {
   pointer-events: none;
 }
 
-/* .container:before {
+.container:before {
   content: "";
   position: absolute;
   top: 50%;
@@ -96,7 +96,7 @@ body {
 .container:nth-child(4n):before,
 .container:nth-child(7n):before {
   display: none;
-} */
+}
 
 .particle {
   position: absolute;
@@ -235,7 +235,7 @@ body {
   }
 }
 
-.h-500{
+.h-500 {
   height: calc(100vh - 10rem);
 }
 
