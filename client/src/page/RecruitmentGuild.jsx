@@ -12,11 +12,11 @@ const RecruitmentGuild = () => {
   const navigate = useNavigate();
   const { setBattleGround, setShowAlert, showAlert } = useGlobalContext();
   const [showInfo, setShowInfo] = useState(false);
-  const [tokenId, setTokenId] = useState();
+  const [characterType, setCharacterType] = useState();
 
   const handleAction = (tokenId) => {
     setShowInfo(!showInfo);
-    setTokenId(tokenId);
+    setCharacterType(tokenId);
   };
 
   return (
@@ -53,11 +53,11 @@ const RecruitmentGuild = () => {
       <div className={`${styles.flexCenter} ${styles.battleGroundsWrapper}`}>
         {characters.map((character) => (
           <div
-            key={character.tokenId}
+            key={character.characterType}
             className={`${styles.flexCenter} ${styles.recruitmentGroundCard}`}
             onClick={() => {
               setShowInfo(!showInfo);
-              setTokenId(character.tokenId);
+              setCharacterType(character.characterType);
             }}
           >
             <img
@@ -72,7 +72,7 @@ const RecruitmentGuild = () => {
               <CustomButton
                 title="More Info"
                 handleclick={() => {
-                  handleAction(character.tokenId);
+                  handleAction(character.characterType);
                 }}
                 restStyles="mt-6 mb-6"
               />
@@ -85,7 +85,7 @@ const RecruitmentGuild = () => {
           handleClose={() => {
             setShowInfo(false);
           }}
-          tokenId={tokenId}
+          tokenId={characterType}
         />
       </div>
       <div className="h-500"></div>
