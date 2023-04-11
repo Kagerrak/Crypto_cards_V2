@@ -9,6 +9,7 @@ const AddNewEvent = (eventFilter, provider, ABI, cb) => {
 
   provider.on(eventFilter, (logs) => {
     const parsedLog = new ethers.utils.Interface(ABI).parseLog(logs);
+    console.log(parsedLog);
 
     cb(parsedLog);
   });
