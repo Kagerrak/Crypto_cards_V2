@@ -6,8 +6,8 @@ import { useGlobalContext } from "../context";
 import { alertIcon, gameRules } from "../assets";
 import styles from "../styles";
 
-const GameInfo = () => {
-  const { contract, gameData, setErrorMessage, setShowAlert } =
+const GameInfo = ({ id }) => {
+  const { battleContract, gameData, setErrorMessage, setShowAlert } =
     useGlobalContext();
   const [toggleSidebar, setToggleSidebar] = useState(false);
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const GameInfo = () => {
     const battleName = gameData.activeBattle.name;
 
     try {
-      await contract.quitBattle(battleName);
+      await battleContract.quitBattle(id);
       setShowAlert({
         status: true,
         type: "info",
