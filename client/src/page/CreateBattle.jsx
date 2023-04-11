@@ -15,6 +15,7 @@ import {
   GameLoad,
   PageHOC,
   Loader,
+  NftItem,
 } from "../components";
 
 const CreateBattle = () => {
@@ -72,20 +73,13 @@ const CreateBattle = () => {
     content = <Loader />;
   } else if (Array.isArray(ownedNfts) && ownedNfts.length > 0) {
     console.log(ownedNfts);
-    content = ownedNfts.map((c) => (
-      <div
-        key={c.metadata.id}
-        className={`${styles.nftContainer} hover:${
-          styles.nftOverlayHover
-        } focus:${styles.nftOverlayHover} ${
-          selectedTokenID === c.metadata.id ? styles.nftSelected : ""
-        }`}
-        onClick={() => setSelectedTokenID(c.metadata.id)}
-      >
-        {console.log(selectedTokenID)}
-        <div className={styles.nftOverlay} />
-        <ThirdwebNftMedia metadata={c.metadata} height={200} />
-      </div>
+    content = ownedNfts.map((nft) => (
+      <NftItem
+        key={nft.metadata.id}
+        metadata={nft.metadata}
+        isSelected={selectedTokenID === nft.metadata.id}
+        onSelect={(id) => setSelectedTokenID(id)}
+      />
     ));
   } else {
     content = (
@@ -129,7 +123,9 @@ const CreateBattle = () => {
           value={battleTempName}
           handleValueChange={setBattleTempName}
         />
-        {content}
+
+        <p className="mt-7 text-gray-500">Select a Character</p>
+        <div className="flex flex-row mt-2 space-x-4">{content}</div>
 
         <CustomButton
           title="Create Battle"
