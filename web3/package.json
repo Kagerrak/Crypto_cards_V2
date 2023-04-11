@@ -6,6 +6,7 @@
     "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@openzeppelin/contracts": "^4.8.1",
     "@openzeppelin/hardhat-upgrades": "^1.22.0",
+    "@thirdweb-dev/cli": "^0.6.15",
     "@thirdweb-dev/contracts": "^3.4.5",
     "ethers": "^5.7.2",
     "hardhat": "^2.12.0",
