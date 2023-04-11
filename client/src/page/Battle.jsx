@@ -1,5 +1,5 @@
 /* eslint-disable prefer-destructuring */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import styles from "../styles";
@@ -36,10 +36,11 @@ const Battle = () => {
   const [p1InitHP, setP1InitHP] = useState(null);
   const [p2InitHP, setP2InitHP] = useState(null);
   const [battleId, setBattleId] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [fetched, setFetched] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const getPlayerInfo = async () => {
       try {
         setLoading(true);
@@ -116,10 +117,19 @@ const Battle = () => {
       }
     };
 
-    if (battleContract && gameData.activeBattle) {
+    if (battleContract && gameData.activeBattle && !playersLoaded && !fetched) {
       getPlayerInfo();
+    } else {
+      setLoading(false);
     }
-  }, [battleContract, gameData.activeBattle, walletAddress, character]);
+  }, [
+    battleContract,
+    gameData.activeBattle,
+    walletAddress,
+    character,
+    playersLoaded,
+    fetched,
+  ]);
 
   console.log(player1.att);
 
@@ -130,6 +140,13 @@ const Battle = () => {
 
     return () => clearTimeout(timer);
   }, [battleContract]);
+
+  useEffect(() => {
+    if (playersLoaded) {
+      setFetched(true);
+      setLoading(false);
+    }
+  }, [playersLoaded]);
 
   const makeAMove = async (choice) => {
     playAudio(choice === 0 ? attackSound : choice === 1 ? defenseSound : null);
@@ -163,7 +180,7 @@ const Battle = () => {
         <Alert type={showAlert.type} message={showAlert.message} />
       )}
 
-      {playersLoaded && (
+      {fetched && (
         <>
           <PlayerInfo
             player={player2}
@@ -220,7 +237,7 @@ const Battle = () => {
         </>
       )}
 
-      <GameInfo />
+      <GameInfo id={battleId} />
     </div>
   );
 };
