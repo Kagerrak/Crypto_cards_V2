@@ -8,7 +8,7 @@ import {
 
 import { characterContractAddress } from "../contract";
 import { useGlobalContext } from "../context";
-import { CustomButton, PageHOC, Loader } from "../components";
+import { CustomButton, PageHOC, Loader, NftItem } from "../components";
 import styles from "../styles";
 
 const JoinBattle = () => {
@@ -65,20 +65,13 @@ const JoinBattle = () => {
     content = <Loader />;
   } else if (Array.isArray(ownedNfts) && ownedNfts.length > 0) {
     console.log(ownedNfts);
-    content = ownedNfts.map((c) => (
-      <div
-        key={c.metadata.id}
-        className={`${styles.nftContainer} hover:${
-          styles.nftOverlayHover
-        } focus:${styles.nftOverlayHover} ${
-          selectedTokenID === c.metadata.id ? styles.nftSelected : ""
-        }`}
-        onClick={() => setSelectedTokenID(c.metadata.id)}
-      >
-        {console.log(selectedTokenID)}
-        <div className={styles.nftOverlay} />
-        <ThirdwebNftMedia metadata={c.metadata} height={200} />
-      </div>
+    content = ownedNfts.map((nft) => (
+      <NftItem
+        key={nft.metadata.id}
+        metadata={nft.metadata}
+        isSelected={selectedTokenID === nft.metadata.id}
+        onSelect={(id) => setSelectedTokenID(id)}
+      />
     ));
   } else {
     content = (
@@ -92,9 +85,12 @@ const JoinBattle = () => {
   return (
     <>
       {isLoading && <Loader />}
-      <h2 className={styles.joinHeadText}>Available Battles:</h2>
 
-      {content}
+      <p className=" text-gray-500">Select a Character</p>
+
+      <div className="flex flex-row my-5  space-x-5">{content}</div>
+
+      <h2 className={styles.joinHeadText}>Available Battles:</h2>
 
       <div className={styles.joinContainer}>
         {gameData.pendingBattles.length ? (
