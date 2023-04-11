@@ -11,6 +11,7 @@ import ActionButton from "./ActionButton";
 import OnboardModal from "./OnboardModal";
 import Navbar from "./Navbar";
 import Loader from "./Loader";
+import NftItem from "./NftItem";
 
 export {
   Card,
@@ -26,4 +27,5 @@ export {
   OnboardModal,
   Navbar,
   Loader,
+  NftItem,
 };
