@@ -46,7 +46,7 @@ async function main() {
   // Create a new skill
   const skillName = "fire";
   const damage = 40;
-  const manaCost = 15;
+  const manaCost = 40;
   const statusEffects = [];
   const tokenURI = "https://example.com/fire.json";
   await battleSkills.createSkill(
