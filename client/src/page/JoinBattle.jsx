@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  useOwnedNFTs,
-  useContract,
-  ThirdwebNftMedia,
-} from "@thirdweb-dev/react";
+import { useOwnedNFTs, useContract } from "@thirdweb-dev/react";
 
 import { characterContractAddress } from "../contract";
 import { useGlobalContext } from "../context";
@@ -14,6 +10,7 @@ import styles from "../styles";
 const JoinBattle = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTokenID, setSelectedTokenID] = useState(null);
+  const [loadingGameData, setLoadingGameData] = useState(true);
   const navigate = useNavigate();
   const {
     battleContract,
@@ -31,10 +28,17 @@ const JoinBattle = () => {
   const { data: ownedNfts } = useOwnedNFTs(charContract, walletAddress);
 
   useEffect(() => {
-    if (gameData?.activeBattle?.battleStatus === 1) {
-      navigate(`/battle/${gameData.activeBattle.name}`);
+    if (gameData) {
+      setLoadingGameData(false);
+      if (gameData.activeBattle && gameData.activeBattle.battleStatus === 1) {
+        console.log(
+          "Navigating to battle from JoinBattle:",
+          gameData.activeBattle.name
+        );
+        navigate(`/battle/${gameData.activeBattle.name}`);
+      }
     }
-  }, [gameData]);
+  }, [gameData, walletAddress]);
 
   const handleClick = async (battleName, battleId, characterId) => {
     setBattleName(battleName);
@@ -81,49 +85,66 @@ const JoinBattle = () => {
       </div>
     );
   }
-
   return (
-    <>
-      {isLoading && <Loader />}
-
-      <p className=" text-gray-500">Select a Character</p>
-
-      <div className="flex flex-row my-5  space-x-5">{content}</div>
-
-      <h2 className={styles.joinHeadText}>Available Battles:</h2>
-
-      <div className={styles.joinContainer}>
-        {gameData.pendingBattles.length ? (
-          gameData.pendingBattles
-            .filter(
-              (battle) =>
-                !battle.players.join().toLowerCase().includes(walletAddress) &&
-                battle.battleStatus !== 1
-            )
-            .map((battle, index) => (
-              <div key={battle.battleId + index} className={styles.flexBetween}>
-                <p className={styles.joinBattleTitle}>
-                  {index + 1}. {battle.name} {battle.battleId.toNumber()}
-                </p>
-                <CustomButton
-                  title="Join"
-                  handleClick={() =>
-                    handleClick(battle.name, battle.battleId, selectedTokenID)
-                  }
-                />
-              </div>
-            ))
+    walletAddress && (
+      <>
+        {isLoading || loadingGameData ? (
+          <Loader />
         ) : (
-          <p className={styles.joinLoading}>
-            Reload the page to see new battles
-          </p>
-        )}
-      </div>
+          <>
+            <p className=" text-gray-500">Select a Character</p>
 
-      <p className={styles.infoText} onClick={() => navigate("/create-battle")}>
-        Or create a new battle
-      </p>
-    </>
+            <div className="flex flex-row my-5  space-x-5">{content}</div>
+
+            <h2 className={styles.joinHeadText}>Available Battles:</h2>
+
+            <div className={styles.joinContainer}>
+              {gameData.pendingBattles.length ? (
+                gameData.pendingBattles
+                  .filter(
+                    (battle) =>
+                      !battle.players
+                        .join()
+                        .toLowerCase()
+                        .includes(walletAddress) && battle.battleStatus !== 1
+                  )
+                  .map((battle, index) => (
+                    <div
+                      key={battle.battleId + index}
+                      className={styles.flexBetween}
+                    >
+                      <p className={styles.joinBattleTitle}>
+                        {index + 1}. {battle.name} {battle.battleId.toNumber()}
+                      </p>
+                      <CustomButton
+                        title="Join"
+                        handleClick={() =>
+                          handleClick(
+                            battle.name,
+                            battle.battleId,
+                            selectedTokenID
+                          )
+                        }
+                      />
+                    </div>
+                  ))
+              ) : (
+                <p className={styles.joinLoading}>
+                  Reload the page to see new battles
+                </p>
+              )}
+            </div>
+
+            <p
+              className={styles.infoText}
+              onClick={() => navigate("/create-battle")}
+            >
+              Or create a new battle
+            </p>
+          </>
+        )}
+      </>
+    )
   );
 };
 
