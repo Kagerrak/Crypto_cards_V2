@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  useOwnedNFTs,
-  useContract,
-  ThirdwebNftMedia,
-} from "@thirdweb-dev/react";
+import { useOwnedNFTs, useContract } from "@thirdweb-dev/react";
 
 import { characterContractAddress } from "../contract";
 import styles from "../styles";
@@ -32,21 +28,18 @@ const CreateBattle = () => {
   const [selectedTokenID, setSelectedTokenID] = useState(null); // new state variable
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const refresh = () => window.location.reload(true);
 
   const { contract: charContract, isLoading: charLoad } = useContract(
     characterContractAddress
   );
 
   const { data: ownedNfts } = useOwnedNFTs(charContract, walletAddress);
-  console.log(ownedNfts);
 
   useEffect(() => {
     if (!walletAddress) navigate("/");
 
     const checkPlayer = async () => {
       const hasCharacter = await characterContract.balanceOf(walletAddress);
-      console.log(hasCharacter.toNumber());
       if (!hasCharacter) {
         navigate("/");
       }
@@ -66,8 +59,6 @@ const CreateBattle = () => {
     }
   }, [gameData, walletAddress]);
 
-  console.log(ownedNfts);
-
   let content;
   if (charLoad) {
     content = <Loader />;
@@ -77,7 +68,9 @@ const CreateBattle = () => {
       <NftItem
         key={nft.metadata.id}
         metadata={nft.metadata}
-        isSelected={selectedTokenID === nft.metadata.id}
+        isSelected={
+          ownedNfts.length === 1 || selectedTokenID === nft.metadata.id
+        }
         onSelect={(id) => setSelectedTokenID(id)}
       />
     ));
@@ -105,7 +98,6 @@ const CreateBattle = () => {
       setBattleName(battleTempName);
       setIsLoading(false);
       setWaitBattle(true);
-      refresh();
     } catch (error) {
       setErrorMessage(error);
       setIsLoading(false);
