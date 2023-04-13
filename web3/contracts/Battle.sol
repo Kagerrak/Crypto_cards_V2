@@ -50,10 +50,20 @@ contract Battle {
     uint256 public battleCounter;
 
     event BattleCreated(uint256 battleId, address creator, uint256 characterId);
-    event BattleJoined(uint256 battleId, address joiner, uint256 characterId);
+    event NewBattle(
+        string battleName,
+        uint256 battleId,
+        address indexed player1,
+        address indexed player2
+    );
     event BattleCancelled(uint256 indexed battleId, address indexed player);
     event RoundEnded(address[2] damagedPlayers);
-    event BattleEnded(uint256 battleId, address winner);
+    event BattleEnded(
+        string battleName,
+        uint256 battleId,
+        address indexed winner,
+        address indexed loser
+    );
     event MoveSubmitted(
         uint256 indexed battleId,
         address indexed player,
@@ -211,7 +221,7 @@ contract Battle {
         // Populate the CharacterProxy for player 2
         createCharacterProxies(characterTokenId, msg.sender, battleId);
 
-        emit BattleJoined(battleId, msg.sender, characterTokenId);
+        emit NewBattle(battle.name, battleId, battle.players[0], msg.sender);
     }
 
     function submitMove(
@@ -348,12 +358,13 @@ contract Battle {
             BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
                 skillId
             );
-            uint256 totalDamage = calculateAttackDamage(
-                proxyA.attack + skill.damage
-            );
+            uint256 totalDamage = calculateAttackDamage(skill.damage);
             proxyB.health = proxyB.health > totalDamage
                 ? proxyB.health - totalDamage
                 : 0;
+
+            // Deduct the mana cost of the skill from player 1's mana
+            proxyA.mana -= skill.manaCost;
 
             // Player 2 health damaged
             _damagedPlayers[0] = battle.players[1];
@@ -367,12 +378,13 @@ contract Battle {
             BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
                 skillId
             );
-            uint256 totalDamage = calculateAttackDamage(
-                proxyB.attack + skill.damage
-            );
+            uint256 totalDamage = calculateAttackDamage(skill.damage);
             proxyA.health = proxyA.health > totalDamage
                 ? proxyA.health - totalDamage
                 : 0;
+
+            // Deduct the mana cost of the skill from player 2's mana
+            proxyB.mana -= skill.manaCost;
 
             // Player 1 health damaged
             _damagedPlayers[0] = battle.players[0];
@@ -442,8 +454,9 @@ contract Battle {
     }
 
     function _endBattle(uint256 _battleId, address _winner) internal {
-        battles[_battleId].winner = _winner;
-        battles[_battleId].battleStatus = BattleStatus.ENDED;
+        BattleData storage battle = battles[_battleId];
+        battle.winner = _winner;
+        battle.battleStatus = BattleStatus.ENDED;
 
         uint256 index = battleIdToActiveIndex[_battleId];
         uint256 lastIndex = activeBattlesId.length - 1;
@@ -455,12 +468,16 @@ contract Battle {
         delete battleIdToActiveIndex[_battleId];
 
         // Update the playerOngoingBattle mapping for both players
-        address player1 = battles[_battleId].players[0];
-        address player2 = battles[_battleId].players[1];
+        address player1 = battle.players[0];
+        address player2 = battle.players[1];
         playerOngoingBattle[player1] = 0;
         playerOngoingBattle[player2] = 0;
 
-        emit BattleEnded(_battleId, _winner);
+        // Determine the loser
+        address _loser = _winner == player1 ? player2 : player1;
+
+        // Emit the updated BattleEnded event
+        emit BattleEnded(battle.name, _battleId, _winner, _loser);
     }
 
     function getBattle(
