@@ -44,10 +44,14 @@ const Home = () => {
     if (gameData) {
       setLoadingGameData(false);
       if (gameData.activeBattle && gameData.activeBattle.battleStatus === 1) {
+        console.log(
+          "Navigating to battle from Home:",
+          gameData.activeBattle.name
+        );
         navigate(`/battle/${gameData.activeBattle.name}`);
       }
     }
-  }, [gameData]);
+  }, [gameData, navigate]);
 
   useEffect(() => {
     const createCharacter = async () => {
