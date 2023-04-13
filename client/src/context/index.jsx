@@ -47,6 +47,7 @@ export const GlobalContextProvider = ({ children }) => {
   const [battleName, setBattleName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [updateGameData, setUpdateGameData] = useState(0);
+  const [playerData, setPlayerData] = useState({});
 
   const player1Ref = useRef();
   const player2Ref = useRef();
@@ -175,6 +176,11 @@ export const GlobalContextProvider = ({ children }) => {
           }
         });
 
+        console.log("Fetched game data:", {
+          pendingBattles: pendingBattles,
+          activeBattle,
+        }); // Add this line
+
         setGameData({
           pendingBattles: pendingBattles,
           activeBattle,
@@ -184,6 +190,43 @@ export const GlobalContextProvider = ({ children }) => {
 
     fetchGameData();
   }, [battleContract, updateGameData, walletAddress]);
+
+  useEffect(() => {
+    const fetchPlayerData = async () => {
+      if (gameData.activeBattle && battleContract) {
+        let player01Address = null;
+        let player02Address = null;
+        if (
+          gameData.activeBattle.players[0].toLowerCase() ===
+          walletAddress.toLowerCase()
+        ) {
+          player01Address = gameData.activeBattle.players[0];
+          player02Address = gameData.activeBattle.players[1];
+        } else {
+          player01Address = gameData.activeBattle.players[1];
+          player02Address = gameData.activeBattle.players[0];
+        }
+
+        const [player1Data, player2Data] = await Promise.all([
+          battleContract.getCharacterProxy(
+            gameData.activeBattle.battleId,
+            player01Address
+          ),
+          battleContract.getCharacterProxy(
+            gameData.activeBattle.battleId,
+            player02Address
+          ),
+        ]);
+
+        setPlayerData({
+          player1Data,
+          player2Data,
+        });
+      }
+    };
+
+    fetchPlayerData();
+  }, [battleContract, updateGameData, gameData.activeBattle, walletAddress]);
 
   //* Handle alerts
   useEffect(() => {
@@ -229,6 +272,7 @@ export const GlobalContextProvider = ({ children }) => {
         setBattleName,
         errorMessage,
         setErrorMessage,
+        playerData,
       }}
     >
       {children}
