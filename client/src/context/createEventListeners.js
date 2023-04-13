@@ -56,14 +56,46 @@ export const createEventListeners = ({
     }
   );
 
-  const NewBattleEventFilter = battleContract.filters.BattleCreated();
+  const BattleCreatedEventFilter = battleContract.filters.BattleCreated();
+  AddNewEvent(
+    BattleCreatedEventFilter,
+    provider,
+    battleContractABI,
+    ({ args }) => {
+      console.log("Battle created!", args, walletAddress);
+
+      setUpdateGameData((prevUpdateGameData) => prevUpdateGameData + 1);
+    }
+  );
+
+  const BattleCancelledEventFilter = battleContract.filters.BattleCancelled();
+  AddNewEvent(
+    BattleCancelledEventFilter,
+    provider,
+    battleContractABI,
+    ({ args }) => {
+      console.log("Battle Cancelled!", args, walletAddress);
+
+      setUpdateGameData((prevUpdateGameData) => prevUpdateGameData + 1);
+    }
+  );
+
+  const NewBattleEventFilter = battleContract.filters.NewBattle();
   AddNewEvent(NewBattleEventFilter, provider, battleContractABI, ({ args }) => {
     console.log("New battle started!", args, walletAddress);
+
+    console.log("walletAddress:", walletAddress.toLowerCase());
+    console.log("player1:", args.player1.toLowerCase());
+    console.log("player2:", args.player2.toLowerCase());
 
     if (
       walletAddress.toLowerCase() === args.player1.toLowerCase() ||
       walletAddress.toLowerCase() === args.player2.toLowerCase()
     ) {
+      console.log(
+        "Navigating to battle from NewBattle event listener:",
+        args.battleName
+      );
       navigate(`/battle/${args.battleName}`);
     }
 
@@ -140,9 +172,12 @@ export const createEventListeners = ({
         setShowAlert({ status: true, type: "failure", message: "You lost!" });
         console.log("You lost!");
       }
-      console.log("navigating");
-      navigate("/");
-      console.log("navigated");
+
+      // Update gameData state to indicate that the battle has ended
+      setUpdateGameData((prevUpdateGameData) => prevUpdateGameData + 1);
+
+      console.log("Navigating to homepage from BattleEnded event listener");
+      navigate("/create-battle");
     }
   );
 };
