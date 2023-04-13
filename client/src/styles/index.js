@@ -134,6 +134,8 @@ const styles = {
 
   linkDropdown:
     "font-rajdhani font-bold text-xl text-white cursor-pointer peer hover:text-siteViolet",
+
+  circularProgress: "relative flex items-center justify-center",
 };
 
 export default styles;
