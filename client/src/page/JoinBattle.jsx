@@ -73,7 +73,9 @@ const JoinBattle = () => {
       <NftItem
         key={nft.metadata.id}
         metadata={nft.metadata}
-        isSelected={selectedTokenID === nft.metadata.id}
+        isSelected={
+          ownedNfts.length === 1 || selectedTokenID === nft.metadata.id
+        }
         onSelect={(id) => setSelectedTokenID(id)}
       />
     ));
@@ -85,6 +87,7 @@ const JoinBattle = () => {
       </div>
     );
   }
+
   return (
     walletAddress && (
       <>
