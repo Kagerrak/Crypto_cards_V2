@@ -135,7 +135,8 @@ const styles = {
   linkDropdown:
     "font-rajdhani font-bold text-xl text-white cursor-pointer peer hover:text-siteViolet",
 
-  circularProgress: "relative flex items-center justify-center",
+  manaContainer: "relative inline-block",
+  currentMana: "absolute top-0 left-0",
 };
 
 export default styles;
