@@ -1,7 +1,13 @@
 import ReactTooltip from "react-tooltip";
 import styles from "../styles";
-import fullMana from "../assets/full_mana.png";
 import emptyMana from "../assets/empty_mana.png";
+import tenMana from "../assets/10_mana.png";
+import twentyFiveMana from "../assets/25_mana.png";
+import fiftyMana from "../assets/50_mana.png";
+import seventyFiveMana from "../assets/75_mana.png";
+import ninetyMana from "../assets/90_mana.png";
+import fullMana from "../assets/full_mana.png";
+
 import fullHealthbar from "../assets/full_healthbar.png";
 import emptyHealthbar from "../assets/empty_healthbar.png";
 
@@ -17,12 +23,30 @@ import emptyHealthbar from "../assets/empty_healthbar.png";
 //   index !== healthPoints - 1 ? "mr-1" : "mr-0";
 
 const PlayerInfo = ({ player, playerIcon, character, mt, health }) => {
-  function getManaPercentage(mana, maxMana) {
-    const percent = (mana / maxMana) * 100;
-    const circumference = 2 * Math.PI * 50;
-    const offset = circumference - (percent / 100) * circumference;
-    return { dasharray: circumference, dashoffset: offset };
+  function getManaImage(currentMana, maxMana) {
+    const percentage = (currentMana / maxMana) * 100;
+
+    if (percentage === 0) {
+      return emptyMana;
+    }
+    if (percentage > 0 && percentage <= 10) {
+      return tenMana;
+    }
+    if (percentage > 10 && percentage <= 25) {
+      return twentyFiveMana;
+    }
+    if (percentage > 25 && percentage <= 50) {
+      return fiftyMana;
+    }
+    if (percentage > 50 && percentage <= 75) {
+      return seventyFiveMana;
+    }
+    if (percentage > 75 && percentage < 100) {
+      return ninetyMana;
+    }
+    return fullMana;
   }
+
   return (
     <div className={`${styles.flexCenter} ${mt ? "mt-auto" : "mb-auto"}`}>
       <img
@@ -68,35 +92,16 @@ const PlayerInfo = ({ player, playerIcon, character, mt, health }) => {
       <div
         data-for={`Mana-${mt ? "1" : "2"}`}
         data-tip="Mana"
-        className={`${styles.flexCenter} ${styles.glassEffect} ${styles.playerMana}`}
+        className={`${styles.flexCenter} ${styles.playerMana}`}
       >
         <div className={styles.playerManaContainer}>
-          <div className={styles.circularProgress}>
-            <svg width="100" height="100" viewBox="0 0 120 120">
-              <circle
-                cx="60"
-                cy="60"
-                r="50"
-                stroke="white"
-                strokeWidth="20"
-                fill="none"
-              />
-              <circle
-                cx="60"
-                cy="60"
-                r="50"
-                stroke="blue"
-                strokeWidth="20"
-                strokeLinecap="round"
-                fill="none"
-                strokeDasharray={getManaPercentage(player.mana, 100).dasharray}
-                strokeDashoffset={
-                  getManaPercentage(player.mana, 100).dashoffset
-                }
-                transform="rotate(-90 60 60)"
-              />
-            </svg>
-            <img src={emptyMana} alt="Logo" style={{ position: "absolute" }} />
+          <div className="relative inline-block">
+            <img
+              src={getManaImage(player.mana, 100)}
+              alt="Mana level"
+              className="absolute top-0 left-0"
+            />
+            <img src={emptyMana} alt="Empty mana" className="relative z-10" />
           </div>
           <h1 className={styles.playerManaText}> {player.mana || 0}</h1>
         </div>
