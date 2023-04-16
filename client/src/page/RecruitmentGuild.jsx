@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import styles from "../styles";
-import { Alert } from "../components";
+import Alert from "../components/Alert";
 import { characters } from "../assets";
 import { useGlobalContext } from "../context";
-import { CustomButton } from "../components";
-import { CharacterInfo } from "../components";
+import CustomButton from "../components/CustomButton";
+import CharacterInfo from "../components/CharacterInfo";
 
 const RecruitmentGuild = () => {
   const navigate = useNavigate();
