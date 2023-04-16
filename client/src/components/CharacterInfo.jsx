@@ -10,7 +10,7 @@ import {
 import CustomButton from "./CustomButton";
 import { useGlobalContext } from "../context";
 import { alertIcon, gameRules, characters } from "../assets";
-import { battleContractAddress, characterContractAddress } from "../contract";
+import { battleSkillsAddress, characterContractAddress } from "../contract";
 
 import styles from "../styles";
 
@@ -32,31 +32,22 @@ const CharacterInfo = (props) => {
     return item.characterType == props?.tokenId;
   })[0];
 
-  const { contract: skillContract } = useContract(battleContractAddress);
-  const { contract: charContract } = useContract(characterContractAddress);
-
-  const { mutateAsync: mintNewCharacterWithItemAndEquip } = useContractWrite(
-    charContract,
-    "mintNewCharacterWithItemAndEquip"
-  );
-
   const mintCharacter = async () => {
     try {
-      const isApproved = await skillContract.call(
-        "isApprovedForAll",
+      const isApproved = await battleSkillsContract.isApprovedForAll(
         walletAddress,
         characterContractAddress
       );
       if (!isApproved) {
-        await skillContract.call(
-          "setApprovalForAll",
+        await battleSkillsContract.setApprovalForAll(
           characterContractAddress,
           true
         );
       }
-      await mintNewCharacterWithItemAndEquip({
-        args: [characterInfo.characterType, characterInfo.skillId],
-      });
+      await characterContract.mintNewCharacterWithItemAndEquip(
+        characterInfo.characterType,
+        characterInfo.skillId
+      );
 
       setShowAlert({
         status: true,
