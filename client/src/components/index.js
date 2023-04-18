@@ -12,6 +12,8 @@ import OnboardModal from "./OnboardModal";
 import Navbar from "./Navbar";
 import Loader from "./Loader";
 import NftItem from "./NftItem";
+import CharacterStats from "./CharacterStats";
+import StatInput from "./StatInput";
 
 export {
   Card,
@@ -28,4 +30,6 @@ export {
   Navbar,
   Loader,
   NftItem,
+  CharacterStats,
+  StatInput,
 };
