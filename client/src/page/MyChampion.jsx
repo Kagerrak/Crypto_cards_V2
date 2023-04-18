@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  useContract,
+  useContractWrite,
+  useOwnedNFTs,
+  ThirdwebNftMedia,
+} from "@thirdweb-dev/react";
 
 import styles from "../styles";
-import { Alert } from "../components";
+import { Alert, CharacterStats } from "../components";
 import { characters } from "../assets";
 import { useGlobalContext } from "../context";
 import { CustomButton } from "../components";
 import { CharacterInfo } from "../components";
+import { battleSkillsAddress, characterContractAddress } from "../contract";
 
 const MyChampion = () => {
   const navigate = useNavigate();
@@ -21,6 +28,16 @@ const MyChampion = () => {
   const [tokenId, setTokenId] = useState();
   const [champions, setChampions] = useState(null);
   const [characterToken, setCharacterToken] = useState(0);
+
+  // Get contract instance with thirdweb
+  const { contract: charTWContract } = useContract(characterContractAddress);
+  const { contract: skillTWContract } = useContract(battleSkillsAddress);
+
+  // Fetch owner character NFTs
+  const { data: ownedNfts, isLoading } = useOwnedNFTs(
+    charTWContract,
+    walletAddress
+  );
 
   useEffect(() => {
     if (!characterContract) return;
@@ -52,6 +69,43 @@ const MyChampion = () => {
     setShowInfo(!showInfo);
     setTokenId(id);
   };
+
+  let content;
+  if (Array.isArray(ownedNfts) && ownedNfts.length > 0) {
+    content = ownedNfts.map((c, i) => (
+      <div
+        key={c.metadata.id}
+        className={`${styles.flexCenter} ${styles.recruitmentGroundCard}`}
+        onClick={() => {
+          handleAction(c.metadata.id);
+        }}
+      >
+        <ThirdwebNftMedia
+          metadata={c.metadata}
+          className={styles.recruitmentCardImg}
+        />
+        <div className="info absolute p-2">
+          {/* <p className={styles.recruitmentCardText}>
+            {c.metadata.attributes.tooltip}
+          </p> */}
+          <CustomButton
+            title="More Info"
+            handleclick={() => {
+              handleAction(c.metadata.id);
+            }}
+            restStyles="mt-6 mb-6"
+          />
+        </div>
+      </div>
+    ));
+  } else {
+    content = (
+      <div className={`${styles.flexCenter} ${styles.recruitmentGroundCard}`}>
+        <p>You don't have a character!</p>
+        <p>Create one and join the battle!</p>
+      </div>
+    );
+  }
 
   return (
     <div className={`${styles.flexCenter} ${styles.battlegroundContainer}`}>
@@ -86,7 +140,7 @@ const MyChampion = () => {
       </ul>
 
       <div className={`${styles.flexCenter} ${styles.battleGroundsWrapper}`}>
-        {champions ? (
+        {/* {champions ? (
           champions.length > 0 ? (
             champions.map((character) => (
               <div
@@ -127,18 +181,18 @@ const MyChampion = () => {
           )
         ) : (
           <p className="text-white">Loading...</p>
-        )}
-        <CharacterInfo
-          modalType={2}
+        )} */}
+
+        {isLoading ? <p>Loading...</p> : content}
+        <CharacterStats
           showInfo={showInfo}
           handleClose={() => {
             setShowInfo(false);
           }}
-          // selected={characterToken}
           tokenId={tokenId}
         />
       </div>
-      <div className="h-500"></div>
+      <div className="h-500" />
     </div>
   );
 };
