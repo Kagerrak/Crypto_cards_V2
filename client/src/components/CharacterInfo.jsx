@@ -1,11 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactTooltip from "react-tooltip";
-import {
-  useContract,
-  useContractRead,
-  useContractWrite,
-} from "@thirdweb-dev/react";
 
 import CustomButton from "./CustomButton";
 import { useGlobalContext } from "../context";
@@ -24,10 +19,7 @@ const CharacterInfo = (props) => {
     setShowAlert,
     walletAddress,
   } = useGlobalContext();
-  const [toggleSidebar, setToggleSidebar] = useState(false);
   const tokenId = props?.tokenId;
-  const modalType = props?.modalType;
-  const selected = props?.selected == tokenId ? true : false;
   const characterInfo = characters.filter((item) => {
     return item.characterType == props?.tokenId;
   })[0];
