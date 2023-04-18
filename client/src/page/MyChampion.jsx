@@ -56,8 +56,7 @@ const MyChampion = () => {
         const balance = await characterContract.balanceOf(walletAddress);
         return balance.toNumber() > 0;
       });
-      // const p1TokenData = await contract.getPlayerToken(walletAddress);
-      // setCharacterToken(p1TokenData.id.toNumber());
+
       setChampions(results);
     };
 
@@ -85,9 +84,6 @@ const MyChampion = () => {
           className={styles.recruitmentCardImg}
         />
         <div className="info absolute p-2">
-          {/* <p className={styles.recruitmentCardText}>
-            {c.metadata.attributes.tooltip}
-          </p> */}
           <CustomButton
             title="More Info"
             handleclick={() => {
@@ -140,49 +136,6 @@ const MyChampion = () => {
       </ul>
 
       <div className={`${styles.flexCenter} ${styles.battleGroundsWrapper}`}>
-        {/* {champions ? (
-          champions.length > 0 ? (
-            champions.map((character) => (
-              <div
-                key={character.characterType}
-                className={
-                  characterToken === character.tokenId
-                    ? `selected-card ${styles.flexCenter} ${styles.recruitmentGroundCard}`
-                    : `${styles.flexCenter} ${styles.recruitmentGroundCard}`
-                }
-                onClick={() => {
-                  setShowInfo(!showInfo);
-                  setTokenId(character.characterType);
-                }}
-              >
-                <img
-                  src={character.image}
-                  alt={character.name}
-                  className={styles.recruitmentCardImg}
-                />
-                <div className="info absolute p-2">
-                  <p className={styles.recruitmentCardText}>
-                    {character.attributes.tooltip}
-                  </p>
-                  <CustomButton
-                    title="More Info"
-                    handleclick={() => {
-                      handleAction(character.characterType);
-                    }}
-                    restStyles="mt-6 mb-6"
-                  />
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className={`${styles.notFoundText}`}>
-              No Champions Found. Please Mint One.
-            </p>
-          )
-        ) : (
-          <p className="text-white">Loading...</p>
-        )} */}
-
         {isLoading ? <p>Loading...</p> : content}
         <CharacterStats
           showInfo={showInfo}
