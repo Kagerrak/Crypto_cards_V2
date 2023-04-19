@@ -1,4 +1,5 @@
-import ReactTooltip from "react-tooltip";
+import { Tooltip } from "react-tooltip";
+import "react-tooltip/dist/react-tooltip.css";
 import styles from "../styles";
 import emptyMana from "../assets/empty_mana.png";
 import tenMana from "../assets/10_mana.png";
@@ -50,16 +51,16 @@ const PlayerInfo = ({ player, playerIcon, character, mt, health }) => {
   return (
     <div className={`${styles.flexCenter} ${mt ? "mt-auto" : "mb-auto"}`}>
       <img
-        data-for={`Player-${mt ? "1" : "2"}`}
-        data-tip
+        data-tooltip-content
+        data-tooltip-id={`Player-${mt ? "1" : "2"}`}
         src={playerIcon}
         alt="player02"
         className="w-14 h-14 object-contain rounded-full"
       />
 
       <div
-        data-for={`Health-${mt ? "1" : "2"}`}
-        data-tip={`Health: ${player.health}`}
+        data-tooltip-id={`Health-${mt ? "1" : "2"}`}
+        data-tooltip-content={`Health: ${player.health}`}
         className={styles.playerHealth}
       >
         <div
@@ -90,8 +91,8 @@ const PlayerInfo = ({ player, playerIcon, character, mt, health }) => {
       </div>
 
       <div
-        data-for={`Mana-${mt ? "1" : "2"}`}
-        data-tip="Mana"
+        data-tooltip-id={`Mana-${mt ? "1" : "2"}`}
+        data-tooltip-content="Mana"
         className={`${styles.flexCenter} ${styles.playerMana}`}
       >
         <div className={styles.playerManaContainer}>
@@ -107,26 +108,30 @@ const PlayerInfo = ({ player, playerIcon, character, mt, health }) => {
         </div>
       </div>
 
-      <ReactTooltip
+      <Tooltip
         id={`Player-${mt ? "1" : "2"}`}
+        place="right"
         effect="solid"
-        backgroundColor="#7f46f0"
-      >
-        <p className={styles.playerInfo}>
-          <span className={styles.playerInfoSpan}>Name:</span>{" "}
-          {player?.playerName}
-        </p>
-        <p className={styles.playerInfo}>
-          <span className={styles.playerInfoSpan}>Address:</span>{" "}
-          {player?.playerAddress?.slice(0, 10)}
-        </p>
-      </ReactTooltip>
-      <ReactTooltip
+        style={{ backgroundColor: "#7f46f0" }}
+        render={() => (
+          <>
+            <p className={styles.playerInfo}>
+              <span className={styles.playerInfoSpan}>Name:</span>{" "}
+              {player?.playerName}
+            </p>
+            <p className={styles.playerInfo}>
+              <span className={styles.playerInfoSpan}>Address:</span>{" "}
+              {player?.playerAddress?.slice(0, 10)}
+            </p>
+          </>
+        )}
+      />
+      <Tooltip
         id={`Health-${mt ? "1" : "2"}`}
         effect="solid"
         backgroundColor="#7f46f0"
       />
-      <ReactTooltip
+      <Tooltip
         id={`Mana-${mt ? "1" : "2"}`}
         effect="solid"
         backgroundColor="#7f46f0"
