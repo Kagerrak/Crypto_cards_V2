@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ReactTooltip from "react-tooltip";
+import { Tooltip } from "react-tooltip";
+import "react-tooltip/dist/react-tooltip.css";
 
 import CustomButton from "./CustomButton";
 import { useGlobalContext } from "../context";
@@ -104,34 +105,42 @@ const CharacterInfo = (props) => {
               </h3>
 
               <img
-                data-for={`Character-${characterInfo?.tokenId}`}
-                data-tip={characterInfo?.value}
-                className={`${styles.playerImg} cursor-pointer`}
+                data-tooltip-content={characterInfo?.value}
+                data-tooltip-id={`Character-${characterInfo?.tokenId}`}
+                className={`${styles.playerImg} cursor-pointer w-14 h-14`}
                 src={characterInfo?.icon}
               />
-
-              <ReactTooltip
+              <Tooltip
                 id={`Character-${characterInfo?.tokenId}`}
                 place="right"
                 effect="solid"
-                backgroundColor="#7f46f0"
-              >
-                <p className={styles.characterInfo}>{characterInfo?.tooltip}</p>
-                <ul>
-                  <li>
-                    <span className="font-bold"> Mana Cost:</span>{" "}
-                    {characterInfo?.mana_cost}
-                  </li>
-                  <li>
-                    <span className="font-bold">Damage:</span>{" "}
-                    {characterInfo?.damage}
-                  </li>
-                  <li>
-                    <span className="font-bold">Effect:</span>{" "}
-                    {characterInfo?.effect}
-                  </li>
-                </ul>
-              </ReactTooltip>
+                style={{ backgroundColor: "#7f46f0" }}
+                className="max-w-[450px] whitespace-pre-wrap break-words"
+                render={() => (
+                  <>
+                    <p className="font-bold text-[17px]">
+                      {characterInfo?.value}
+                    </p>
+                    <p className={styles.characterInfo}>
+                      {characterInfo?.tooltip}
+                    </p>
+                    <ul className="text-[14px] mt-1">
+                      <li>
+                        <span className="font-bold">Mana Cost : </span>
+                        {characterInfo?.mana_cost}
+                      </li>
+                      <li>
+                        <span className="font-bold">Damage : </span>
+                        {characterInfo?.damage}
+                      </li>
+                      <li>
+                        <span className="font-bold">Effect : </span>
+                        {characterInfo?.effect}
+                      </li>
+                    </ul>
+                  </>
+                )}
+              />
             </div>
             <CustomButton title="Mint" handleClick={() => mintCharacter()} />
           </div>
