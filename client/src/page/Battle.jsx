@@ -142,7 +142,7 @@ const Battle = () => {
       className={`${styles.flexBetween} ${styles.gameContainer} ${battleGround}`}
     >
       {loading ? (
-        <Loader />
+        <Loader message="Initializing battle, please wait" />
       ) : (
         <>
           {showAlert?.status && (
