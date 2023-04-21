@@ -44,9 +44,11 @@ const styles = {
   characterInfoPopup: "absolute p-3 z-50 rounded-md flex-col",
   characterInfoClosePopup: "flex justify-end",
   characterAttributeBox:
-    " text-white mb-2 p-1 text-center rounded-[5px] cursor-pointer border-[2px]",
+    " text-white p-1 text-center rounded-[5px] cursor-pointer border-[2px] justify-center",
   characterInfoHeading: "font-rajdhani font-bold text-white text-3xl",
   characterInfo: "font-rajdhani font-bold text-[16px]",
+  RecruitmentSkillItemCard:
+    "h-[100px] w-[100px] text-center glass-morphism rounded-lg cursor-pointer battle-card items-center",
 
   // player info component
   playerImg: "w-14 h-14 object-contain rounded-full",
