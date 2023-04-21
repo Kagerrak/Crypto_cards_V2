@@ -44,21 +44,21 @@ async function main() {
   await character.setBattleItems(battleItems.address);
 
   // Create a new skill
-  const skillName = "fire";
-  const damage = 40;
-  const manaCost = 40;
-  const statusEffects = [];
-  const tokenURI = "https://example.com/fire.json";
-  await battleSkills.createSkill(
-    skillName,
-    damage,
-    manaCost,
-    statusEffects,
-    tokenURI
-  );
-  console.log(
-    `Skill "${skillName}" created with damage ${damage} and mana cost ${manaCost}`
-  );
+  // const skillName = "fire";
+  // const damage = 40;
+  // const manaCost = 40;
+  // const statusEffects = [];
+  // const tokenURI = "https://example.com/fire.json";
+  // await battleSkills.createSkill(
+  //   skillName,
+  //   damage,
+  //   manaCost,
+  //   statusEffects,
+  //   tokenURI
+  // );
+  // console.log(
+  //   `Skill "${skillName}" created with damage ${damage} and mana cost ${manaCost}`
+  // );
 
   // Set approval for the character contract address for two accounts
   const accounts = await ethers.getSigners();
@@ -106,6 +106,8 @@ async function main() {
   );
 
   await verify(character.address, []);
+  await verify(battleSkills.address, []);
+  await verify(battleItems.address, []);
   await verify(battle.address, [character.address, battleSkills.address]);
 }
 
