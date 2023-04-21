@@ -6,13 +6,19 @@ import {
   useContractRead,
   useContractWrite,
   useNFT,
+  useOwnedNFTs,
 } from "@thirdweb-dev/react";
 
 import { useGlobalContext } from "../context";
 import { alertIcon, gameRules, characters } from "../assets";
-import { battleSkillsAddress, characterContractAddress } from "../contract";
+import {
+  battleItemsAddress,
+  battleSkillsAddress,
+  characterContractAddress,
+} from "../contract";
 import StatInput from "./StatInput";
 import CustomButton from "./CustomButton";
+import EquippedCharacterCard from "./EquippedCharacterCard";
 
 import styles from "../styles";
 
@@ -20,8 +26,9 @@ const CharacterStats = (props) => {
   const tokenId = props?.tokenId;
   const [charInfo, setCharInfo] = useState(null);
   const [statPoints, setStatPoints] = useState(0);
-  //   const [statChanges, setStatChanges] = useState(0);
   const [newStats, setNewStats] = useState({});
+  const [nftSkillData, setNftSkillData] = useState(null);
+  const [nftItemData, setNftItemData] = useState(null);
 
   const keysWithButtons = ["strength", "dexterity", "intelligence", "vitality"];
 
@@ -29,6 +36,7 @@ const CharacterStats = (props) => {
   const {
     characterContract,
     battleSkillsContract,
+    battleItemsContract,
     gameData,
     setErrorMessage,
     setShowAlert,
@@ -36,16 +44,51 @@ const CharacterStats = (props) => {
   } = useGlobalContext();
 
   const { contract: charTWContract } = useContract(characterContractAddress);
+  const { contract: skillTWContract } = useContract(battleSkillsAddress);
+  const { contract: itemTWContract } = useContract(battleItemsAddress);
+
+  const { data: ownedSkills } = useOwnedNFTs(skillTWContract, walletAddress);
+  const { data: ownedItems } = useOwnedNFTs(itemTWContract, walletAddress);
+
+  const { data: equippedSkill, isLoading: skillLoading } = useContractRead(
+    charTWContract,
+    "getEquippedSkill",
+    tokenId
+  );
+
+  const { data: equippedItem, isLoading: itemLoading } = useContractRead(
+    charTWContract,
+    "getEquippedItem",
+    tokenId
+  );
+
+  useEffect(() => {
+    if (equippedSkill !== null && equippedSkill !== undefined) {
+      setNftSkillData(equippedSkill.toNumber());
+    }
+  }, [equippedSkill]);
+
+  useEffect(() => {
+    if (equippedItem !== null && equippedItem !== undefined) {
+      setNftItemData(equippedItem.toNumber());
+    }
+  }, [equippedItem]);
+
+  const { data: nftSkill, isLoading: skillNFTLoading } = useNFT(
+    skillTWContract,
+    nftSkillData
+  );
+
+  const { data: nftItem, isLoading: itemNFTLoading } = useNFT(
+    itemTWContract,
+    nftItemData
+  );
+
   const { data: nftChar, isLoading, error } = useNFT(charTWContract, tokenId);
   const { data: getChar, isLoading: getCharLoad } = useContractRead(
     charTWContract,
     "getCharacter",
     [tokenId]
-  );
-
-  const { mutateAsync: addStats, isLoading: addStatsLoad } = useContractWrite(
-    charTWContract,
-    "addStats"
   );
 
   useEffect(() => {
@@ -107,6 +150,132 @@ const CharacterStats = (props) => {
     });
   };
 
+  const handleEquipSkill = async (_skillId) => {
+    try {
+      const isApproved = await battleSkillsContract.isApprovedForAll(
+        walletAddress,
+        characterContractAddress
+      );
+      if (!isApproved) {
+        await battleSkillsContract.setApprovalForAll(
+          characterContractAddress,
+          true
+        );
+      }
+      await characterContract.equipSkill(tokenId, _skillId);
+      console.info("contract call successs");
+    } catch (err) {
+      console.error("contract call failure", err);
+    }
+  };
+
+  const handleUnequipSkill = async () => {
+    try {
+      const data = await characterContract.unequipSkill(tokenId);
+      console.info("contract call successs", data);
+    } catch (err) {
+      console.error("contract call failure", err);
+    }
+  };
+
+  const handleEquipItem = async (_tokenId) => {
+    try {
+      const itemApprove = await battleItemsContract.isApprovedForAll(
+        walletAddress,
+        characterContractAddress
+      );
+      if (!itemApprove) {
+        await battleItemsContract.setApprovalForAll(
+          characterContractAddress,
+          true
+        );
+      }
+      await characterContract.equipItem(tokenId, _tokenId);
+      console.info("contract call successs");
+    } catch (err) {
+      console.error("contract call failure", err);
+    }
+  };
+
+  const handleUnequipItem = async () => {
+    try {
+      const data = await characterContract.unequipItem(tokenId);
+      console.info("contract call successs", data);
+    } catch (err) {
+      console.error("contract call failure", err);
+    }
+  };
+
+  let skills;
+  if (Array.isArray(ownedSkills) && ownedSkills.length > 0) {
+    skills = ownedSkills.map((c, i) => (
+      <div
+        key={c.metadata.id}
+        onClick={() => {
+          handleEquipSkill(c.metadata.id);
+        }}
+        className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
+      >
+        <ThirdwebNftMedia
+          metadata={c.metadata}
+          className={styles.recruitmentCardImg}
+          width={50}
+          height={50}
+        />
+        <div className="info absolute p-2">
+          <CustomButton
+            title="Equip"
+            handleclick={() => {
+              handleEquipSkill(c.metadata.id);
+            }}
+          />
+        </div>
+      </div>
+    ));
+  } else {
+    skills = (
+      <div className={`${styles.flexCenter} ${styles.recruitmentGroundCard}`}>
+        <p>You don't own an item!</p>
+      </div>
+    );
+  }
+
+  let items;
+  if (Array.isArray(ownedItems) && ownedItems.length > 0) {
+    items = ownedItems.map((c, i) => (
+      <div
+        key={c.metadata.id}
+        onClick={() => {
+          handleEquipItem(c.metadata.id);
+        }}
+      >
+        <ThirdwebNftMedia
+          metadata={c.metadata}
+          className={styles.recruitmentCardImg}
+          width={50}
+          height={50}
+        />
+        <div className="info absolute p-2">
+          <CustomButton
+            title="Equip"
+            handleclick={() => {
+              handleEquipItem(c.metadata.id);
+            }}
+            restStyles="mt-6 mb-6"
+          />
+        </div>
+      </div>
+    ));
+  } else {
+    items = (
+      <div
+        className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
+      >
+        <p>You don't own an item!</p>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`${styles.characterInfoPopup} z-50 ${
@@ -155,6 +324,30 @@ const CharacterStats = (props) => {
                 {statPoints}
               </span>
             </div>
+            {skillLoading || nftSkillData === null ? (
+              <p>Loading equipped skill...</p>
+            ) : (
+              <EquippedCharacterCard
+                itemType="Skill"
+                equippedItem={equippedSkill}
+                loading={skillLoading}
+                nftData={nftSkill}
+                nftLoading={skillNFTLoading}
+                onUnequip={() => handleUnequipSkill()}
+              />
+            )}
+            {itemLoading || nftItemData === null ? (
+              <p>Loading equipped item...</p>
+            ) : (
+              <EquippedCharacterCard
+                itemType="Item"
+                equippedItem={equippedItem}
+                loading={itemLoading}
+                nftData={nftItem}
+                nftLoading={itemNFTLoading}
+                onUnequip={() => handleUnequipItem()}
+              />
+            )}
           </div>
           <div className="flex flex-1 items-end mr-2">
             {getCharLoad ? (
@@ -162,7 +355,7 @@ const CharacterStats = (props) => {
             ) : (
               <div className="sm:w-[600px] w-full">
                 <div className="mb-3 mt-3 grid grid-rows-5 gap-3">
-                  <div className="flex flex-row space-x-5 justify-center">
+                  <div className="flex flex-row space-x-5 items-center justify-center">
                     {keysWithButtons.map((key) => (
                       <div key={key} className={styles.characterAttributeBox}>
                         <StatInput
@@ -176,8 +369,12 @@ const CharacterStats = (props) => {
                         />
                       </div>
                     ))}
+                    <CustomButton
+                      title="Spend Stats"
+                      handleClick={handleSaveChanges}
+                    />
                   </div>
-                  <div className="flex flex-row space-x-2">
+                  <div className="flex flex-row space-x-2 items-center justify-center">
                     {Object.entries(charInfo)
                       // eslint-disable-next-line no-confusing-arrow
                       .filter(([key, value]) =>
@@ -197,20 +394,26 @@ const CharacterStats = (props) => {
                             stat={value}
                             statPoints={statPoints}
                             setStatPoints={setStatPoints}
-                            // setStatChanges={setStatChanges}
                             showButtons={false}
                           />
                         </div>
                       ))}
                   </div>
+                  <div className="text-center">
+                    <p>Owned Skills</p>
+                    <div className="flex flex-row space-x-2 items-center justify-start m-1">
+                      {skills}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <p>Owned Items</p>
+                    <div className="flex flex-row space-x-2 items-center justify-start m-1">
+                      {items}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
-            <CustomButton
-              title="Spend Stats"
-              handleClick={handleSaveChanges}
-              restStyles="mt-6"
-            />
           </div>
         </div>
       )}
