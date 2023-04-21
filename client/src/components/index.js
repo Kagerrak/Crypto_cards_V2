@@ -14,6 +14,7 @@ import Loader from "./Loader";
 import NftItem from "./NftItem";
 import CharacterStats from "./CharacterStats";
 import StatInput from "./StatInput";
+import EquippedCharacterCard from "./EquippedCharacterCard";
 
 export {
   Card,
@@ -32,4 +33,5 @@ export {
   NftItem,
   CharacterStats,
   StatInput,
+  EquippedCharacterCard,
 };
