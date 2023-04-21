@@ -1,22 +1,42 @@
 import React from "react";
+import PropTypes from "prop-types";
 
 import { loader } from "../assets";
 
-const Loader = () => {
+const Loader = ({ backgroundColor, loaderSize, textSize, message }) => {
   return (
-    <div className="fixed inset-0 z-20 h-screen bg-[rgba(0,0,0,0.7)] flex items-center justify-center flex-col">
+    <div
+      className="fixed inset-0 z-20 h-screen flex items-center justify-center flex-col"
+      style={{ backgroundColor: backgroundColor }}
+    >
       <img
         src={loader}
         alt="loader"
-        className="w-[100px] h-[100px] object-contain"
+        className={`w-${loaderSize} h-${loaderSize} object-contain`}
       />
-      <p className="mt-[20px] font-epilogue font-bold text-[20px] text-center text-white">
-        Transaction is in progress
-        <br />
-        Please wait...
+      <p
+        className={`mt-4 font-epilogue font-bold text-center text-white`}
+        style={{ fontSize: textSize }}
+      >
+        {message}
       </p>
     </div>
   );
+};
+
+Loader.propTypes = {
+  backgroundColor: PropTypes.string,
+  loaderSize: PropTypes.string,
+  textSize: PropTypes.string,
+  message: PropTypes.string,
+};
+
+Loader.defaultProps = {
+  backgroundColor: "rgba(0, 0, 0, 0.7)",
+  loaderSize: "100px",
+  textSize: "20px",
+  message: `Transaction is in progress
+Please wait...`,
 };
 
 export default Loader;
