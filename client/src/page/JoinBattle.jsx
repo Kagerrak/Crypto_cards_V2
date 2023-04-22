@@ -40,6 +40,12 @@ const JoinBattle = () => {
     }
   }, [gameData, walletAddress]);
 
+  useEffect(() => {
+    if (Array.isArray(ownedNfts) && ownedNfts.length === 1) {
+      setSelectedTokenID(ownedNfts[0].metadata.id);
+    }
+  }, [ownedNfts]);
+
   const handleClick = async (battleName, battleId, characterId) => {
     setBattleName(battleName);
     console.log(battleId.toNumber(), characterId);
@@ -66,7 +72,7 @@ const JoinBattle = () => {
 
   let content;
   if (charLoad) {
-    content = <Loader />;
+    content = <Loader message="Loading Characters..." />;
   } else if (Array.isArray(ownedNfts) && ownedNfts.length > 0) {
     console.log(ownedNfts);
     content = ownedNfts.map((nft) => (
@@ -79,6 +85,7 @@ const JoinBattle = () => {
         onSelect={(id) => setSelectedTokenID(id)}
       />
     ));
+    console.log(selectedTokenID); // null
   } else {
     content = (
       <div className="text-center">
@@ -92,7 +99,7 @@ const JoinBattle = () => {
     walletAddress && (
       <>
         {isLoading || loadingGameData ? (
-          <Loader />
+          <Loader message="Joining Battle..." />
         ) : (
           <>
             <p className=" text-gray-500">Select a Character</p>
