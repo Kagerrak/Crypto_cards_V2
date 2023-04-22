@@ -51,13 +51,14 @@ const Battle = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("First useEffect called");
     if (playerData.player1Data && playerData.player2Data) {
       if (!gameData.activeBattle || !gameData.activeBattle.initialHealth) {
         return;
       }
       const player01 = playerData.player1Data;
       const player02 = playerData.player2Data;
-      const typeId = player01.id.toNumber();
+      const typeId = player01.typeId.toNumber();
       const characterInfo = characters.filter(
         (item) => item.characterType === typeId
       )[0];
@@ -142,7 +143,7 @@ const Battle = () => {
       className={`${styles.flexBetween} ${styles.gameContainer} ${battleGround}`}
     >
       {loading ? (
-        <Loader message="Initializing battle, please wait" />
+        <Loader message="Initializing battle, please wait..." />
       ) : (
         <>
           {showAlert?.status && (
