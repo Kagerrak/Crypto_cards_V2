@@ -102,7 +102,7 @@ const PlayerInfo = ({ player, playerIcon, character, mt, health }) => {
               alt="Mana level"
               className="absolute top-0 left-0"
             />
-            <img src={emptyMana} alt="Empty mana" className="relative z-10" />
+            <img src={emptyMana} alt="Empty mana" className="relative z-2" />
           </div>
           <h1 className={styles.playerManaText}> {player.mana || 0}</h1>
         </div>
