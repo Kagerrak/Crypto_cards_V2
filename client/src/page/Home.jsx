@@ -67,7 +67,7 @@ const Home = () => {
     walletAddress && (
       <>
         {isLoading || loadingGameData ? (
-          <Loader />
+          <Loader message="Creating Character... Please wait..." />
         ) : (
           <div className="flex flex-col">
             <div className="flex flex-col justify-between">
