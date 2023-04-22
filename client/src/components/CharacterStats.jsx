@@ -234,8 +234,14 @@ const CharacterStats = (props) => {
     ));
   } else {
     skills = (
-      <div className={`${styles.flexCenter} ${styles.recruitmentGroundCard}`}>
-        <p>You don't own an item!</p>
+      <div
+        className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
+      >
+        {equippedItem === 9999 ? (
+          <p>You don't own an skill!</p>
+        ) : (
+          <p>Skill equipped!</p>
+        )}
       </div>
     );
   }
