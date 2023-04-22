@@ -59,9 +59,15 @@ const CreateBattle = () => {
     }
   }, [gameData, walletAddress]);
 
+  useEffect(() => {
+    if (Array.isArray(ownedNfts) && ownedNfts.length === 1) {
+      setSelectedTokenID(ownedNfts[0].metadata.id);
+    }
+  }, [ownedNfts]);
+
   let content;
   if (charLoad) {
-    content = <Loader />;
+    content = <Loader message="Loading Characters..." />;
   } else if (Array.isArray(ownedNfts) && ownedNfts.length > 0) {
     console.log(ownedNfts);
     content = ownedNfts.map((nft) => (
@@ -106,7 +112,11 @@ const CreateBattle = () => {
 
   return (
     <>
-      {isLoading ? <Loader /> : waitBattle && <GameLoad />}
+      {isLoading ? (
+        <Loader message="Creating Battle..." />
+      ) : (
+        waitBattle && <GameLoad />
+      )}
 
       <div className="flex flex-col mb-5">
         <CustomInput
