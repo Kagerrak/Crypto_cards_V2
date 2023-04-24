@@ -110,7 +110,7 @@ contract Battle {
         p.health = characterContract.getCharacterHealth(tokenId);
         p.attack = characterContract.getCharacterAttack(tokenId);
         p.defense = characterContract.getCharacterDefense(tokenId);
-        p.mana = characterContract.getCharacterMana(tokenId);
+        p.mana = characterContract.getMana(tokenId);
         p.typeId = characterContract.getCharacterType(tokenId);
 
         console.log("Character proxy created for player", player);

@@ -48,20 +48,19 @@ contract Character is ERC721Base, ERC1155Holder {
         string uri;
     }
 
-    struct CharacterStamina {
+    struct RecoveryStats {
         uint256 stamina;
         uint256 lastStaminaUpdateTime;
+        uint256 lastManaUpdateTime;
     }
 
     uint256 private baseXP = 100;
-    uint256 private growthFactor = 150; // Representing 1.5 in fixed point (multiplied by 100)
 
     event NewCharacter(uint256 indexed tokenId, uint256 indexed typeId);
 
-    mapping(uint256 => CharacterStats) private characterStats;
-    mapping(uint256 => CharacterEquips) private characterEquips;
-    mapping(uint256 => CharacterStamina) private characterStamina;
-    // mapping(uint256 => CharacterType) private characterTypes;
+    mapping(uint256 => CharacterStats) public characterStats;
+    mapping(uint256 => CharacterEquips) public characterEquips;
+    mapping(uint256 => RecoveryStats) private characterRecoveryStats;
 
     BattleSkills public battleSkills;
     BattleItems public battleItems;
@@ -225,7 +224,7 @@ contract Character is ERC721Base, ERC1155Holder {
         require(_typeId < charTypes.length, "Invalid character type ID");
 
         // Mint the new token with the specified owner and token ID
-        _safeMint(msg.sender, 1);
+        _safeMint(msg.sender, numCharacters);
 
         // Set the token URI for the new token
         console.log(charTypes[_typeId].uri);
@@ -252,8 +251,11 @@ contract Character is ERC721Base, ERC1155Holder {
         characterStats[numCharacters] = _stats;
         characterEquips[numCharacters].equippedSkill = 9999;
         characterEquips[numCharacters].equippedItem = 9999;
-        characterStamina[numCharacters] = CharacterStamina(
+
+        // Initialize character recovery stats
+        characterRecoveryStats[numCharacters] = RecoveryStats(
             100,
+            block.timestamp,
             block.timestamp
         );
 
@@ -264,17 +266,23 @@ contract Character is ERC721Base, ERC1155Holder {
         emit NewCharacter(numCharacters - 1, _typeId);
     }
 
-    function xpForLevel(uint256 level) private pure returns (uint256) {
-        return (baseXP * (level ** growthFactor)) / 100;
+    function calculateExperienceRequired(
+        uint256 level
+    ) public view returns (uint256) {
+        return baseXP * level;
     }
 
-    function levelFromXP(uint256 xp) private view returns (uint256) {
-        uint256 level = 1;
-        while (xp >= xpForLevel(level)) {
-            xp -= xpForLevel(level);
-            level += 1;
+    function levelFromXP(uint256 totalXP) private view returns (uint256) {
+        uint256 currentLevel = 1;
+
+        // Keep subtracting the XP required for each level from the total XP until the remaining XP is not enough for the next level
+        while (totalXP >= calculateExperienceRequired(currentLevel)) {
+            totalXP -= calculateExperienceRequired(currentLevel);
+            currentLevel += 1;
         }
-        return level;
+
+        // Return the current level
+        return currentLevel;
     }
 
     function addStats(
@@ -289,12 +297,17 @@ contract Character is ERC721Base, ERC1155Holder {
             "Caller is not the owner of the character"
         );
 
+        CharacterStats storage charStat = characterStats[characterTokenId];
+        uint256 totalStatPointsToSpend = strength +
+            dexterity +
+            intelligence +
+            vitality;
+
         require(
-            (strength + dexterity + intelligence + vitality == 5),
-            "Use all the stat points"
+            totalStatPointsToSpend <= charStat.statPoints,
+            "Stat points to spend should not exceed available stat points"
         );
 
-        CharacterStats storage charStat = characterStats[characterTokenId];
         charStat.strength += strength;
         charStat.dexterity += dexterity;
         charStat.intelligence += intelligence;
@@ -304,17 +317,13 @@ contract Character is ERC721Base, ERC1155Holder {
         charStat.mana += intelligence * 5;
         charStat.accuracy += dexterity * 5;
         charStat.attack += strength * 5;
-        charStat.statPoints = 0;
+        charStat.statPoints -= totalStatPointsToSpend;
     }
 
     function levelUp(uint256 characterTokenId) public {
-        CharacterStats storage hero = characterStats[characterTokenId];
-        require(
-            hero.statPoints == 0,
-            "Must use up all stat points before leveling up"
-        );
         require(ownerOf(characterTokenId) == msg.sender, "Caller is not owner");
 
+        CharacterStats storage hero = characterStats[characterTokenId];
         uint256 currentLevel = hero.level;
         uint256 currentXP = hero.experience;
 
@@ -336,17 +345,16 @@ contract Character is ERC721Base, ERC1155Holder {
 
         uint256 newLevel = levelFromXP(hero.experience);
         if (newLevel > hero.level) {
-            hero.statPoints += 5 * (newLevel - hero.level);
-            hero.level = newLevel;
+            levelUp(characterTokenId);
         }
     }
 
     function getStamina(uint256 tokenId) public view returns (uint256) {
-        CharacterStamina storage heroStamina = characterStamina[tokenId];
+        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
         uint256 elapsedTime = block.timestamp -
-            heroStamina.lastStaminaUpdateTime;
+            heroRecovery.lastStaminaUpdateTime;
         uint256 recoveredStamina = (elapsedTime * 100) / (24 * 60 * 60); // Recover 100% in 24 hours
-        uint256 currentStamina = heroStamina.stamina + recoveredStamina;
+        uint256 currentStamina = heroRecovery.stamina + recoveredStamina;
 
         if (currentStamina > 100) {
             currentStamina = 100;
@@ -362,9 +370,35 @@ contract Character is ERC721Base, ERC1155Holder {
         uint256 currentStamina = getStamina(tokenId);
         require(currentStamina >= amount, "Not enough stamina");
 
-        CharacterStamina storage heroStamina = characterStamina[tokenId];
-        heroStamina.stamina = currentStamina - amount;
-        heroStamina.lastStaminaUpdateTime = block.timestamp;
+        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
+        heroRecovery.stamina = currentStamina - amount;
+        heroRecovery.lastStaminaUpdateTime = block.timestamp;
+    }
+
+    function getMana(uint256 tokenId) public view returns (uint256) {
+        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
+        uint256 elapsedTime = block.timestamp - heroRecovery.lastManaUpdateTime;
+        uint256 recoveredMana = (elapsedTime * characterStats[tokenId].mana) /
+            (30 * 60); // Recover 100% in 30 minutes
+        uint256 currentMana = characterStats[tokenId].mana + recoveredMana;
+
+        if (currentMana > characterStats[tokenId].mana) {
+            currentMana = characterStats[tokenId].mana;
+        }
+
+        return currentMana;
+    }
+
+    function consumeMana(
+        uint256 tokenId,
+        uint256 amount
+    ) external onlyBattleContract {
+        uint256 currentMana = getMana(tokenId);
+        require(currentMana >= amount, "Not enough mana");
+
+        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
+        characterStats[tokenId].mana = currentMana - amount;
+        heroRecovery.lastManaUpdateTime = block.timestamp;
     }
 
     function equipItem(uint256 characterTokenId, uint256 tokenId) public {
