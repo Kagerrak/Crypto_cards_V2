@@ -37,8 +37,8 @@ contract Character is ERC721Base, ERC1155Holder {
     }
 
     struct CharacterEquips {
-        uint256 equippedSkill;
-        uint256 equippedItem;
+        uint256[] equippedSkills;
+        mapping(BattleItems.ItemType => uint256) equippedItems;
         uint256 equippedClass;
     }
 
@@ -249,8 +249,23 @@ contract Character is ERC721Base, ERC1155Holder {
             _typeId
         );
         characterStats[numCharacters] = _stats;
-        characterEquips[numCharacters].equippedSkill = 9999;
-        characterEquips[numCharacters].equippedItem = 9999;
+
+        // Initialize no items equipped
+        characterEquips[numCharacters].equippedItems[
+            BattleItems.ItemType.Weapon
+        ] = 999999;
+        characterEquips[numCharacters].equippedItems[
+            BattleItems.ItemType.Headgear
+        ] = 999999;
+        characterEquips[numCharacters].equippedItems[
+            BattleItems.ItemType.BodyArmor
+        ] = 999999;
+        characterEquips[numCharacters].equippedItems[
+            BattleItems.ItemType.Pants
+        ] = 999999;
+        characterEquips[numCharacters].equippedItems[
+            BattleItems.ItemType.Footwear
+        ] = 999999;
 
         // Initialize character recovery stats
         characterRecoveryStats[numCharacters] = RecoveryStats(
@@ -375,6 +390,12 @@ contract Character is ERC721Base, ERC1155Holder {
         heroRecovery.lastStaminaUpdateTime = block.timestamp;
     }
 
+    function restoreStaminaToFull(uint256 tokenId) external {
+        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
+        heroRecovery.stamina = 100;
+        heroRecovery.lastStaminaUpdateTime = block.timestamp;
+    }
+
     function getMana(uint256 tokenId) public view returns (uint256) {
         RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
         uint256 elapsedTime = block.timestamp - heroRecovery.lastManaUpdateTime;
@@ -401,29 +422,30 @@ contract Character is ERC721Base, ERC1155Holder {
         heroRecovery.lastManaUpdateTime = block.timestamp;
     }
 
-    function equipItem(uint256 characterTokenId, uint256 tokenId) public {
-        // Allow token ID 0 as a valid item ID
-        require(battleItems.totalSupply(tokenId) > 0, "Invalid item token ID");
+    function restoreManaToFull(uint256 tokenId) external {
+        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
+        characterStats[tokenId].mana = characterStats[tokenId].mana;
+        heroRecovery.lastManaUpdateTime = block.timestamp;
+    }
 
-        // Check if the item is owned by the caller
+    function equipItem(uint256 characterTokenId, uint256 tokenId) public {
+        require(battleItems.totalSupply(tokenId) > 0, "Invalid item token ID");
         require(
             battleItems.balanceOf(msg.sender, tokenId) > 0,
             "Not the owner of the item"
         );
 
-        // Check if the item is not already equipped
+        BattleItems.ItemType itemType = battleItems.getItemType(tokenId);
+
         require(
-            characterEquips[characterTokenId].equippedItem != tokenId,
+            characterEquips[characterTokenId].equippedItems[itemType] !=
+                tokenId,
             "Item already equipped"
         );
 
-        // Unequip the previous item
         uint256 previousTokenId = characterEquips[characterTokenId]
-            .equippedItem;
-        if (
-            (previousTokenId != 0 && previousTokenId != 9999) ||
-            (previousTokenId == 0 && tokenId != 9999)
-        ) {
+            .equippedItems[itemType];
+        if (previousTokenId != 999999) {
             battleItems.safeTransferFrom(
                 address(this),
                 msg.sender,
@@ -433,19 +455,19 @@ contract Character is ERC721Base, ERC1155Holder {
             );
         }
 
-        // Equip the item
-        characterEquips[characterTokenId].equippedItem = tokenId;
+        characterEquips[characterTokenId].equippedItems[itemType] = tokenId;
         battleItems.safeTransferFrom(msg.sender, address(this), tokenId, 1, "");
     }
 
-    function unequipItem(uint256 characterTokenId) external {
-        // Check if there is an item equipped
+    function unequipItem(
+        uint256 characterTokenId,
+        BattleItems.ItemType itemType
+    ) external {
         uint256 equippedTokenId = characterEquips[characterTokenId]
-            .equippedItem;
-        require(equippedTokenId != 9999, "No item equipped");
+            .equippedItems[itemType];
+        require(equippedTokenId != 999999, "No item equipped");
 
-        // Unequip the item
-        characterEquips[characterTokenId].equippedItem = 9999;
+        characterEquips[characterTokenId].equippedItems[itemType] = 999999;
         battleItems.safeTransferFrom(
             address(this),
             msg.sender,
@@ -466,31 +488,13 @@ contract Character is ERC721Base, ERC1155Holder {
         );
 
         // Check if the skill is not already equipped
-        require(
-            characterEquips[characterTokenId].equippedSkill != skillId ||
-                (skillId == 0 &&
-                    characterEquips[characterTokenId].equippedSkill != 9999),
-            "Skill already equipped"
-        );
-
-        // Unequip the previous skill
-        uint256 previousSkillId = characterEquips[characterTokenId]
-            .equippedSkill;
-        if (
-            (previousSkillId != 0 && previousSkillId != 9999) ||
-            (previousSkillId == 0 && skillId != 9999)
-        ) {
-            battleSkills.safeTransferFrom(
-                address(this),
-                msg.sender,
-                previousSkillId,
-                1,
-                ""
-            );
+        uint256[] storage equippedSkills = characterEquips[characterTokenId]
+            .equippedSkills;
+        for (uint256 i = 0; i < equippedSkills.length; i++) {
+            require(equippedSkills[i] != skillId, "Skill already equipped");
         }
 
-        // Equip the skill
-        characterEquips[characterTokenId].equippedSkill = skillId;
+        // Transfer the skill to the contract and add it to the equippedSkills array
         battleSkills.safeTransferFrom(
             msg.sender,
             address(this),
@@ -498,23 +502,34 @@ contract Character is ERC721Base, ERC1155Holder {
             1,
             ""
         );
+        equippedSkills.push(skillId);
     }
 
-    function unequipSkill(uint256 characterTokenId) external {
-        // Check if there is a skill equipped
-        uint256 equippedSkillId = characterEquips[characterTokenId]
-            .equippedSkill;
-        require(equippedSkillId != 9999, "No skill equipped");
+    function unequipSkill(uint256 characterTokenId, uint256 skillId) public {
+        // Check if the skill is equipped
+        uint256[] storage equippedSkills = characterEquips[characterTokenId]
+            .equippedSkills;
+        uint256 skillIndex = equippedSkills.length;
+        for (uint256 i = 0; i < equippedSkills.length; i++) {
+            if (equippedSkills[i] == skillId) {
+                skillIndex = i;
+                break;
+            }
+        }
 
-        // Unequip the skill
-        characterEquips[characterTokenId].equippedSkill = 9999;
+        // Check if the skill was found
+        require(skillIndex < equippedSkills.length, "Skill not found");
+
+        // Transfer the skill back to the owner and remove it from the equippedSkills array
         battleSkills.safeTransferFrom(
             address(this),
             msg.sender,
-            equippedSkillId,
+            skillId,
             1,
             ""
         );
+        equippedSkills[skillIndex] = equippedSkills[equippedSkills.length - 1];
+        equippedSkills.pop();
     }
 
     function equipClass(uint256 characterTokenId, uint256 classId) public {
@@ -575,15 +590,16 @@ contract Character is ERC721Base, ERC1155Holder {
     }
 
     function getEquippedItem(
-        uint256 characterTokenId
+        uint256 characterTokenId,
+        BattleItems.ItemType itemType
     ) external view returns (uint256) {
-        return characterEquips[characterTokenId].equippedItem;
+        return characterEquips[characterTokenId].equippedItems[itemType];
     }
 
-    function getEquippedSkill(
+    function getEquippedSkills(
         uint256 characterTokenId
-    ) external view returns (uint256) {
-        return characterEquips[characterTokenId].equippedSkill;
+    ) external view returns (uint256[] memory) {
+        return characterEquips[characterTokenId].equippedSkills;
     }
 
     function getEquippedClass(
