@@ -5,11 +5,17 @@ import "./CharacterType.sol";
 import "./BattleSkills.sol";
 import "hardhat/console.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@thirdweb-dev/contracts/extension/Ownable.sol";
 
-contract Battle {
-    // AggregatorV3Interface internal priceFeed;
-    // uint256 public feeCollected; // variable to track fee
-    // uint256 public leagueRewards; // variable to track league rewards
+contract Battle is Ownable {
+    function _canSetOwner() internal view virtual override returns (bool) {
+        return true;
+    }
+
+    AggregatorV3Interface internal priceFeed;
+    uint256 public feeCollected; // variable to track fee
+    uint256 public leagueRewards; // variable to track league rewards
+    uint256 public staminaCost;
 
     enum Move {
         ATTACK,
@@ -29,9 +35,11 @@ contract Battle {
         address[2] players;
         uint256[2] characterIds;
         uint256[2] moves;
+        uint256[2] skillIndices; // Indices of chosen skills in the equippedSkills array
         BattleStatus battleStatus;
         address winner;
         uint256[2] initialHealth;
+        uint256[2] initialMana; // Initial mana for each player's character
         bool[2] moveSubmitted;
     }
 
@@ -43,6 +51,7 @@ contract Battle {
         uint256 defense;
         uint256 mana;
         uint256 typeId;
+        uint256[] equippedSkills; // Array of equipped skill IDs
         uint256[] activeEffectIds; // Array of active status effect IDs
         mapping(uint256 => uint256) activeEffectDurations; // Mapping from effectId to duration
     }
@@ -55,6 +64,7 @@ contract Battle {
         uint256 defense;
         uint256 mana;
         uint256 typeId;
+        uint256[] equippedSkills;
     }
 
     mapping(uint256 => BattleData) public battles;
@@ -139,8 +149,10 @@ contract Battle {
         BattleData storage battle = battles[battleId];
         if (player == battle.players[0]) {
             battle.initialHealth[0] = p.health;
+            battle.initialMana[0] = p.mana; // Populate initialMana for player 1
         } else {
             battle.initialHealth[1] = p.health;
+            battle.initialMana[1] = p.mana; // Populate initialMana for player 2
         }
     }
 
@@ -165,9 +177,11 @@ contract Battle {
             players: [msg.sender, address(0)],
             characterIds: [_characterTokenId, 0],
             moves: [uint256(0), uint256(0)],
+            skillIndices: [uint256(0), uint256(0)],
             battleStatus: BattleStatus.PENDING,
             winner: address(0),
             initialHealth: [uint256(0), uint256(0)],
+            initialMana: [uint256(0), uint256(0)], // Add initialMana field to the memory struct
             moveSubmitted: [false, false]
         });
 
@@ -180,21 +194,11 @@ contract Battle {
         // Populate the CharacterProxy for player 1
         createCharacterProxies(_characterTokenId, msg.sender, battleId);
 
+        // Consume stamina for player 1
+        characterContract.consumeStamina(_characterTokenId, staminaCost);
+
         emit BattleCreated(battleId, msg.sender, _characterTokenId);
         battleCounter++;
-
-        //  // Check if the player has credit
-        // if (playerCredit[msg.sender] > 0) {
-        //     // Deduct credit from the player
-        //     playerCredit[msg.sender] -= 1;
-        // } else {
-        //     // Collect battle fee
-        //     require(msg.value >= battleFee(), "Battle fee not covered");
-        //     // Collect 50% of the fee for the league rewards
-        //     leagueRewards += msg.value / 2;
-        //     // Collect 50% of the fee for the feeCollector
-        //     feeCollected += msg.value / 2;
-        // }
     }
 
     function cancelBattle(uint256 _battleId) external {
@@ -256,6 +260,9 @@ contract Battle {
 
         // Populate the CharacterProxy for player 2
         createCharacterProxies(characterTokenId, msg.sender, battleId);
+
+        // Consume stamina for player 2
+        characterContract.consumeStamina(characterTokenId, staminaCost);
 
         // // Collect 50% of the fee for the league rewards
         // leagueRewards += msg.value / 2;
@@ -380,10 +387,7 @@ contract Battle {
 
         // USE_SKILL logic here.
         if (battle.moves[0] == uint256(Move.USE_SKILL)) {
-            uint256 characterTokenId = battle.characterIds[0];
-            uint256 skillId = characterContract.getEquippedSkill(
-                characterTokenId
-            );
+            uint256 skillId = proxyA.equippedSkills[battle.skillIndices[0]];
             BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
                 skillId
             );
@@ -402,10 +406,7 @@ contract Battle {
         }
 
         if (battle.moves[1] == uint256(Move.USE_SKILL)) {
-            uint256 characterTokenId = battle.characterIds[1];
-            uint256 skillId = characterContract.getEquippedSkill(
-                characterTokenId
-            );
+            uint256 skillId = proxyB.equippedSkills[battle.skillIndices[1]];
             BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
                 skillId
             );
@@ -587,14 +588,7 @@ contract Battle {
         battle.winner = _winner;
         battle.battleStatus = BattleStatus.ENDED;
 
-        uint256 index = battleIdToActiveIndex[_battleId];
-        uint256 lastIndex = activeBattlesId.length - 1;
-        uint256 lastBattleId = activeBattlesId[lastIndex];
-
-        activeBattlesId[index] = lastBattleId;
-        battleIdToActiveIndex[lastBattleId] = index;
-        activeBattlesId.pop();
-        delete battleIdToActiveIndex[_battleId];
+        _updateBattleIdMapping(_battleId);
 
         // Update the playerOngoingBattle mapping for both players
         address player1 = battle.players[0];
@@ -604,9 +598,68 @@ contract Battle {
 
         // Determine the loser
         address _loser = _winner == player1 ? player2 : player1;
+        uint256 winnerIndex = _winner == player1 ? 0 : 1;
+        uint256 loserIndex = _loser == player1 ? 0 : 1;
+
+        _consumeUsedMana(_battleId, battle, winnerIndex, loserIndex);
+
+        // Check if the health of one of the players is 0, indicating the battle was fought
+        uint256 player1Health = characterProxies[
+            keccak256(abi.encodePacked(_battleId, player1))
+        ][player1].health;
+        uint256 player2Health = characterProxies[
+            keccak256(abi.encodePacked(_battleId, player2))
+        ][player2].health;
+        bool battleFought = player1Health == 0 || player2Health == 0;
+
+        // If the battle was actually fought, grant experience points to the winner and the loser
+        if (battleFought) {
+            characterContract.gainXP(battle.characterIds[winnerIndex], 100);
+            characterContract.gainXP(battle.characterIds[loserIndex], 30);
+        }
 
         // Emit the updated BattleEnded event
         emit BattleEnded(battle.name, _battleId, _winner, _loser);
+    }
+
+    function _updateBattleIdMapping(uint256 _battleId) internal {
+        uint256 index = battleIdToActiveIndex[_battleId];
+        uint256 lastIndex = activeBattlesId.length - 1;
+        uint256 lastBattleId = activeBattlesId[lastIndex];
+
+        activeBattlesId[index] = lastBattleId;
+        battleIdToActiveIndex[lastBattleId] = index;
+        activeBattlesId.pop();
+        delete battleIdToActiveIndex[_battleId];
+    }
+
+    function _consumeUsedMana(
+        uint256 _battleId,
+        BattleData storage battle,
+        uint256 winnerIndex,
+        uint256 loserIndex
+    ) internal {
+        // Calculate used mana for each player's character
+        address player1 = battle.players[0];
+        address player2 = battle.players[1];
+        uint256 usedManaPlayer1 = battle.initialMana[0] -
+            characterProxies[keccak256(abi.encodePacked(_battleId, player1))][
+                player1
+            ].mana;
+        uint256 usedManaPlayer2 = battle.initialMana[1] -
+            characterProxies[keccak256(abi.encodePacked(_battleId, player2))][
+                player2
+            ].mana;
+
+        // Consume used mana for each player's character
+        characterContract.consumeMana(
+            battle.characterIds[winnerIndex],
+            usedManaPlayer1
+        );
+        characterContract.consumeMana(
+            battle.characterIds[loserIndex],
+            usedManaPlayer2
+        );
     }
 
     function getBattle(
@@ -643,7 +696,8 @@ contract Battle {
             attack: proxy.attack,
             defense: proxy.defense,
             mana: proxy.mana,
-            typeId: proxy.typeId
+            typeId: proxy.typeId,
+            equippedSkills: proxy.equippedSkills
         });
 
         return proxyView;
@@ -694,17 +748,21 @@ contract Battle {
             ].health;
     }
 
-    // /**
-    //  * @notice Get fee for battle.
-    //  * @dev Battle Fee is calculated with the current value of Avax in USD given by ChainLink.
-    //  * @return price uint256 Fee value
-    //  */
-    // function battleFee() public view returns (uint256) {
-    //     (, int256 answer, , , ) = priceFeed.latestRoundData();
-    //     uint256 price = uint256(answer * 10000000000); // convert int256 value to uint256
-    //     uint256 usdAmount = 0.05 * 10 ** 18; // convert 0.05 USD to wei
-    //     return uint256((usdAmount * (10 ** 18)) / price); // convert wei to ether
-    // }
+    function updateStaminaCost(uint256 newCost) external onlyOwner {
+        staminaCost = newCost;
+    }
+
+    /**
+     * @notice Get fee for battle.
+     * @dev Battle Fee is calculated with the current value of Avax in USD given by ChainLink.
+     * @return price uint256 Fee value
+     */
+    function battleFee() public view returns (uint256) {
+        (, int256 answer, , , ) = priceFeed.latestRoundData();
+        uint256 price = uint256(answer * 10000000000); // convert int256 value to uint256
+        uint256 usdAmount = 0.05 * 10 ** 18; // convert 0.05 USD to wei
+        return uint256((usdAmount * (10 ** 18)) / price); // convert wei to ether
+    }
 
     fallback() external payable {}
 

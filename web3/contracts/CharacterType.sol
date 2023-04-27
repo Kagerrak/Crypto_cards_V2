@@ -252,10 +252,10 @@ contract Character is ERC721Base, ERC1155Holder {
 
         // Initialize no items equipped
         characterEquips[numCharacters].equippedItems[
-            BattleItems.ItemType.Weapon
+            BattleItems.ItemType.Headgear
         ] = 999999;
         characterEquips[numCharacters].equippedItems[
-            BattleItems.ItemType.Headgear
+            BattleItems.ItemType.Weapon
         ] = 999999;
         characterEquips[numCharacters].equippedItems[
             BattleItems.ItemType.BodyArmor
@@ -390,6 +390,20 @@ contract Character is ERC721Base, ERC1155Holder {
         heroRecovery.lastStaminaUpdateTime = block.timestamp;
     }
 
+    function addStamina(uint256 tokenId, uint256 amount) external onlyOwner {
+        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
+
+        uint256 currentStamina = getStamina(tokenId);
+        uint256 newStamina = currentStamina + amount;
+
+        if (newStamina > 100) {
+            newStamina = 100;
+        }
+
+        heroRecovery.stamina = newStamina;
+        heroRecovery.lastStaminaUpdateTime = block.timestamp;
+    }
+
     function restoreStaminaToFull(uint256 tokenId) external {
         RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
         heroRecovery.stamina = 100;
@@ -422,6 +436,21 @@ contract Character is ERC721Base, ERC1155Holder {
         heroRecovery.lastManaUpdateTime = block.timestamp;
     }
 
+    function addMana(uint256 tokenId, uint256 amount) external onlyOwner {
+        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
+
+        uint256 maxMana = characterStats[tokenId].mana;
+        uint256 currentMana = getMana(tokenId);
+        uint256 newMana = currentMana + amount;
+
+        if (newMana > maxMana) {
+            newMana = maxMana;
+        }
+
+        characterStats[tokenId].mana = newMana;
+        heroRecovery.lastManaUpdateTime = block.timestamp;
+    }
+
     function restoreManaToFull(uint256 tokenId) external {
         RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
         characterStats[tokenId].mana = characterStats[tokenId].mana;
@@ -429,43 +458,62 @@ contract Character is ERC721Base, ERC1155Holder {
     }
 
     function equipItem(uint256 characterTokenId, uint256 tokenId) public {
+        // Check if the item tokenId is valid and the caller is the owner of the item
         require(battleItems.totalSupply(tokenId) > 0, "Invalid item token ID");
         require(
             battleItems.balanceOf(msg.sender, tokenId) > 0,
             "Not the owner of the item"
         );
 
+        // Get the ItemType of the item
         BattleItems.ItemType itemType = battleItems.getItemType(tokenId);
 
+        // Check if the item is not already equipped in the specified slot
         require(
             characterEquips[characterTokenId].equippedItems[itemType] !=
                 tokenId,
             "Item already equipped"
         );
 
+        // Unequip the previous item
         uint256 previousTokenId = characterEquips[characterTokenId]
             .equippedItems[itemType];
         if (previousTokenId != 999999) {
-            battleItems.safeTransferFrom(
-                address(this),
-                msg.sender,
-                previousTokenId,
-                1,
-                ""
-            );
+            unequipItem(characterTokenId, itemType);
         }
 
+        // Equip the item
         characterEquips[characterTokenId].equippedItems[itemType] = tokenId;
         battleItems.safeTransferFrom(msg.sender, address(this), tokenId, 1, "");
+
+        // Get stats of the new item
+        BattleItems.Item memory newItem = battleItems.getItem(tokenId);
+
+        // Update character stats based on the new item
+        characterStats[characterTokenId].attack += newItem.attack;
+        characterStats[characterTokenId].defense += newItem.defense;
+        characterStats[characterTokenId].health += newItem.health;
+        characterStats[characterTokenId].mana += newItem.skill;
     }
 
     function unequipItem(
         uint256 characterTokenId,
         BattleItems.ItemType itemType
-    ) external {
+    ) public {
         uint256 equippedTokenId = characterEquips[characterTokenId]
             .equippedItems[itemType];
         require(equippedTokenId != 999999, "No item equipped");
+
+        // Get stats of the item to unequip
+        BattleItems.Item memory itemToUnequip = battleItems.getItem(
+            equippedTokenId
+        );
+
+        // Remove item stats from the character
+        characterStats[characterTokenId].attack -= itemToUnequip.attack;
+        characterStats[characterTokenId].defense -= itemToUnequip.defense;
+        characterStats[characterTokenId].health -= itemToUnequip.health;
+        characterStats[characterTokenId].mana -= itemToUnequip.skill;
 
         characterEquips[characterTokenId].equippedItems[itemType] = 999999;
         battleItems.safeTransferFrom(
