@@ -79,7 +79,10 @@ contract BattleSkills is ERC1155Base {
     }
 
     function mintSkill(uint256 _skillId, address _caller) public {
-        require(_skillId <= numSkills, "Skill does not exist");
+        if (_skillId == 0) {
+            require(numSkills > 0, "Skill does not exixt");
+        }
+        require(_skillId < numSkills, "Skill does not exist");
         uint256 tokenId = _skillId;
         _mint(_caller, tokenId, 1, "");
     }

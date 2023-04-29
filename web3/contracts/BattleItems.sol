@@ -39,7 +39,6 @@ contract BattleItems is ERC1155Base {
     ) public {
         uint256 tokenId = type(uint256).max; // pass type(uint256).max as the tokenId argument
         mintTo(msg.sender, tokenId, _tokenURI, 1);
-        numItems++;
         items[numItems] = Item(
             _name,
             _attack,
@@ -49,10 +48,14 @@ contract BattleItems is ERC1155Base {
             _skill,
             _itemType
         );
+        numItems++;
     }
 
     function mintItem(uint256 _itemId) public {
-        require(_itemId <= numItems, "Item does not exist");
+        if (_itemId == 0) {
+            require(numItems > 0, "Skill does not exixt");
+        }
+        require(_itemId < numItems, "Skill does not exist");
         uint256 tokenId = _itemId;
         _mint(msg.sender, tokenId, 1, "");
     }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import "./CharacterType.sol";
+import "./CharacterStamina.sol";
 import "./BattleSkills.sol";
 import "hardhat/console.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
@@ -15,7 +15,7 @@ contract Battle is Ownable {
     AggregatorV3Interface internal priceFeed;
     uint256 public feeCollected; // variable to track fee
     uint256 public leagueRewards; // variable to track league rewards
-    uint256 public staminaCost;
+    uint256 public staminaCost = 25;
 
     enum Move {
         ATTACK,
@@ -105,11 +105,16 @@ contract Battle is Ownable {
         address player2,
         uint256 health2
     );
+    event DiceRolled(uint256 diceNumber);
 
     modifier onlyParticipant(uint256 battleId) {
+        console.log(battles[battleId].players[0]);
+        console.log(battles[battleId].players[1]);
+        address player0 = battles[battleId].players[0];
+        address player1 = battles[battleId].players[1];
+
         require(
-            msg.sender == battles[battleId].players[0] ||
-                msg.sender == battles[battleId].players[1],
+            msg.sender == player0 || msg.sender == player1,
             "Only participants can call this function"
         );
         _;
@@ -139,7 +144,7 @@ contract Battle is Ownable {
         p.health = characterContract.getCharacterHealth(tokenId);
         p.attack = characterContract.getCharacterAttack(tokenId);
         p.defense = characterContract.getCharacterDefense(tokenId);
-        p.mana = characterContract.getCharacterMana(tokenId);
+        p.mana = characterContract.getMana(tokenId);
         p.typeId = characterContract.getCharacterType(tokenId);
 
         console.log("Character proxy created for player", player);
@@ -274,7 +279,8 @@ contract Battle is Ownable {
 
     function submitMove(
         uint256 battleId,
-        Move move
+        Move move,
+        uint256 skillId
     ) external onlyParticipant(battleId) {
         BattleData storage battle = battles[battleId];
         require(
@@ -296,6 +302,12 @@ contract Battle is Ownable {
 
         battle.moves[playerIndex] = uint256(move);
         battle.moveSubmitted[playerIndex] = true; // Set the flag
+
+        // Update skillIndices array if the move is USE_SKILL
+        if (move == Move.USE_SKILL) {
+            battle.skillIndices[playerIndex] = skillId;
+        }
+
         emit MoveSubmitted(battleId, msg.sender, move);
 
         // Add these lines
@@ -310,11 +322,19 @@ contract Battle is Ownable {
 
         // Check if both moves have been submitted
         if (battle.moveSubmitted[0] && battle.moveSubmitted[1]) {
-            _resolveRound(battleId);
+            _resolveRound(
+                battleId,
+                battle.skillIndices[0],
+                battle.skillIndices[1]
+            );
         }
     }
 
-    function _resolveRound(uint256 battleId) private {
+    function _resolveRound(
+        uint256 battleId,
+        uint256 _skillId0,
+        uint256 _skillId1
+    ) private {
         BattleData storage battle = battles[battleId];
 
         bytes32 battleKeyA = keccak256(
@@ -387,9 +407,8 @@ contract Battle is Ownable {
 
         // USE_SKILL logic here.
         if (battle.moves[0] == uint256(Move.USE_SKILL)) {
-            uint256 skillId = proxyA.equippedSkills[battle.skillIndices[0]];
             BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
-                skillId
+                _skillId0
             );
             uint256 totalDamage = calculateAttackDamage(
                 proxyA.attack + skill.damage
@@ -406,9 +425,8 @@ contract Battle is Ownable {
         }
 
         if (battle.moves[1] == uint256(Move.USE_SKILL)) {
-            uint256 skillId = proxyB.equippedSkills[battle.skillIndices[1]];
             BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
-                skillId
+                _skillId1
             );
             uint256 totalDamage = calculateAttackDamage(
                 proxyB.attack + skill.damage
@@ -454,20 +472,17 @@ contract Battle is Ownable {
         character.activeEffectIds.push(statusEffectId);
     }
 
-    function calculateAttackDamage(
-        uint256 attack
-    ) internal view returns (uint256) {
-        uint256 damage = (attack / 10) *
-            ((uint256(
-                keccak256(
-                    abi.encodePacked(
-                        block.prevrandao,
-                        block.timestamp,
-                        msg.sender
-                    )
-                )
-            ) % 10) + 1);
-        console.log(damage);
+    function calculateAttackDamage(uint256 attack) public returns (uint256) {
+        uint256 randomNumber = (uint256(
+            keccak256(
+                abi.encodePacked(block.prevrandao, block.timestamp, msg.sender)
+            )
+        ) % 20) + 1;
+
+        // Emit the DiceRolled event with the generated randomNumber
+        emit DiceRolled(randomNumber);
+
+        uint256 damage = (attack / 10) * randomNumber;
         return damage;
     }
 
