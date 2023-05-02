@@ -20,7 +20,8 @@ contract Battle is Ownable {
     enum Move {
         ATTACK,
         DEFEND,
-        USE_SKILL
+        USE_SKILL,
+        DO_NOTHING
     }
 
     enum BattleStatus {
@@ -54,6 +55,7 @@ contract Battle is Ownable {
         uint256[] equippedSkills; // Array of equipped skill IDs
         uint256[] activeEffectIds; // Array of active status effect IDs
         mapping(uint256 => uint256) activeEffectDurations; // Mapping from effectId to duration
+        bool isStunned;
     }
 
     struct CharacterProxyView {
@@ -290,8 +292,9 @@ contract Battle is Ownable {
         require(
             move == Move.ATTACK ||
                 move == Move.DEFEND ||
-                move == Move.USE_SKILL,
-            "Invalid move: must be ATTACK, DEFEND, or USE_SKILL"
+                move == Move.USE_SKILL ||
+                move == Move.DO_NOTHING, // Add this line
+            "Invalid move: must be ATTACK, DEFEND, USE_SKILL, or DO_NOTHING"
         );
 
         uint256 playerIndex = (msg.sender == battle.players[0]) ? 0 : 1;
@@ -351,6 +354,18 @@ contract Battle is Ownable {
             battle.players[1]
         ];
 
+        _resolveStatusEffects(proxyA);
+        console.log("proxyA");
+        _resolveStatusEffects(proxyB);
+        console.log("proxyB");
+
+        if (proxyA.isStunned) {
+            battle.moves[0] = uint256(Move.DO_NOTHING);
+        }
+        if (proxyB.isStunned) {
+            battle.moves[1] = uint256(Move.DO_NOTHING);
+        }
+
         // Handle different move combinations
         if (
             battle.moves[0] == uint256(Move.ATTACK) &&
@@ -403,43 +418,51 @@ contract Battle is Ownable {
             }
             proxyA.mana += 3;
             proxyB.mana -= 3;
+        } else if (
+            // Player 1 attacks, player 2 does nothing
+            battle.moves[0] == uint256(Move.ATTACK) &&
+            battle.moves[1] == uint256(Move.DO_NOTHING)
+        ) {
+            uint256 damageA = calculateAttackDamage(proxyA.attack);
+            proxyB.health = proxyB.health > damageA
+                ? proxyB.health - damageA
+                : 0;
+            proxyA.mana -= 3;
+        } else if (
+            // Player 1 does nothing, player 2 attacks
+            battle.moves[0] == uint256(Move.DO_NOTHING) &&
+            battle.moves[1] == uint256(Move.ATTACK)
+        ) {
+            uint256 damageB = calculateAttackDamage(proxyB.attack);
+            proxyA.health = proxyA.health > damageB
+                ? proxyA.health - damageB
+                : 0;
+            proxyB.mana -= 3;
+            // Player 1 defends, player 2 does nothing
+        } else if (
+            battle.moves[0] == uint256(Move.DEFEND) &&
+            battle.moves[1] == uint256(Move.DO_NOTHING)
+        ) {
+            proxyA.mana += 3;
+            // Player 1 does nothing, player 2 defends
+        } else if (
+            battle.moves[0] == uint256(Move.DO_NOTHING) &&
+            battle.moves[1] == uint256(Move.DEFEND)
+        ) {
+            proxyB.mana += 3;
         }
 
         // USE_SKILL logic here.
         if (battle.moves[0] == uint256(Move.USE_SKILL)) {
-            BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
-                _skillId0
-            );
-            uint256 totalDamage = calculateAttackDamage(
-                proxyA.attack + skill.damage
-            );
-            proxyB.health = proxyB.health > totalDamage
-                ? proxyB.health - totalDamage
-                : 0;
-
-            // Apply status effect from the skill
-            _applyStatusEffect(proxyA, skill.statusEffectId);
-
-            // Deduct the mana cost of the skill from player 1's mana
-            proxyA.mana -= skill.manaCost;
+            _executeSkill(proxyA, _skillId0, proxyB);
+        } else if (battle.moves[0] == uint256(Move.DO_NOTHING)) {
+            // Player 1 does nothing
         }
 
         if (battle.moves[1] == uint256(Move.USE_SKILL)) {
-            BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
-                _skillId1
-            );
-            uint256 totalDamage = calculateAttackDamage(
-                proxyB.attack + skill.damage
-            );
-            proxyA.health = proxyA.health > totalDamage
-                ? proxyA.health - totalDamage
-                : 0;
-
-            // Apply status effect from the skill
-            _applyStatusEffect(proxyB, skill.statusEffectId);
-
-            // Deduct the mana cost of the skill from player 2's mana
-            proxyB.mana -= skill.manaCost;
+            _executeSkill(proxyB, _skillId1, proxyA);
+        } else if (battle.moves[1] == uint256(Move.DO_NOTHING)) {
+            // Player 2 does nothing
         }
 
         // Emit HealthUpdated event
@@ -466,10 +489,14 @@ contract Battle is Ownable {
 
     function _applyStatusEffect(
         CharacterProxy storage character,
-        uint256 statusEffectId
+        uint256 statusEffectId,
+        uint256 duration
     ) private {
         // Add the status effect to the character's activeEffectIds array
         character.activeEffectIds.push(statusEffectId);
+
+        // Update the character's activeEffectDurations mapping with the new duration
+        character.activeEffectDurations[statusEffectId] = duration;
     }
 
     function calculateAttackDamage(uint256 attack) public returns (uint256) {
@@ -482,8 +509,42 @@ contract Battle is Ownable {
         // Emit the DiceRolled event with the generated randomNumber
         emit DiceRolled(randomNumber);
 
-        uint256 damage = (attack / 10) * randomNumber;
+        uint256 damage = (attack * (1000 + (randomNumber * 100))) / 1000;
         return damage;
+    }
+
+    function _executeSkill(
+        CharacterProxy storage player,
+        uint256 skillId,
+        CharacterProxy storage opponent
+    ) private {
+        BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
+            skillId
+        );
+        uint256 totalDamage = calculateAttackDamage(
+            player.attack + skill.damage
+        );
+        opponent.health = opponent.health > totalDamage
+            ? opponent.health - totalDamage
+            : 0;
+
+        BattleSkills.StatusEffect memory statusEffect = battleSkillsContract
+            .getStatusEffect(skill.statusEffectId);
+        if (statusEffect.isPositive) {
+            _applyStatusEffect(
+                player,
+                skill.statusEffectId,
+                statusEffect.duration
+            );
+        } else {
+            _applyStatusEffect(
+                opponent,
+                skill.statusEffectId,
+                statusEffect.duration
+            );
+        }
+
+        player.mana -= skill.manaCost;
     }
 
     function _boostAttack(
@@ -525,10 +586,6 @@ contract Battle is Ownable {
             : 0;
     }
 
-    function _stun() private pure returns (bool) {
-        return true;
-    }
-
     function _damageOverTime(
         CharacterProxy storage character,
         uint256 damagePerTurn
@@ -539,10 +596,13 @@ contract Battle is Ownable {
     }
 
     function _resolveStatusEffects(CharacterProxy storage character) private {
+        bool isStunned = false;
+
         for (uint256 i = 0; i < character.activeEffectIds.length; i++) {
             uint256 effectId = character.activeEffectIds[i];
             BattleSkills.StatusEffect memory statusEffect = battleSkillsContract
                 .getStatusEffect(effectId);
+            console.log(statusEffect.name);
 
             if (statusEffect.attackBoost > 0) {
                 _boostAttack(character, statusEffect.attackBoost);
@@ -560,7 +620,9 @@ contract Battle is Ownable {
                 _reduceDefense(character, statusEffect.defenseReduction);
             }
             if (statusEffect.isStun) {
-                _stun();
+                if (character.activeEffectDurations[effectId] > 0) {
+                    isStunned = true;
+                }
             }
             if (statusEffect.damagePerTurn > 0) {
                 _damageOverTime(character, statusEffect.damagePerTurn);
@@ -571,13 +633,22 @@ contract Battle is Ownable {
 
             // Remove the status effect if its duration has ended
             if (character.activeEffectDurations[effectId] == 0) {
-                character.activeEffectIds[i] = character.activeEffectIds[
-                    character.activeEffectIds.length - 1
-                ];
+                if (character.activeEffectIds.length > 1) {
+                    character.activeEffectIds[i] = character.activeEffectIds[
+                        character.activeEffectIds.length - 1
+                    ];
+                }
                 character.activeEffectIds.pop();
-                i--; // Decrement the loop counter to account for the removed element
+                console.log(i);
+                if (i > 0) {
+                    i--; // Decrement the loop counter to account for the removed element
+                }
+                console.log(i);
             }
         }
+
+        // Update the character's stun status based on the isStunned flag
+        character.isStunned = isStunned;
     }
 
     function quitBattle(uint256 _battleId) public {
@@ -777,6 +848,11 @@ contract Battle is Ownable {
         uint256 price = uint256(answer * 10000000000); // convert int256 value to uint256
         uint256 usdAmount = 0.05 * 10 ** 18; // convert 0.05 USD to wei
         return uint256((usdAmount * (10 ** 18)) / price); // convert wei to ether
+    }
+
+    function storeStamina(uint256 _tokenId1, uint256 _tokenId2) public {
+        characterContract.restoreStaminaToFull(_tokenId1);
+        characterContract.restoreStaminaToFull(_tokenId2);
     }
 
     fallback() external payable {}
