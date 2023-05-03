@@ -210,11 +210,6 @@ contract Character is ERC721Base, ERC1155Holder {
         return hero.health;
     }
 
-    function getCharacterMana(uint256 tokenId) public view returns (uint256) {
-        CharacterStats storage hero = characterStats[tokenId];
-        return hero.mana;
-    }
-
     function getCharacterType(uint256 tokenId) public view returns (uint256) {
         CharacterStats storage hero = characterStats[tokenId];
         return hero.typeId;
@@ -223,8 +218,8 @@ contract Character is ERC721Base, ERC1155Holder {
     function newCharacter(uint256 _typeId) public {
         require(_typeId < charTypes.length, "Invalid character type ID");
 
-        // Mint the new token with the specified owner and token ID
-        _safeMint(msg.sender, numCharacters);
+        // Mint the new token with the specified owner and quantity
+        _safeMint(msg.sender, 1);
 
         // Set the token URI for the new token
         console.log(charTypes[_typeId].uri);
@@ -335,9 +330,7 @@ contract Character is ERC721Base, ERC1155Holder {
         charStat.statPoints -= totalStatPointsToSpend;
     }
 
-    function levelUp(uint256 characterTokenId) public {
-        require(ownerOf(characterTokenId) == msg.sender, "Caller is not owner");
-
+    function _levelUp(uint256 characterTokenId) internal {
         CharacterStats storage hero = characterStats[characterTokenId];
         uint256 currentLevel = hero.level;
         uint256 currentXP = hero.experience;
@@ -352,15 +345,16 @@ contract Character is ERC721Base, ERC1155Holder {
         hero.statPoints += 5 * (newLevel - currentLevel);
     }
 
-    function gainXP(uint256 characterTokenId, uint256 xp) public {
-        require(ownerOf(characterTokenId) == msg.sender, "Caller is not owner");
-
+    function gainXP(
+        uint256 characterTokenId,
+        uint256 xp
+    ) external onlyBattleContract {
         CharacterStats storage hero = characterStats[characterTokenId];
         hero.experience += xp;
 
         uint256 newLevel = levelFromXP(hero.experience);
         if (newLevel > hero.level) {
-            levelUp(characterTokenId);
+            _levelUp(characterTokenId);
         }
     }
 
@@ -388,6 +382,7 @@ contract Character is ERC721Base, ERC1155Holder {
         RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
         heroRecovery.stamina = currentStamina - amount;
         heroRecovery.lastStaminaUpdateTime = block.timestamp;
+        console.log("stamina consumed ", heroRecovery.stamina);
     }
 
     function addStamina(uint256 tokenId, uint256 amount) external onlyOwner {
@@ -434,6 +429,7 @@ contract Character is ERC721Base, ERC1155Holder {
         RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
         characterStats[tokenId].mana = currentMana - amount;
         heroRecovery.lastManaUpdateTime = block.timestamp;
+        console.log("mana consumed ", characterStats[tokenId].mana);
     }
 
     function addMana(uint256 tokenId, uint256 amount) external onlyOwner {
@@ -458,6 +454,9 @@ contract Character is ERC721Base, ERC1155Holder {
     }
 
     function equipItem(uint256 characterTokenId, uint256 tokenId) public {
+        // Check if the character token ID exists
+        require(characterTokenId < numCharacters, "Invalid character token ID");
+
         // Check if the item tokenId is valid and the caller is the owner of the item
         require(battleItems.totalSupply(tokenId) > 0, "Invalid item token ID");
         require(
@@ -526,6 +525,9 @@ contract Character is ERC721Base, ERC1155Holder {
     }
 
     function equipSkill(uint256 characterTokenId, uint256 skillId) public {
+        // Check if the character token ID exists
+        require(characterTokenId < numCharacters, "Invalid character token ID");
+
         // Check if the skill exists
         require(battleSkills.totalSupply(skillId) > 0, "Invalid skill ID");
 
@@ -581,6 +583,9 @@ contract Character is ERC721Base, ERC1155Holder {
     }
 
     function equipClass(uint256 characterTokenId, uint256 classId) public {
+        // Check if the character token ID exists
+        require(characterTokenId < numCharacters, "Invalid character token ID");
+
         // Check if the class exists
         require(characterClasses.totalSupply(classId) > 0, "Invalid class ID");
 

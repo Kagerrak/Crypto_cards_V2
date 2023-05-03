@@ -16,6 +16,7 @@ contract BattleSkills is ERC1155Base {
     struct StatusEffect {
         uint256 effectId;
         string name;
+        bool isPositive;
         uint256 duration;
         uint256 attackBoost;
         uint256 attackReduction;
@@ -31,7 +32,10 @@ contract BattleSkills is ERC1155Base {
     uint256 public numSkills;
     uint256 public numStatusEffects;
 
-    constructor() ERC1155Base("BattleSkills", "BS", address(0), 0) {}
+    constructor() ERC1155Base("BattleSkills", "BS", address(0), 0) {
+        initializeStatusEffects(); // for testing
+        initializeSkills(); // for testing
+    }
 
     function createSkill(
         string memory _name,
@@ -55,6 +59,7 @@ contract BattleSkills is ERC1155Base {
     function createStatusEffect(
         string memory _name,
         uint256 _duration,
+        bool _isPositive,
         uint256 _attackBoost,
         uint256 _attackReduction,
         uint256 _defenseBoost,
@@ -66,6 +71,7 @@ contract BattleSkills is ERC1155Base {
         statusEffects[numStatusEffects] = StatusEffect(
             numStatusEffects,
             _name,
+            _isPositive,
             _duration,
             _attackBoost,
             _attackReduction,
@@ -76,6 +82,54 @@ contract BattleSkills is ERC1155Base {
             _isStun
         );
         numStatusEffects++;
+    }
+
+    function initializeStatusEffects() public {
+        createStatusEffect("Stun", 1, false, 0, 0, 0, 0, 0, 0, true);
+        createStatusEffect(
+            "Damage Over Time",
+            3,
+            false,
+            0,
+            0,
+            0,
+            0,
+            0,
+            10,
+            false
+        );
+        createStatusEffect("Reduce Attack", 3, false, 0, 10, 0, 0, 0, 0, false);
+        createStatusEffect(
+            "Reduce Defense",
+            3,
+            false,
+            0,
+            0,
+            0,
+            10,
+            0,
+            0,
+            false
+        );
+        createStatusEffect("Boost Attack", 3, true, 10, 0, 0, 0, 0, 0, false);
+        createStatusEffect("Heal Over Time", 3, true, 0, 0, 0, 0, 10, 0, false);
+        createStatusEffect("Defense Boost", 3, true, 0, 0, 10, 0, 0, 0, false);
+    }
+
+    function initializeSkills() public {
+        createSkill("Stun Attack", 10, 5, 0, "https://example.com/skill/0");
+        createSkill("Fireball", 20, 10, 1, "https://example.com/skill/1");
+        createSkill("Weaken Attack", 15, 5, 2, "https://example.com/skill/2");
+        createSkill("Weaken Defense", 15, 5, 3, "https://example.com/skill/3");
+        createSkill("Power Strike", 25, 10, 4, "https://example.com/skill/4");
+        createSkill("Healing Spell", 0, 10, 5, "https://example.com/skill/5");
+        createSkill(
+            "Defensive Stance",
+            10,
+            5,
+            6,
+            "https://example.com/skill/6"
+        );
     }
 
     function mintSkill(uint256 _skillId, address _caller) public {
