@@ -19,6 +19,7 @@ import {
 import StatInput from "./StatInput";
 import CustomButton from "./CustomButton";
 import EquippedCharacterCard from "./EquippedCharacterCard";
+import EquippedSkill from "./EqquippedSkill";
 
 import styles from "../styles";
 
@@ -27,8 +28,10 @@ const CharacterStats = (props) => {
   const [charInfo, setCharInfo] = useState(null);
   const [statPoints, setStatPoints] = useState(0);
   const [newStats, setNewStats] = useState({});
-  const [nftSkillData, setNftSkillData] = useState(null);
+  const [nftSkillData, setNftSkillData] = useState([]);
   const [nftItemData, setNftItemData] = useState(null);
+  const [pendingChanges, setPendingChanges] = useState(false);
+  const [showButtons, setShowButtons] = useState(true);
 
   const keysWithButtons = ["strength", "dexterity", "intelligence", "vitality"];
 
@@ -50,41 +53,36 @@ const CharacterStats = (props) => {
   const { data: ownedSkills } = useOwnedNFTs(skillTWContract, walletAddress);
   const { data: ownedItems } = useOwnedNFTs(itemTWContract, walletAddress);
 
-  const { data: equippedSkill, isLoading: skillLoading } = useContractRead(
+  const { data: equippedSkills, isLoading: skillLoading } = useContractRead(
     charTWContract,
-    "getEquippedSkill",
-    tokenId
+    "getEquippedSkills",
+    [tokenId]
   );
 
-  const { data: equippedItem, isLoading: itemLoading } = useContractRead(
-    charTWContract,
-    "getEquippedItem",
-    tokenId
-  );
+  // const { data: equippedItem, isLoading: itemLoading } = useContractRead(
+  //   charTWContract,
+  //   "getEquippedItem",
+  //   tokenId
+  // );
 
   useEffect(() => {
-    if (equippedSkill !== null && equippedSkill !== undefined) {
-      setNftSkillData(equippedSkill.toNumber());
+    if (Array.isArray(equippedSkills) && equippedSkills.length > 0) {
+      setNftSkillData(equippedSkills.map((skill) => skill.toNumber()));
     }
-  }, [equippedSkill]);
+  }, [equippedSkills]);
 
-  useEffect(() => {
-    if (equippedItem !== null && equippedItem !== undefined) {
-      setNftItemData(equippedItem.toNumber());
-    }
-  }, [equippedItem]);
-
-  const { data: nftSkill, isLoading: skillNFTLoading } = useNFT(
-    skillTWContract,
-    nftSkillData
-  );
+  // useEffect(() => {
+  //   if (equippedItem !== null && equippedItem !== undefined) {
+  //     setNftItemData(equippedItem.toNumber());
+  //   }
+  // }, [equippedItem]);
 
   const { data: nftItem, isLoading: itemNFTLoading } = useNFT(
     itemTWContract,
     nftItemData
   );
 
-  const { data: nftChar, isLoading, error } = useNFT(charTWContract, tokenId);
+  const { data: nftChar, isLoading } = useNFT(charTWContract, tokenId);
   const { data: getChar, isLoading: getCharLoad } = useContractRead(
     charTWContract,
     "getCharacter",
@@ -100,18 +98,34 @@ const CharacterStats = (props) => {
           {}
         );
 
-      setCharInfo(charStats);
-      setStatPoints(charStats.statPoints);
-      if (charStats) {
-        setNewStats({
-          strength: charStats.strength,
-          dexterity: charStats.dexterity,
-          intelligence: charStats.intelligence,
-          vitality: charStats.vitality,
-        });
+      if (charStats && Object.keys(charStats).length > 0) {
+        setCharInfo(charStats);
+        setStatPoints(charStats.statPoints);
+
+        if (
+          charStats.strength &&
+          charStats.dexterity &&
+          charStats.intelligence &&
+          charStats.vitality
+        ) {
+          setNewStats({
+            strength: charStats.strength,
+            dexterity: charStats.dexterity,
+            intelligence: charStats.intelligence,
+            vitality: charStats.vitality,
+          });
+        }
       }
     }
   }, [getCharLoad, getChar]);
+
+  useEffect(() => {
+    if (statPoints === 0 && !pendingChanges) {
+      setShowButtons(false);
+    } else {
+      setShowButtons(true);
+    }
+  }, [statPoints, pendingChanges]);
 
   const handleSaveChanges = async () => {
     const diffStrength = newStats.strength - charInfo.strength;
@@ -129,6 +143,7 @@ const CharacterStats = (props) => {
       );
 
       console.log(tx);
+      setPendingChanges(false);
       setShowAlert(true);
     } catch (error) {
       console.log(error);
@@ -138,7 +153,8 @@ const CharacterStats = (props) => {
   };
 
   const handleStatChange = (name, value) => {
-    setNewStats((prevState) => ({ ...prevState, [name]: value }));
+    setNewStats((prevStats) => ({ ...prevStats, [name]: value }));
+    setPendingChanges(true);
   };
 
   const resetNewStats = () => {
@@ -237,7 +253,7 @@ const CharacterStats = (props) => {
       <div
         className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
       >
-        {equippedItem === 9999 ? (
+        {equippedSkills === 9999 ? (
           <p>You don't own an skill!</p>
         ) : (
           <p>Skill equipped!</p>
@@ -246,41 +262,41 @@ const CharacterStats = (props) => {
     );
   }
 
-  let items;
-  if (Array.isArray(ownedItems) && ownedItems.length > 0) {
-    items = ownedItems.map((c, i) => (
-      <div
-        key={c.metadata.id}
-        onClick={() => {
-          handleEquipItem(c.metadata.id);
-        }}
-      >
-        <ThirdwebNftMedia
-          metadata={c.metadata}
-          className={styles.recruitmentCardImg}
-          width={50}
-          height={50}
-        />
-        <div className="info absolute p-2">
-          <CustomButton
-            title="Equip"
-            handleclick={() => {
-              handleEquipItem(c.metadata.id);
-            }}
-            restStyles="mt-6 mb-6"
-          />
-        </div>
-      </div>
-    ));
-  } else {
-    items = (
-      <div
-        className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
-      >
-        <p>You don't own an item!</p>
-      </div>
-    );
-  }
+  // let items;
+  // if (Array.isArray(ownedItems) && ownedItems.length > 0) {
+  //   items = ownedItems.map((c, i) => (
+  //     <div
+  //       key={c.metadata.id}
+  //       onClick={() => {
+  //         handleEquipItem(c.metadata.id);
+  //       }}
+  //     >
+  //       <ThirdwebNftMedia
+  //         metadata={c.metadata}
+  //         className={styles.recruitmentCardImg}
+  //         width={50}
+  //         height={50}
+  //       />
+  //       <div className="info absolute p-2">
+  //         <CustomButton
+  //           title="Equip"
+  //           handleclick={() => {
+  //             handleEquipItem(c.metadata.id);
+  //           }}
+  //           restStyles="mt-6 mb-6"
+  //         />
+  //       </div>
+  //     </div>
+  //   ));
+  // } else {
+  //   items = (
+  //     <div
+  //       className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
+  //     >
+  //       <p>You don't own an item!</p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div
@@ -311,7 +327,7 @@ const CharacterStats = (props) => {
 
       {isLoading || getCharLoad ? (
         <div>Loading...</div>
-      ) : error || !nftChar ? (
+      ) : !nftChar ? (
         <div>NFT not found</div>
       ) : (
         <div className="md:flex justify-between items-center gap-2 w-full">
@@ -330,19 +346,19 @@ const CharacterStats = (props) => {
                 {statPoints}
               </span>
             </div>
-            {skillLoading || nftSkillData === null ? (
-              <p>Loading equipped skill...</p>
+            {skillLoading || nftSkillData.length === 0 ? (
+              <p>Loading equipped skills...</p>
             ) : (
-              <EquippedCharacterCard
-                itemType="Skill"
-                equippedItem={equippedSkill}
-                loading={skillLoading}
-                nftData={nftSkill}
-                nftLoading={skillNFTLoading}
-                onUnequip={() => handleUnequipSkill()}
-              />
+              nftSkillData.map((skillId) => (
+                <EquippedSkill
+                  key={skillId}
+                  contract={skillTWContract}
+                  Id={skillId}
+                  handleUnequip={handleUnequipSkill}
+                />
+              ))
             )}
-            {itemLoading || nftItemData === null ? (
+            {/* {itemLoading || nftItemData === null ? (
               <p>Loading equipped item...</p>
             ) : (
               <EquippedCharacterCard
@@ -353,7 +369,7 @@ const CharacterStats = (props) => {
                 nftLoading={itemNFTLoading}
                 onUnequip={() => handleUnequipItem()}
               />
-            )}
+            )} */}
           </div>
           <div className="flex flex-1 items-end mr-2">
             {getCharLoad ? (
@@ -369,16 +385,17 @@ const CharacterStats = (props) => {
                           stat={charInfo[key]}
                           statPoints={statPoints}
                           setStatPoints={setStatPoints}
-                          //   setStatChanges={setStatChanges}
                           onStatChange={handleStatChange}
-                          showButtons={true}
+                          showButtons={showButtons}
                         />
                       </div>
                     ))}
-                    <CustomButton
-                      title="Spend Stats"
-                      handleClick={handleSaveChanges}
-                    />
+                    {showButtons && (
+                      <CustomButton
+                        title="Spend Stats"
+                        handleClick={handleSaveChanges}
+                      />
+                    )}
                   </div>
                   <div className="flex flex-row space-x-2 items-center justify-center">
                     {Object.entries(charInfo)
@@ -414,7 +431,7 @@ const CharacterStats = (props) => {
                   <div className="text-center">
                     <p>Owned Items</p>
                     <div className="flex flex-row space-x-2 items-center justify-start m-1">
-                      {items}
+                      {/* {items} */}
                     </div>
                   </div>
                 </div>
