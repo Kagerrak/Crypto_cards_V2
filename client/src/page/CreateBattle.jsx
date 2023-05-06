@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useOwnedNFTs, useContract } from "@thirdweb-dev/react";
+import {
+  useOwnedNFTs,
+  useContract,
+  useContractRead,
+} from "@thirdweb-dev/react";
 
 import { characterContractAddress } from "../contract";
 import styles from "../styles";
@@ -78,6 +82,7 @@ const CreateBattle = () => {
           ownedNfts.length === 1 || selectedTokenID === nft.metadata.id
         }
         onSelect={(id) => setSelectedTokenID(id)}
+        contract={charContract}
       />
     ));
   } else {
