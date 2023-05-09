@@ -4,7 +4,6 @@ import {
   ThirdwebNftMedia,
   useContract,
   useContractRead,
-  useContractWrite,
   useNFT,
   useOwnedNFTs,
 } from "@thirdweb-dev/react";
@@ -16,10 +15,13 @@ import {
   battleSkillsAddress,
   characterContractAddress,
 } from "../contract";
-import StatInput from "./StatInput";
-import CustomButton from "./CustomButton";
-import EquippedCharacterCard from "./EquippedCharacterCard";
-import EquippedSkill from "./EqquippedSkill";
+import {
+  ItemSlots,
+  StatInput,
+  CustomButton,
+  EquippedCharacterCard,
+  EquippedSkill,
+} from ".";
 
 import styles from "../styles";
 
@@ -59,28 +61,16 @@ const CharacterStats = (props) => {
     [tokenId]
   );
 
-  // const { data: equippedItem, isLoading: itemLoading } = useContractRead(
-  //   charTWContract,
-  //   "getEquippedItem",
-  //   tokenId
-  // );
-
   useEffect(() => {
     if (Array.isArray(equippedSkills) && equippedSkills.length > 0) {
       setNftSkillData(equippedSkills.map((skill) => skill.toNumber()));
     }
   }, [equippedSkills]);
 
-  // useEffect(() => {
-  //   if (equippedItem !== null && equippedItem !== undefined) {
-  //     setNftItemData(equippedItem.toNumber());
-  //   }
-  // }, [equippedItem]);
-
-  const { data: nftItem, isLoading: itemNFTLoading } = useNFT(
-    itemTWContract,
-    nftItemData
-  );
+  // const { data: nftItem, isLoading: itemNFTLoading } = useNFT(
+  //   itemTWContract,
+  //   nftItemData
+  // );
 
   const { data: nftChar, isLoading } = useNFT(charTWContract, tokenId);
   const { data: getChar, isLoading: getCharLoad } = useContractRead(
@@ -262,41 +252,41 @@ const CharacterStats = (props) => {
     );
   }
 
-  // let items;
-  // if (Array.isArray(ownedItems) && ownedItems.length > 0) {
-  //   items = ownedItems.map((c, i) => (
-  //     <div
-  //       key={c.metadata.id}
-  //       onClick={() => {
-  //         handleEquipItem(c.metadata.id);
-  //       }}
-  //     >
-  //       <ThirdwebNftMedia
-  //         metadata={c.metadata}
-  //         className={styles.recruitmentCardImg}
-  //         width={50}
-  //         height={50}
-  //       />
-  //       <div className="info absolute p-2">
-  //         <CustomButton
-  //           title="Equip"
-  //           handleclick={() => {
-  //             handleEquipItem(c.metadata.id);
-  //           }}
-  //           restStyles="mt-6 mb-6"
-  //         />
-  //       </div>
-  //     </div>
-  //   ));
-  // } else {
-  //   items = (
-  //     <div
-  //       className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
-  //     >
-  //       <p>You don't own an item!</p>
-  //     </div>
-  //   );
-  // }
+  let items;
+  if (Array.isArray(ownedItems) && ownedItems.length > 0) {
+    items = ownedItems.map((c, i) => (
+      <div
+        key={c.metadata.id}
+        onClick={() => {
+          handleEquipItem(c.metadata.id);
+        }}
+      >
+        <ThirdwebNftMedia
+          metadata={c.metadata}
+          className={styles.recruitmentCardImg}
+          width={50}
+          height={50}
+        />
+        <div className="info absolute p-2">
+          <CustomButton
+            title="Equip"
+            handleclick={() => {
+              handleEquipItem(c.metadata.id);
+            }}
+            restStyles="mt-6 mb-6"
+          />
+        </div>
+      </div>
+    ));
+  } else {
+    items = (
+      <div
+        className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
+      >
+        <p>You don't own an item!</p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -358,18 +348,11 @@ const CharacterStats = (props) => {
                 />
               ))
             )}
-            {/* {itemLoading || nftItemData === null ? (
-              <p>Loading equipped item...</p>
-            ) : (
-              <EquippedCharacterCard
-                itemType="Item"
-                equippedItem={equippedItem}
-                loading={itemLoading}
-                nftData={nftItem}
-                nftLoading={itemNFTLoading}
-                onUnequip={() => handleUnequipItem()}
-              />
-            )} */}
+            <ItemSlots
+              charTWContract={charTWContract}
+              itemTWContract={itemTWContract}
+              tokenId={tokenId}
+            />
           </div>
           <div className="flex flex-1 items-end mr-2">
             {getCharLoad ? (
@@ -377,26 +360,29 @@ const CharacterStats = (props) => {
             ) : (
               <div className="sm:w-[600px] w-full">
                 <div className="mb-3 mt-3 grid grid-rows-5 gap-3">
-                  <div className="flex flex-row space-x-5 items-center justify-center">
-                    {keysWithButtons.map((key) => (
-                      <div key={key} className={styles.characterAttributeBox}>
-                        <StatInput
-                          name={key}
-                          stat={charInfo[key]}
-                          statPoints={statPoints}
-                          setStatPoints={setStatPoints}
-                          onStatChange={handleStatChange}
-                          showButtons={showButtons}
+                  {charInfo && (
+                    <div className="flex flex-row space-x-5 items-center justify-center">
+                      {keysWithButtons.map((key) => (
+                        <div key={key} className={styles.characterAttributeBox}>
+                          <StatInput
+                            name={key}
+                            stat={charInfo[key]}
+                            statPoints={statPoints}
+                            setStatPoints={setStatPoints}
+                            onStatChange={handleStatChange}
+                            showButtons={showButtons}
+                          />
+                        </div>
+                      ))}
+                      {showButtons && (
+                        <CustomButton
+                          title="Spend Stats"
+                          handleClick={handleSaveChanges}
                         />
-                      </div>
-                    ))}
-                    {showButtons && (
-                      <CustomButton
-                        title="Spend Stats"
-                        handleClick={handleSaveChanges}
-                      />
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex flex-row space-x-2 items-center justify-center">
                     {Object.entries(charInfo)
                       // eslint-disable-next-line no-confusing-arrow
@@ -431,7 +417,7 @@ const CharacterStats = (props) => {
                   <div className="text-center">
                     <p>Owned Items</p>
                     <div className="flex flex-row space-x-2 items-center justify-start m-1">
-                      {/* {items} */}
+                      {items}
                     </div>
                   </div>
                 </div>
