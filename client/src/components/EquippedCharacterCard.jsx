@@ -16,11 +16,11 @@ const EquippedCharacterCard = ({
   return (
     <div className="h-auto w-full border-stone-200 border-2 text-center">
       <p>Equipped {itemType}</p>
-      {/* {loading ? (
+      {loading ? (
         <p>Loading...</p>
       ) : (
         <div className="flex flex-col justify-center items-center">
-          {equippedItem.toNumber() === 9999 ? (
+          {equippedItem === 9999 ? (
             <div>No {itemType} equipped</div>
           ) : nftLoading ? (
             <div>Loading...</div>
@@ -53,7 +53,7 @@ const EquippedCharacterCard = ({
             </div>
           )}
         </div>
-      )} */}
+      )}
     </div>
   );
 };
