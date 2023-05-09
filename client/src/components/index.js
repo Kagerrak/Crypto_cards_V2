@@ -16,6 +16,8 @@ import CharacterStats from "./CharacterStats";
 import StatInput from "./StatInput";
 import EquippedCharacterCard from "./EquippedCharacterCard";
 import EquippedSkill from "./EqquippedSkill";
+import ItemSlots from "./ItemSlots";
+import ItemSlot from "./ItemSlot";
 
 export {
   Card,
@@ -36,4 +38,6 @@ export {
   StatInput,
   EquippedCharacterCard,
   EquippedSkill,
+  ItemSlots,
+  ItemSlot,
 };
