@@ -5,8 +5,8 @@ import "@thirdweb-dev/contracts/base/ERC1155Base.sol";
 
 contract BattleItems is ERC1155Base {
     enum ItemType {
-        Headgear,
         Weapon,
+        Headgear,
         BodyArmor,
         Pants,
         Footwear
@@ -53,9 +53,9 @@ contract BattleItems is ERC1155Base {
 
     function mintItem(uint256 _itemId) public {
         if (_itemId == 0) {
-            require(numItems > 0, "Skill does not exixt");
+            require(numItems > 0, "Item does not exixt");
         }
-        require(_itemId < numItems, "Skill does not exist");
+        require(_itemId < numItems, "Item does not exist");
         uint256 tokenId = _itemId;
         _mint(msg.sender, tokenId, 1, "");
     }
