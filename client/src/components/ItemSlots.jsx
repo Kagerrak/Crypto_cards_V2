@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
+
 import ItemSlot from "./ItemSlot";
+import { useGlobalContext } from "../context";
 
 const ItemSlots = ({ charTWContract, itemTWContract, tokenId }) => {
+  const { characterContract } = useGlobalContext();
+
   const itemTypes = [
     { type: 0, name: "Headgear" },
     { type: 1, name: "Weapon" },
@@ -17,6 +21,15 @@ const ItemSlots = ({ charTWContract, itemTWContract, tokenId }) => {
     Pants: null,
     Footwear: null,
   });
+
+  const handleUnequipItem = async (_itemTokenId) => {
+    try {
+      const data = await characterContract.unequipItem(tokenId, _itemTokenId);
+      console.info("contract call successs", data);
+    } catch (err) {
+      console.error("contract call failure", err);
+    }
+  };
 
   useEffect(() => {
     const fetchEquippedItems = async () => {
@@ -46,15 +59,19 @@ const ItemSlots = ({ charTWContract, itemTWContract, tokenId }) => {
   }, [charTWContract, tokenId]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {itemTypes.map(({ name }) => (
-        <ItemSlot
-          key={name}
-          type={name}
-          itemId={equippedItems[name]}
-          contract={itemTWContract}
-        />
-      ))}
+    <div className="mt-2">
+      <p>Item Equips</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+        {itemTypes.map(({ name }) => (
+          <ItemSlot
+            key={name}
+            type={name}
+            itemId={equippedItems[name]}
+            contract={itemTWContract}
+            handleUnequip={handleUnequipItem}
+          />
+        ))}
+      </div>
     </div>
   );
 };
