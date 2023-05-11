@@ -495,7 +495,7 @@ contract Character is ERC721Base, ERC1155Holder {
         uint256 previousTokenId = characterEquips[characterTokenId]
             .equippedItems[itemType];
         if (previousTokenId != 999999) {
-            unequipItem(characterTokenId, itemType);
+            unequipItem(characterTokenId, previousTokenId);
         }
 
         // Equip the item
@@ -512,23 +512,23 @@ contract Character is ERC721Base, ERC1155Holder {
         characterStats[characterTokenId].mana += newItem.skill;
     }
 
-    function unequipItem(
-        uint256 characterTokenId,
-        BattleItems.ItemType itemType
-    ) public {
+    function unequipItem(uint256 characterTokenId, uint256 itemTokenId) public {
         // Check if the caller is the owner of the character
         require(
             ownerOf(characterTokenId) == msg.sender,
             "Not the owner of the character"
         );
 
-        uint256 equippedTokenId = characterEquips[characterTokenId]
-            .equippedItems[itemType];
-        require(equippedTokenId != 999999, "No item equipped");
-
-        // Get stats of the item to unequip
         BattleItems.Item memory itemToUnequip = battleItems.getItem(
-            equippedTokenId
+            itemTokenId
+        );
+        BattleItems.ItemType itemType = itemToUnequip.itemType;
+
+        // Check if the item is equipped
+        require(
+            characterEquips[characterTokenId].equippedItems[itemType] ==
+                itemTokenId,
+            "Item not equipped"
         );
 
         // Remove item stats from the character
@@ -537,11 +537,12 @@ contract Character is ERC721Base, ERC1155Holder {
         characterStats[characterTokenId].health -= itemToUnequip.health;
         characterStats[characterTokenId].mana -= itemToUnequip.skill;
 
+        // Unequip the item
         characterEquips[characterTokenId].equippedItems[itemType] = 999999;
         battleItems.safeTransferFrom(
             address(this),
             msg.sender,
-            equippedTokenId,
+            itemTokenId,
             1,
             ""
         );
@@ -687,6 +688,16 @@ contract Character is ERC721Base, ERC1155Holder {
             1,
             ""
         );
+    }
+
+    function getRecoveryStats(
+        uint256 tokenId
+    ) public view returns (RecoveryStats memory) {
+        require(
+            characterRecoveryStats[tokenId].lastStaminaUpdateTime != 0,
+            "Token ID not found"
+        );
+        return characterRecoveryStats[tokenId];
     }
 
     function getEquippedItem(
