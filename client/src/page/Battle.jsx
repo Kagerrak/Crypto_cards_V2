@@ -69,12 +69,14 @@ const Battle = () => {
           def: player01.defense.toNumber(),
           health: player01.health.toNumber(),
           mana: player01.mana.toNumber(),
+          equippedSkills: player01.equippedSkills, // new line
         },
         player2: {
           att: "X",
           def: "X",
           health: player02.health.toNumber(),
           mana: player02.mana.toNumber(),
+          equippedSkills: player02.equippedSkills, // new line
         },
         p1InitHP:
           gameData.activeBattle.initialHealth[
@@ -119,11 +121,11 @@ const Battle = () => {
     return () => clearTimeout(timer);
   }, [battleContract, gameData, gameData.activeBattle]);
 
-  const makeAMove = async (choice) => {
+  const makeAMove = async (choice, skillId) => {
     playAudio(choice === 0 ? attackSound : choice === 1 ? defenseSound : null);
 
     try {
-      await battleContract.submitMove(state.battleId, choice, {
+      await battleContract.submitMove(state.battleId, choice, skillId, {
         gasLimit: 200000,
       });
 
@@ -138,6 +140,7 @@ const Battle = () => {
       setErrorMessage(error);
     }
   };
+
   return (
     <div
       className={`${styles.flexBetween} ${styles.gameContainer} ${battleGround}`}
@@ -167,18 +170,21 @@ const Battle = () => {
 
             {state.character && (
               <div className="flex items-center flex-row">
-                <ActionButton
-                  imgUrl={state.character.icon}
-                  handleClick={() => makeAMove(2)}
-                  restStyles="ml-6 mt-6 hover:border-red-600"
-                />
+                {state.player1.equippedSkills.map((skillId, index) => (
+                  <ActionButton
+                    key={index}
+                    imgUrl={state.character.icon}
+                    handleClick={() => makeAMove(2, skillId)}
+                    restStyles="ml-6 mt-6 hover:border-red-600"
+                  />
+                ))}
               </div>
             )}
 
             <div className="flex items-center flex-row">
               <ActionButton
                 imgUrl={attack}
-                handleClick={() => makeAMove(0)}
+                handleClick={() => makeAMove(0, 999999)}
                 restStyles="mr-2 hover:border-yellow-400"
               />
 
@@ -191,7 +197,7 @@ const Battle = () => {
 
               <ActionButton
                 imgUrl={defense}
-                handleClick={() => makeAMove(1)}
+                handleClick={() => makeAMove(1, 999999)}
                 restStyles="ml-6 hover:border-red-600"
               />
             </div>
