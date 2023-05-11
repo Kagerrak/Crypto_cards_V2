@@ -304,13 +304,15 @@ contract Battle is Ownable {
             "Move already submitted by player"
         );
 
+        // Fetch the player's CharacterProxy
+        bytes32 battleKey = keccak256(abi.encodePacked(battleId, msg.sender));
+        CharacterProxy storage p = characterProxies[battleKey][msg.sender];
+
         // Check if the submitted skill is equipped
         if (move == Move.USE_SKILL) {
-            uint256[] memory equippedSkills = characterContract
-                .getEquippedSkills(battle.characterIds[playerIndex]);
             bool skillEquipped = false;
-            for (uint256 i = 0; i < equippedSkills.length; i++) {
-                if (equippedSkills[i] == skillId) {
+            for (uint256 i = 0; i < p.equippedSkills.length; i++) {
+                if (p.equippedSkills[i] == skillId) {
                     skillEquipped = true;
                     break;
                 }
