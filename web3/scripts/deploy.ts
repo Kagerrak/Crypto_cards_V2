@@ -43,6 +43,9 @@ async function main() {
   // Set the BattleItems contract address in the Character contract
   await character.setBattleItems(battleItems.address);
 
+  // Set the Battle contract address in the Character contract
+  await character.setBattleContract(battle.address);
+
   // Create a new skill
   // const skillName = "fire";
   // const damage = 40;
