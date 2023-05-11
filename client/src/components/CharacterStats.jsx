@@ -17,6 +17,7 @@ import {
 } from "../contract";
 import {
   ItemSlots,
+  SkillSlots,
   StatInput,
   CustomButton,
   EquippedCharacterCard,
@@ -175,16 +176,7 @@ const CharacterStats = (props) => {
     }
   };
 
-  const handleUnequipSkill = async () => {
-    try {
-      const data = await characterContract.unequipSkill(tokenId);
-      console.info("contract call successs", data);
-    } catch (err) {
-      console.error("contract call failure", err);
-    }
-  };
-
-  const handleEquipItem = async (_tokenId) => {
+  const handleEquipItem = async (_itemTokenId) => {
     try {
       const itemApprove = await battleItemsContract.isApprovedForAll(
         walletAddress,
@@ -196,17 +188,8 @@ const CharacterStats = (props) => {
           true
         );
       }
-      await characterContract.equipItem(tokenId, _tokenId);
+      await characterContract.equipItem(tokenId, _itemTokenId);
       console.info("contract call successs");
-    } catch (err) {
-      console.error("contract call failure", err);
-    }
-  };
-
-  const handleUnequipItem = async () => {
-    try {
-      const data = await characterContract.unequipItem(tokenId);
-      console.info("contract call successs", data);
     } catch (err) {
       console.error("contract call failure", err);
     }
@@ -244,7 +227,7 @@ const CharacterStats = (props) => {
         className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
       >
         {equippedSkills === 9999 ? (
-          <p>You don't own an skill!</p>
+          <p>No skills available!</p>
         ) : (
           <p>Skill equipped!</p>
         )}
@@ -283,7 +266,7 @@ const CharacterStats = (props) => {
       <div
         className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
       >
-        <p>You don't own an item!</p>
+        <p>No items available!</p>
       </div>
     );
   }
@@ -336,18 +319,11 @@ const CharacterStats = (props) => {
                 {statPoints}
               </span>
             </div>
-            {skillLoading || nftSkillData.length === 0 ? (
-              <p>Loading equipped skills...</p>
-            ) : (
-              nftSkillData.map((skillId) => (
-                <EquippedSkill
-                  key={skillId}
-                  contract={skillTWContract}
-                  Id={skillId}
-                  handleUnequip={handleUnequipSkill}
-                />
-              ))
-            )}
+            <SkillSlots
+              charTWContract={charTWContract}
+              skillTWContract={skillTWContract}
+              tokenId={tokenId}
+            />
             <ItemSlots
               charTWContract={charTWContract}
               itemTWContract={itemTWContract}
