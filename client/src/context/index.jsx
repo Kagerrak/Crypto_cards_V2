@@ -218,10 +218,31 @@ export const GlobalContextProvider = ({ children }) => {
           ),
         ]);
 
-        setPlayerData({
-          player1Data,
-          player2Data,
-        });
+        const [player1Effects, player2Effects] = await Promise.all([
+          battleContract.getCharacterProxyActiveEffects(
+            gameData.activeBattle.battleId,
+            player01Address
+          ),
+          battleContract.getCharacterProxyActiveEffects(
+            gameData.activeBattle.battleId,
+            player02Address
+          ),
+        ]);
+
+        const playerDataWithEffects = {
+          player1Data: {
+            ...player1Data,
+            activeEffectIds: player1Effects[0],
+            activeEffectDurations: player1Effects[1],
+          },
+          player2Data: {
+            ...player2Data,
+            activeEffectIds: player2Effects[0],
+            activeEffectDurations: player2Effects[1],
+          },
+        };
+
+        setPlayerData(playerDataWithEffects);
       }
     };
 
