@@ -15,9 +15,11 @@ import NftItem from "./NftItem";
 import CharacterStats from "./CharacterStats";
 import StatInput from "./StatInput";
 import EquippedCharacterCard from "./EquippedCharacterCard";
-import EquippedSkill from "./EqquippedSkill";
+import EquippedSkill from "./SkillSlots";
 import ItemSlots from "./ItemSlots";
 import ItemSlot from "./ItemSlot";
+import SkillSlots from "./SkillSlots";
+import SkillSlot from "./SkillSlot";
 
 export {
   Card,
@@ -40,4 +42,6 @@ export {
   EquippedSkill,
   ItemSlots,
   ItemSlot,
+  SkillSlot,
+  SkillSlots,
 };
