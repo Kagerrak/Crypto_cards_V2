@@ -70,6 +70,8 @@ const Battle = () => {
           health: player01.health.toNumber(),
           mana: player01.mana.toNumber(),
           equippedSkills: player01.equippedSkills, // new line
+          activeEffectIds: player01.activeEffectIds,
+          activeEffectDurations: player01.activeEffectDurations,
         },
         player2: {
           att: "X",
@@ -77,6 +79,8 @@ const Battle = () => {
           health: player02.health.toNumber(),
           mana: player02.mana.toNumber(),
           equippedSkills: player02.equippedSkills, // new line
+          activeEffectIds: player02.activeEffectIds,
+          activeEffectDurations: player02.activeEffectDurations,
         },
         p1InitHP:
           gameData.activeBattle.initialHealth[
