@@ -34,7 +34,7 @@ contract BattleSkills is ERC1155Base {
 
     constructor() ERC1155Base("BattleSkills", "BS", address(0), 0) {
         initializeStatusEffects(); // for testing
-        initializeSkills(); // for testing
+        //initializeSkills(); // for testing
     }
 
     function createSkill(
@@ -116,21 +116,21 @@ contract BattleSkills is ERC1155Base {
         createStatusEffect("Defense Boost", 3, true, 0, 0, 10, 0, 0, 0, false);
     }
 
-    function initializeSkills() public {
-        createSkill("Stun Attack", 10, 5, 0, "https://example.com/skill/0");
-        createSkill("Fireball", 20, 10, 1, "https://example.com/skill/1");
-        createSkill("Weaken Attack", 15, 5, 2, "https://example.com/skill/2");
-        createSkill("Weaken Defense", 15, 5, 3, "https://example.com/skill/3");
-        createSkill("Power Strike", 25, 10, 4, "https://example.com/skill/4");
-        createSkill("Healing Spell", 0, 10, 5, "https://example.com/skill/5");
-        createSkill(
-            "Defensive Stance",
-            10,
-            5,
-            6,
-            "https://example.com/skill/6"
-        );
-    }
+    // function initializeSkills() public {
+    //     createSkill("Stun Attack", 10, 5, 0, "https://example.com/skill/0");
+    //     createSkill("Fireball", 20, 10, 1, "https://example.com/skill/1");
+    //     createSkill("Weaken Attack", 15, 5, 2, "https://example.com/skill/2");
+    //     createSkill("Weaken Defense", 15, 5, 3, "https://example.com/skill/3");
+    //     createSkill("Power Strike", 25, 10, 4, "https://example.com/skill/4");
+    //     createSkill("Healing Spell", 0, 10, 5, "https://example.com/skill/5");
+    //     createSkill(
+    //         "Defensive Stance",
+    //         10,
+    //         5,
+    //         6,
+    //         "https://example.com/skill/6"
+    //     );
+    // }
 
     function mintSkill(uint256 _skillId, address _caller) public {
         if (_skillId == 0) {
