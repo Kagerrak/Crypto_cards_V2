@@ -9,6 +9,7 @@ import "./Class.sol";
 import "hardhat/console.sol";
 
 import "@thirdweb-dev/contracts/openzeppelin-presets/utils/ERC1155/ERC1155Holder.sol";
+import "@thirdweb-dev/contracts/lib/TWStrings.sol";
 
 contract Character is ERC721Base, ERC1155Holder {
     function supportsInterface(
@@ -18,6 +19,8 @@ contract Character is ERC721Base, ERC1155Holder {
             ERC721Base.supportsInterface(interfaceId) ||
             ERC1155Receiver.supportsInterface(interfaceId);
     }
+
+    using TWStrings for uint256;
 
     struct CharacterStats {
         uint256 tokenId;
@@ -215,6 +218,18 @@ contract Character is ERC721Base, ERC1155Holder {
     function getCharacterType(uint256 tokenId) public view returns (uint256) {
         CharacterStats storage hero = characterStats[tokenId];
         return hero.typeId;
+    }
+
+    function tokenURI(
+        uint256 _tokenId
+    ) public view virtual override returns (string memory) {
+        string memory fullUriForToken = fullURI[_tokenId];
+        if (bytes(fullUriForToken).length > 0) {
+            return fullUriForToken;
+        }
+
+        string memory batchUri = _getBaseURI(_tokenId);
+        return string(abi.encodePacked(batchUri, _tokenId.toString()));
     }
 
     function _setTokenURI(
