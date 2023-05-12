@@ -319,16 +319,21 @@ const CharacterStats = (props) => {
                 {statPoints}
               </span>
             </div>
-            <SkillSlots
-              charTWContract={charTWContract}
-              skillTWContract={skillTWContract}
-              tokenId={tokenId}
-            />
-            <ItemSlots
-              charTWContract={charTWContract}
-              itemTWContract={itemTWContract}
-              tokenId={tokenId}
-            />
+            {charTWContract && skillTWContract && (
+              <SkillSlots
+                charTWContract={charTWContract}
+                skillTWContract={skillTWContract}
+                tokenId={tokenId}
+              />
+            )}
+
+            {charTWContract && itemTWContract && (
+              <ItemSlots
+                charTWContract={charTWContract}
+                itemTWContract={itemTWContract}
+                tokenId={tokenId}
+              />
+            )}
           </div>
           <div className="flex flex-1 items-end mr-2">
             {getCharLoad ? (
@@ -360,29 +365,32 @@ const CharacterStats = (props) => {
                   )}
 
                   <div className="flex flex-row space-x-2 items-center justify-center">
-                    {Object.entries(charInfo)
-                      // eslint-disable-next-line no-confusing-arrow
-                      .filter(([key, value]) =>
-                        keysWithButtons.includes(key)
-                          ? false
-                          : !isNaN(value) &&
-                            key !== "tokenId" &&
-                            key !== "level" &&
-                            key !== "typeId" &&
-                            key !== "statPoints" &&
-                            key !== "experience"
-                      )
-                      .map(([key, value]) => (
-                        <div key={key} className={styles.characterAttributeBox}>
-                          <StatInput
-                            name={key}
-                            stat={value}
-                            statPoints={statPoints}
-                            setStatPoints={setStatPoints}
-                            showButtons={false}
-                          />
-                        </div>
-                      ))}
+                    {charInfo &&
+                      Object.entries(charInfo)
+                        .filter(([key, value]) =>
+                          keysWithButtons.includes(key)
+                            ? false
+                            : !isNaN(value) &&
+                              key !== "tokenId" &&
+                              key !== "level" &&
+                              key !== "typeId" &&
+                              key !== "statPoints" &&
+                              key !== "experience"
+                        )
+                        .map(([key, value]) => (
+                          <div
+                            key={key}
+                            className={styles.characterAttributeBox}
+                          >
+                            <StatInput
+                              name={key}
+                              stat={value}
+                              statPoints={statPoints}
+                              setStatPoints={setStatPoints}
+                              showButtons={false}
+                            />
+                          </div>
+                        ))}
                   </div>
                   <div className="text-center">
                     <p>Owned Skills</p>
