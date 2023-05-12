@@ -8,9 +8,9 @@ const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
 
   const { characterContract } = useGlobalContext();
 
-  const handleUnequipSkill = async () => {
+  const handleUnequipSkill = async (_skillTokenId) => {
     try {
-      const data = await characterContract.unequipSkill(tokenId);
+      const data = await characterContract.unequipSkill(tokenId, _skillTokenId);
       console.info("contract call successs", data);
     } catch (err) {
       console.error("contract call failure", err);
@@ -18,27 +18,29 @@ const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
   };
 
   useEffect(() => {
-    const fetchEquippedSkills = async () => {
-      const fetchedSkills = await charTWContract.getEquippedSkills(tokenId);
+    if (charTWContract) {
+      const fetchEquippedSkills = async () => {
+        const fetchedSkills = await charTWContract.getEquippedSkills(tokenId);
 
-      if (fetchedSkills && fetchedSkills.length) {
-        const skillsArray = fetchedSkills.map((skillId) => {
-          return skillId !== null && skillId !== undefined
-            ? skillId.toNumber()
-            : null;
-        });
+        if (fetchedSkills && fetchedSkills.length) {
+          const skillsArray = fetchedSkills.map((skillId) => {
+            return skillId !== null && skillId !== undefined
+              ? skillId.toNumber()
+              : null;
+          });
 
-        // Fill any missing skills with null to ensure the array has 3 elements
-        while (skillsArray.length < 3) {
-          skillsArray.push(null);
+          // Fill any missing skills with null to ensure the array has 3 elements
+          while (skillsArray.length < 3) {
+            skillsArray.push(null);
+          }
+
+          setEquippedSkills(skillsArray);
         }
+      };
 
-        setEquippedSkills(skillsArray);
-      }
-    };
-
-    fetchEquippedSkills();
-  }, [skillTWContract, tokenId]);
+      fetchEquippedSkills();
+    }
+  }, [charTWContract, tokenId]);
 
   return (
     <div className="mt-4">
