@@ -235,8 +235,15 @@ contract Character is ERC721Base, ERC1155Holder {
     function _setTokenURI(
         uint256 _tokenId,
         string memory _tokenURI
-    ) internal override onlyOwner {
+    ) internal override {
         fullURI[_tokenId] = _tokenURI;
+    }
+
+    function updateURI(
+        uint256 _tokenId,
+        string memory _tokenURI
+    ) public onlyOwner {
+        _setTokenURI(_tokenId, _tokenURI);
     }
 
     function newCharacter(uint256 _typeId) public {
