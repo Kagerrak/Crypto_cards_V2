@@ -149,6 +149,7 @@ contract Battle is Ownable {
         p.defense = characterContract.getCharacterDefense(tokenId);
         p.mana = characterContract.getMana(tokenId);
         p.typeId = characterContract.getCharacterType(tokenId);
+        p.equippedSkills = characterContract.getEquippedSkills(tokenId);
 
         console.log("Character proxy created for player", player);
         console.log("Health:", p.health);
