@@ -48,6 +48,9 @@ export const GlobalContextProvider = ({ children }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [updateGameData, setUpdateGameData] = useState(0);
   const [playerData, setPlayerData] = useState({});
+  const [equippedSkills, setEquippedSkills] = useState([null, null, null]);
+  const [equippedSkillLoading, setEquippedSkillLoading] = useState(false);
+  const [localOwnedSkills, setLocalOwnedSkills] = useState([]);
 
   const player1Ref = useRef();
   const player2Ref = useRef();
@@ -294,6 +297,12 @@ export const GlobalContextProvider = ({ children }) => {
         errorMessage,
         setErrorMessage,
         playerData,
+        equippedSkills,
+        setEquippedSkills,
+        equippedSkillLoading,
+        setEquippedSkillLoading,
+        localOwnedSkills,
+        setLocalOwnedSkills,
       }}
     >
       {children}
