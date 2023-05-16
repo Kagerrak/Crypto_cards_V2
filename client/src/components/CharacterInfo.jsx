@@ -31,16 +31,19 @@ const CharacterInfo = (props) => {
         walletAddress,
         characterContractAddress
       );
+
       if (!isApproved) {
         await battleSkillsContract.setApprovalForAll(
           characterContractAddress,
           true
         );
       }
+
       await characterContract.mintNewCharacterWithItemAndEquip(
         characterInfo.characterType,
         characterInfo.skillId
       );
+      console.log("HI2");
 
       setShowAlert({
         status: true,
