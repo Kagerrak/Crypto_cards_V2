@@ -30,7 +30,7 @@ const ItemSlot = ({ type, itemId, contract, handleUnequip }) => {
           />
           <button
             className="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-400 bg-opacity-5 text-white px-3 py-2 rounded-md z-10 hover-button text-xs"
-            onClick={handleUnequip(itemId)}
+            onClick={() => handleUnequip(itemId)}
           >
             Unequip
           </button>
