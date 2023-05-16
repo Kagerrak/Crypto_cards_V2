@@ -47,6 +47,10 @@ const CharacterStats = (props) => {
     setErrorMessage,
     setShowAlert,
     walletAddress,
+    setEquippedSkills,
+    setEquippedSkillLoading,
+    localOwnedSkills,
+    setLocalOwnedSkills,
   } = useGlobalContext();
 
   const { contract: charTWContract } = useContract(characterContractAddress);
@@ -68,6 +72,11 @@ const CharacterStats = (props) => {
     }
   }, [equippedSkills]);
 
+  useEffect(() => {
+    if (ownedSkills) {
+      setLocalOwnedSkills(ownedSkills);
+    }
+  }, [ownedSkills, setLocalOwnedSkills]);
   // const { data: nftItem, isLoading: itemNFTLoading } = useNFT(
   //   itemTWContract,
   //   nftItemData
@@ -158,19 +167,42 @@ const CharacterStats = (props) => {
   };
 
   const handleEquipSkill = async (_skillId) => {
+    setEquippedSkillLoading(true);
     try {
       const isApproved = await battleSkillsContract.isApprovedForAll(
         walletAddress,
         characterContractAddress
       );
       if (!isApproved) {
-        await battleSkillsContract.setApprovalForAll(
+        const approvalTx = await battleSkillsContract.setApprovalForAll(
           characterContractAddress,
           true
         );
+        await approvalTx.wait(); // wait for the approval transaction to be mined
       }
-      await characterContract.equipSkill(tokenId, _skillId);
+
+      const equipTx = await characterContract.equipSkill(tokenId, _skillId);
+      console.log("Waiting for equip transaction to confirm...");
+      await equipTx.wait(); // wait for the equip transaction to be mined
+      setEquippedSkillLoading(false);
+
       console.info("contract call successs");
+
+      const newOwnedSkills = localOwnedSkills.filter(
+        (skill) => skill.metadata.id !== _skillId
+      );
+      setLocalOwnedSkills(newOwnedSkills);
+
+      setEquippedSkills((prevEquippedSkills) => {
+        const newEquippedSkills = [...prevEquippedSkills];
+        const firstEmptySlotIndex = newEquippedSkills.findIndex(
+          (skillId) => skillId === null
+        );
+        if (firstEmptySlotIndex !== -1) {
+          newEquippedSkills[firstEmptySlotIndex] = _skillId;
+        }
+        return newEquippedSkills;
+      });
     } catch (err) {
       console.error("contract call failure", err);
     }
@@ -183,10 +215,11 @@ const CharacterStats = (props) => {
         characterContractAddress
       );
       if (!itemApprove) {
-        await battleItemsContract.setApprovalForAll(
+        const approvalTx = await battleItemsContract.setApprovalForAll(
           characterContractAddress,
           true
         );
+        await approvalTx.wait(); // wait for the approval transaction to be mined
       }
       await characterContract.equipItem(tokenId, _itemTokenId);
       console.info("contract call successs");
@@ -196,8 +229,8 @@ const CharacterStats = (props) => {
   };
 
   let skills;
-  if (Array.isArray(ownedSkills) && ownedSkills.length > 0) {
-    skills = ownedSkills.map((c, i) => (
+  if (Array.isArray(localOwnedSkills) && localOwnedSkills.length > 0) {
+    skills = localOwnedSkills.map((c, i) => (
       <div
         key={c.metadata.id}
         onClick={() => {
@@ -208,8 +241,8 @@ const CharacterStats = (props) => {
         <ThirdwebNftMedia
           metadata={c.metadata}
           className={styles.recruitmentCardImg}
-          width={50}
-          height={50}
+          width={100}
+          height={100}
         />
         <div className="info absolute p-2">
           <CustomButton
@@ -243,12 +276,13 @@ const CharacterStats = (props) => {
         onClick={() => {
           handleEquipItem(c.metadata.id);
         }}
+        className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
       >
         <ThirdwebNftMedia
           metadata={c.metadata}
           className={styles.recruitmentCardImg}
-          width={50}
-          height={50}
+          width={100}
+          height={100}
         />
         <div className="info absolute p-2">
           <CustomButton
