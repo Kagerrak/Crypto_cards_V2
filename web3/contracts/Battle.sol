@@ -110,6 +110,15 @@ contract Battle is Ownable {
     );
     event DiceRolled(uint256 diceNumber);
 
+    event StatusEffectsResolved(
+        address indexed character,
+        uint256 health,
+        uint256 attack,
+        uint256 defense,
+        bool isStunned,
+        bool tookDamage
+    );
+
     modifier onlyParticipant(uint256 battleId) {
         console.log(battles[battleId].players[0]);
         console.log(battles[battleId].players[1]);
@@ -362,6 +371,8 @@ contract Battle is Ownable {
             battle.players[1]
         ];
 
+        address[2] memory _damagedPlayers = [address(0), address(0)];
+
         _resolveStatusEffects(proxyA);
         console.log("proxyA");
         _resolveStatusEffects(proxyB);
@@ -393,6 +404,7 @@ contract Battle is Ownable {
                 : 0;
             proxyA.mana -= 3;
             proxyB.mana -= 3;
+            _damagedPlayers = battle.players;
         } else if (
             battle.moves[0] == uint256(Move.DEFEND) &&
             battle.moves[1] == uint256(Move.DEFEND)
@@ -414,6 +426,7 @@ contract Battle is Ownable {
                 proxyB.health = proxyB.health > damage
                     ? proxyB.health - damage
                     : 0;
+                _damagedPlayers[0] = battle.players[1];
             }
             proxyA.mana -= 3;
             proxyB.mana += 3;
@@ -429,6 +442,7 @@ contract Battle is Ownable {
                 proxyA.health = proxyA.health > damage
                     ? proxyA.health - damage
                     : 0;
+                _damagedPlayers[0] = battle.players[0];
             }
             proxyA.mana += 3;
             proxyB.mana -= 3;
@@ -443,6 +457,7 @@ contract Battle is Ownable {
             proxyB.health = proxyB.health > damageA
                 ? proxyB.health - damageA
                 : 0;
+            _damagedPlayers[0] = battle.players[1];
             proxyA.mana -= 3;
         } else if (
             battle.moves[0] == uint256(Move.DO_NOTHING) &&
@@ -455,6 +470,7 @@ contract Battle is Ownable {
             proxyA.health = proxyA.health > damageB
                 ? proxyA.health - damageB
                 : 0;
+            _damagedPlayers[0] = battle.players[0];
             proxyB.mana -= 3;
         } else if (
             battle.moves[0] == uint256(Move.DEFEND) &&
@@ -476,13 +492,19 @@ contract Battle is Ownable {
 
         // USE_SKILL logic here.
         if (battle.moves[0] == uint256(Move.USE_SKILL)) {
-            _executeSkill(proxyA, _skillId0, proxyB);
+            address damagedPlayer = _executeSkill(proxyA, _skillId0, proxyB);
+            if (damagedPlayer != address(0)) {
+                _damagedPlayers[0] = damagedPlayer;
+            }
         } else if (battle.moves[0] == uint256(Move.DO_NOTHING)) {
             // Player 1 does nothing
         }
 
         if (battle.moves[1] == uint256(Move.USE_SKILL)) {
-            _executeSkill(proxyB, _skillId1, proxyA);
+            address damagedPlayer = _executeSkill(proxyB, _skillId1, proxyA);
+            if (damagedPlayer != address(0)) {
+                _damagedPlayers[1] = damagedPlayer;
+            }
         } else if (battle.moves[1] == uint256(Move.DO_NOTHING)) {
             // Player 2 does nothing
         }
@@ -500,6 +522,9 @@ contract Battle is Ownable {
 
         console.log("Player 1 Mana: ", proxyA.mana);
         console.log("Player 2 Mana: ", proxyB.mana);
+
+        // Emit RoundEnded event
+        emit RoundEnded(_damagedPlayers);
 
         // Check if the battle has ended and declare a winner
         if (proxyA.health == 0 || proxyB.health == 0) {
@@ -546,14 +571,19 @@ contract Battle is Ownable {
         CharacterProxy storage player,
         uint256 skillId,
         CharacterProxy storage opponent
-    ) private {
+    ) private returns (address) {
         BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
             skillId
         );
         uint256 totalDamage = calculateAttackDamage(skill.damage);
-        opponent.health = opponent.health > totalDamage
-            ? opponent.health - totalDamage
-            : 0;
+        address damagedPlayer = address(0);
+
+        if (totalDamage > 0) {
+            opponent.health = opponent.health > totalDamage
+                ? opponent.health - totalDamage
+                : 0;
+            damagedPlayer = opponent.owner;
+        }
 
         BattleSkills.StatusEffect memory statusEffect = battleSkillsContract
             .getStatusEffect(skill.statusEffectId);
@@ -579,7 +609,10 @@ contract Battle is Ownable {
                 statusEffect.name
             );
         }
+
         player.mana -= skill.manaCost;
+
+        return damagedPlayer;
     }
 
     function _boostAttack(
@@ -646,8 +679,11 @@ contract Battle is Ownable {
             : 0;
     }
 
-    function _resolveStatusEffects(CharacterProxy storage character) private {
+    function _resolveStatusEffects(
+        CharacterProxy storage character
+    ) private returns (bool) {
         bool isStunned = false;
+        bool tookDamage = false;
 
         for (uint256 i = 0; i < character.activeEffectIds.length; i++) {
             uint256 effectId = character.activeEffectIds[i];
@@ -656,13 +692,6 @@ contract Battle is Ownable {
 
             if (statusEffect.attackBoost > 0) {
                 _boostAttack(character, effectId, statusEffect.attackBoost);
-
-                console.log("Attack boosted by: ", statusEffect.attackBoost);
-                console.log(
-                    "Previous Attack: ",
-                    character.attack - statusEffect.attackBoost
-                );
-                console.log("Current Attack: ", character.attack);
             }
             if (statusEffect.attackReduction > 0) {
                 _reduceAttack(
@@ -670,26 +699,9 @@ contract Battle is Ownable {
                     effectId,
                     statusEffect.attackReduction
                 );
-
-                console.log(
-                    "Attack reduced by: ",
-                    statusEffect.attackReduction
-                );
-                console.log(
-                    "Previous Attack: ",
-                    character.attack + statusEffect.attackReduction
-                );
-                console.log("Current Attack: ", character.attack);
             }
             if (statusEffect.defenseBoost > 0) {
                 _defenseBoost(character, effectId, statusEffect.defenseBoost);
-
-                console.log("Defense boosted by: ", statusEffect.defenseBoost);
-                console.log(
-                    "Previous Defense : ",
-                    character.defense - statusEffect.defenseBoost
-                );
-                console.log("Current Defense : ", character.defense);
             }
             if (statusEffect.defenseReduction > 0) {
                 _reduceDefense(
@@ -697,21 +709,9 @@ contract Battle is Ownable {
                     effectId,
                     statusEffect.defenseReduction
                 );
-
-                console.log(
-                    "Defense reduced by: ",
-                    statusEffect.defenseReduction
-                );
-                console.log(
-                    "Previous Defense: ",
-                    character.defense + statusEffect.defenseBoost
-                );
-                console.log("Current Defense: ", character.defense);
             }
             if (statusEffect.healPerTurn > 0) {
                 _healOverTime(character, statusEffect.healPerTurn);
-                console.log("Health healed by: ", statusEffect.healPerTurn);
-                console.log("Current Health: ", character.health);
             }
             if (statusEffect.isStun) {
                 if (character.activeEffectDurations[effectId] > 0) {
@@ -719,9 +719,11 @@ contract Battle is Ownable {
                 }
             }
             if (statusEffect.damagePerTurn > 0) {
+                uint256 previousHealth = character.health;
                 _damageOverTime(character, statusEffect.damagePerTurn);
-                console.log("Health reduced by: ", statusEffect.damagePerTurn);
-                console.log("Current Health: ", character.health);
+                if (character.health < previousHealth) {
+                    tookDamage = true;
+                }
             }
 
             // Decrement the duration of the status effect
@@ -731,33 +733,18 @@ contract Battle is Ownable {
                 if (statusEffect.attackBoost > 0) {
                     character.attack -= statusEffect.attackBoost;
                     character.appliedEffects[effectId] = false;
-                    console.log(
-                        "Attack Boost Ended Current Attack",
-                        character.attack
-                    );
                 }
                 if (statusEffect.attackReduction > 0) {
                     character.attack += statusEffect.attackReduction;
                     character.appliedEffects[effectId] = false;
-                    console.log(
-                        "Attack Reduction Ended Current Attack",
-                        character.attack
-                    );
                 }
                 if (statusEffect.defenseBoost > 0) {
                     character.defense -= statusEffect.defenseBoost;
                     character.appliedEffects[effectId] = false;
-                    console.log(
-                        "Defense Boost Ended Current Defense",
-                        character.defense
-                    );
                 }
                 if (statusEffect.defenseReduction > 0) {
                     character.defense += statusEffect.defenseReduction;
-                    console.log(
-                        "Defense Reduction Ended Current Defense",
-                        character.defense
-                    );
+                    character.appliedEffects[effectId] = false;
                 }
 
                 // Remove the status effect from the activeEffectIds array
@@ -775,6 +762,18 @@ contract Battle is Ownable {
 
         // Update the character's stun status based on the isStunned flag
         character.isStunned = isStunned;
+
+        // Emit the StatusEffectsResolved event
+        emit StatusEffectsResolved(
+            character.owner,
+            character.health,
+            character.attack,
+            character.defense,
+            character.isStunned,
+            tookDamage
+        );
+
+        return tookDamage;
     }
 
     function quitBattle(uint256 _battleId) public {
