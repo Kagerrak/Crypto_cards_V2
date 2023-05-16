@@ -20,6 +20,7 @@ import ItemSlots from "./ItemSlots";
 import ItemSlot from "./ItemSlot";
 import SkillSlots from "./SkillSlots";
 import SkillSlot from "./SkillSlot";
+import StatusEffect from "./StatusEffect";
 
 export {
   Card,
@@ -44,4 +45,5 @@ export {
   ItemSlot,
   SkillSlot,
   SkillSlots,
+  StatusEffect,
 };
