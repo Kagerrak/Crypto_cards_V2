@@ -7,8 +7,8 @@ const ItemSlots = ({ charTWContract, itemTWContract, tokenId }) => {
   const { characterContract } = useGlobalContext();
 
   const itemTypes = [
-    { type: 0, name: "Headgear" },
-    { type: 1, name: "Weapon" },
+    { type: 0, name: "Weapon" },
+    { type: 1, name: "Headgear" },
     { type: 2, name: "Body Armor" },
     { type: 3, name: "Pants" },
     { type: 4, name: "Footwear" },
