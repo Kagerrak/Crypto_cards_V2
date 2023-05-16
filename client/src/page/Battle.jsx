@@ -10,6 +10,7 @@ import {
   GameInfo,
   PlayerInfo,
   Loader,
+  StatusEffect,
 } from "../components";
 import { useGlobalContext } from "../context";
 import {
@@ -51,7 +52,6 @@ const Battle = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("First useEffect called");
     if (playerData.player1Data && playerData.player2Data) {
       if (!gameData.activeBattle || !gameData.activeBattle.initialHealth) {
         return;
@@ -129,9 +129,7 @@ const Battle = () => {
     playAudio(choice === 0 ? attackSound : choice === 1 ? defenseSound : null);
 
     try {
-      await battleContract.submitMove(state.battleId, choice, skillId, {
-        gasLimit: 200000,
-      });
+      await battleContract.submitMove(state.battleId, choice, skillId);
 
       setShowAlert({
         status: true,
@@ -165,23 +163,33 @@ const Battle = () => {
           />
 
           <div className={`${styles.flexCenter} flex-col my-10`}>
-            <Card
-              card={state.player2}
-              title={state.player2?.id}
-              cardRef={player2Ref}
-              playerTwo
-            />
+            <div className="relative">
+              <Card
+                card={state.player2}
+                title={state.player2?.id}
+                cardRef={player2Ref}
+                playerTwo
+              />
+              <StatusEffect
+                activeEffectIds={state.player2.activeEffectIds}
+                activeEffectDurations={state.player2.activeEffectDurations}
+                className="absolute bottom-0 right-0"
+              />
+            </div>
 
             {state.character && (
               <div className="flex items-center flex-row">
-                {state.player1.equippedSkills.map((skillId, index) => (
-                  <ActionButton
-                    key={index}
-                    imgUrl={state.character.icon}
-                    handleClick={() => makeAMove(2, skillId)}
-                    restStyles="ml-6 mt-6 hover:border-red-600"
-                  />
-                ))}
+                {
+                  ("Hello",
+                  state.player1.equippedSkills.map((skillId, index) => (
+                    <ActionButton
+                      key={index}
+                      imgUrl={state.character.icon}
+                      handleClick={() => makeAMove(2, skillId)}
+                      restStyles="ml-6 mt-6 hover:border-red-600"
+                    />
+                  )))
+                }
               </div>
             )}
 
@@ -192,12 +200,19 @@ const Battle = () => {
                 restStyles="mr-2 hover:border-yellow-400"
               />
 
-              <Card
-                card={state.player1}
-                title={state.player1.id}
-                cardRef={player1Ref}
-                restStyles="mt-3"
-              />
+              <div className="relative">
+                <Card
+                  card={state.player1}
+                  title={state.player1.id}
+                  cardRef={player1Ref}
+                  restStyles="mt-3"
+                />
+                <StatusEffect
+                  activeEffectIds={state.player1.activeEffectIds}
+                  activeEffectDurations={state.player1.activeEffectDurations}
+                  className="absolute bottom-0 left-0"
+                />
+              </div>
 
               <ActionButton
                 imgUrl={defense}
