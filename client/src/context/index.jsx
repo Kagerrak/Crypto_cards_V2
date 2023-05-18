@@ -51,6 +51,17 @@ export const GlobalContextProvider = ({ children }) => {
   const [equippedSkills, setEquippedSkills] = useState([null, null, null]);
   const [equippedSkillLoading, setEquippedSkillLoading] = useState(false);
   const [localOwnedSkills, setLocalOwnedSkills] = useState([]);
+  const [allOwnedSkills, setAllOwnedSkills] = useState([]);
+  const [equippedItems, setEquippedItems] = useState({
+    Headgear: null,
+    Weapon: null,
+    BodyArmor: null,
+    Pants: null,
+    Footwear: null,
+  });
+  const [equippedItemLoading, setEquippedItemLoading] = useState(false);
+  const [localOwnedItems, setLocalOwnedItems] = useState([]);
+  const [allOwnedItems, setAllOwnedItems] = useState([]);
 
   const player1Ref = useRef();
   const player2Ref = useRef();
@@ -303,6 +314,16 @@ export const GlobalContextProvider = ({ children }) => {
         setEquippedSkillLoading,
         localOwnedSkills,
         setLocalOwnedSkills,
+        equippedItems,
+        setEquippedItems,
+        localOwnedItems,
+        setLocalOwnedItems,
+        equippedItemLoading,
+        setEquippedItemLoading,
+        allOwnedSkills,
+        setAllOwnedSkills,
+        allOwnedItems,
+        setAllOwnedItems,
       }}
     >
       {children}
