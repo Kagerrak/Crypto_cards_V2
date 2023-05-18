@@ -83,6 +83,7 @@ const JoinBattle = () => {
           ownedNfts.length === 1 || selectedTokenID === nft.metadata.id
         }
         onSelect={(id) => setSelectedTokenID(id)}
+        contract={charContract}
       />
     ));
     console.log(selectedTokenID); // null
