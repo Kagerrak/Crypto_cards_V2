@@ -1,12 +1,32 @@
 // SkillSlot.js
-import React from "react";
+import React, { useEffect } from "react";
 import { useNFT, ThirdwebNftMedia } from "@thirdweb-dev/react";
+import { useGlobalContext } from "../context";
 
 const SkillSlot = ({ index, skillId, contract, handleUnequip }) => {
+  const { setAllOwnedSkills } = useGlobalContext();
+
+  // Always call the useNFT hook.
+  const nftQuery = useNFT(contract, skillId);
+
+  // Then, conditionally handle the data based on skillId.
   const { data: nftSkill, isLoading: skillNFTLoading } =
-    skillId !== null
-      ? useNFT(contract, skillId)
-      : { data: null, isLoading: false };
+    skillId != null ? nftQuery : { data: null, isLoading: false };
+
+  useEffect(() => {
+    if (nftSkill) {
+      console.log("nftSkill", nftSkill);
+      setAllOwnedSkills((prevSkills) => {
+        const skillExists = prevSkills.some(
+          (skill) => skill.metadata.id === nftSkill.metadata.id
+        );
+        if (!skillExists) {
+          return [...prevSkills, nftSkill];
+        }
+        return prevSkills;
+      });
+    }
+  }, [nftSkill, setAllOwnedSkills]);
 
   return (
     <div className="bg-gray-200 w-14 h-14 flex items-center justify-center text-center text-[15px] text-gray-700 font-bold rounded-md mb-2">
