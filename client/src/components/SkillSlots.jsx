@@ -9,6 +9,8 @@ const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
     setEquippedSkills,
     equippedSkillLoading,
     setEquippedSkillLoading,
+    allOwnedSkills,
+    localOwnedSkills,
     setLocalOwnedSkills,
   } = useGlobalContext();
 
@@ -35,11 +37,13 @@ const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
         return [...skillsWithValues, ...nullSkills];
       });
 
-      // Step 3: Add the unequipped skill back to the globalOwnedSkills
-      const skillToBeAddedBack = equippedSkills.find(
+      // Step 3: Add the unequipped skill to the localOwnedSkills
+      const unequippedSkill = allOwnedSkills.find(
         (skill) => skill.metadata.id === _skillTokenId
       );
-      setLocalOwnedSkills((prevSkills) => [...prevSkills, skillToBeAddedBack]);
+      if (unequippedSkill) {
+        setLocalOwnedSkills((prevSkills) => [...prevSkills, unequippedSkill]);
+      }
 
       setEquippedSkillLoading(false);
     } catch (err) {
@@ -85,15 +89,18 @@ const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
     <div className="mt-4">
       <p>Equipped Skills</p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-        {equippedSkills.map((skillId, index) => (
-          <SkillSlot
-            key={index}
-            index={index}
-            skillId={skillId}
-            contract={skillTWContract}
-            handleUnequip={handleUnequipSkill}
-          />
-        ))}
+        {
+          (console.log(equippedSkills),
+          equippedSkills.map((skillId, index) => (
+            <SkillSlot
+              key={index}
+              index={index}
+              skillId={skillId}
+              contract={skillTWContract}
+              handleUnequip={handleUnequipSkill}
+            />
+          )))
+        }
       </div>
     </div>
   );
