@@ -31,8 +31,6 @@ const CharacterStats = (props) => {
   const [charInfo, setCharInfo] = useState(null);
   const [statPoints, setStatPoints] = useState(0);
   const [newStats, setNewStats] = useState({});
-  const [nftSkillData, setNftSkillData] = useState([]);
-  const [nftItemData, setNftItemData] = useState(null);
   const [pendingChanges, setPendingChanges] = useState(false);
   const [showButtons, setShowButtons] = useState(true);
 
@@ -43,7 +41,6 @@ const CharacterStats = (props) => {
     characterContract,
     battleSkillsContract,
     battleItemsContract,
-    gameData,
     setErrorMessage,
     setShowAlert,
     walletAddress,
@@ -51,6 +48,13 @@ const CharacterStats = (props) => {
     setEquippedSkillLoading,
     localOwnedSkills,
     setLocalOwnedSkills,
+    localOwnedItems,
+    setLocalOwnedItems,
+    setEquippedItems,
+    setEquippedItemLoading,
+    allOwnedSkills,
+    setAllOwnedSkills,
+    setAllOwnedItems,
   } = useGlobalContext();
 
   const { contract: charTWContract } = useContract(characterContractAddress);
@@ -67,20 +71,18 @@ const CharacterStats = (props) => {
   );
 
   useEffect(() => {
-    if (Array.isArray(equippedSkills) && equippedSkills.length > 0) {
-      setNftSkillData(equippedSkills.map((skill) => skill.toNumber()));
-    }
-  }, [equippedSkills]);
-
-  useEffect(() => {
     if (ownedSkills) {
       setLocalOwnedSkills(ownedSkills);
+      setAllOwnedSkills(ownedSkills);
     }
   }, [ownedSkills, setLocalOwnedSkills]);
-  // const { data: nftItem, isLoading: itemNFTLoading } = useNFT(
-  //   itemTWContract,
-  //   nftItemData
-  // );
+
+  useEffect(() => {
+    if (ownedItems) {
+      setLocalOwnedItems(ownedItems);
+      setAllOwnedItems(ownedItems);
+    }
+  }, [ownedItems, setLocalOwnedItems]);
 
   const { data: nftChar, isLoading } = useNFT(charTWContract, tokenId);
   const { data: getChar, isLoading: getCharLoad } = useContractRead(
@@ -208,21 +210,54 @@ const CharacterStats = (props) => {
     }
   };
 
-  const handleEquipItem = async (_itemTokenId) => {
+  const handleEquipItem = async (_itemTokenId, _itemType) => {
+    console.log(_itemTokenId, _itemType);
+    const itemTypes = [
+      { type: 0, name: "Weapon" },
+      { type: 1, name: "Headgear" },
+      { type: 2, name: "Body Armor" },
+      { type: 3, name: "Pants" },
+      { type: 4, name: "Footwear" },
+    ];
+    setEquippedItemLoading(true);
     try {
-      const itemApprove = await battleItemsContract.isApprovedForAll(
+      const isApproved = await battleItemsContract.isApprovedForAll(
         walletAddress,
         characterContractAddress
       );
-      if (!itemApprove) {
+      if (!isApproved) {
         const approvalTx = await battleItemsContract.setApprovalForAll(
           characterContractAddress,
           true
         );
         await approvalTx.wait(); // wait for the approval transaction to be mined
       }
-      await characterContract.equipItem(tokenId, _itemTokenId);
+
+      const equipTx = await characterContract.equipItem(tokenId, _itemTokenId);
+      console.log("Waiting for equip transaction to confirm...");
+      await equipTx.wait(); // wait for the equip transaction to be mined
+
       console.info("contract call successs");
+
+      const newOwnedItems = localOwnedItems.filter(
+        (item) => item.metadata.id !== _itemTokenId
+      );
+      setLocalOwnedItems(newOwnedItems);
+
+      setEquippedItems((prevEquippedItems) => {
+        const newEquippedItems = { ...prevEquippedItems };
+        const itemType = itemTypes.find(
+          (item) => item.type === _itemType
+        )?.name;
+        console.log(itemType);
+        if (itemType) {
+          console.log(newEquippedItems[itemType]);
+          newEquippedItems[itemType] = _itemTokenId;
+        }
+        console.log(newEquippedItems);
+        return newEquippedItems;
+      });
+      setEquippedItemLoading(false);
     } catch (err) {
       console.error("contract call failure", err);
     }
@@ -269,12 +304,12 @@ const CharacterStats = (props) => {
   }
 
   let items;
-  if (Array.isArray(ownedItems) && ownedItems.length > 0) {
-    items = ownedItems.map((c, i) => (
+  if (Array.isArray(localOwnedItems) && localOwnedItems.length > 0) {
+    items = localOwnedItems.map((c, i) => (
       <div
         key={c.metadata.id}
         onClick={() => {
-          handleEquipItem(c.metadata.id);
+          handleEquipItem(c.metadata.id, c.metadata.attributes[5].value);
         }}
         className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
       >
@@ -288,7 +323,7 @@ const CharacterStats = (props) => {
           <CustomButton
             title="Equip"
             handleclick={() => {
-              handleEquipItem(c.metadata.id);
+              handleEquipItem(c.metadata.id, c.metadata.attributes[5].value);
             }}
             restStyles="mt-6 mb-6"
           />
