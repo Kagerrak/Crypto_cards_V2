@@ -69,6 +69,8 @@ import attackSound from "./sounds/attack.wav";
 import defenseSound from "./sounds/defense.mp3";
 import explosion from "./sounds/explosion.mp3";
 
+import badge from "./hexagon.png";
+
 export const allCards = [
   ace,
   bakezori,
@@ -149,6 +151,7 @@ export {
   defenseSound,
   explosion,
   loader,
+  badge,
 };
 
 export const battlegrounds = [
