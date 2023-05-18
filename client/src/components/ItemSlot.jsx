@@ -1,8 +1,24 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNFT, ThirdwebNftMedia } from "@thirdweb-dev/react";
+import { useGlobalContext } from "../context";
 
 const ItemSlot = ({ type, itemId, contract, handleUnequip }) => {
   const { data: nftItem, isLoading: itemNFTLoading } = useNFT(contract, itemId);
+  const { setAllOwnedItems } = useGlobalContext();
+
+  useEffect(() => {
+    if (nftItem) {
+      setAllOwnedItems((prevItems) => {
+        const itemExists = prevItems.some(
+          (item) => item.metadata.id === nftItem.metadata.id
+        );
+        if (!itemExists) {
+          return [...prevItems, nftItem];
+        }
+        return prevItems;
+      });
+    }
+  }, [nftItem, setAllOwnedItems]);
 
   return (
     <div className="bg-gray-200 w-14 h-14 flex items-center justify-center text-center text-[15px] text-gray-700 font-bold rounded-md mb-2">
