@@ -2,7 +2,7 @@ import React from "react";
 import { statusEffects } from "../assets/status_effects/index.js";
 
 const StatusEffect = ({ activeEffectIds, activeEffectDurations }) => (
-  <div className="flex flex-wrap">
+  <div className="flex flex-wrap h-12">
     {activeEffectIds.map((effectId, index) => {
       const effect = statusEffects.find(
         (effect) => effect.id === effectId.toNumber()
