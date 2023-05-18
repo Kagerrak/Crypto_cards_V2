@@ -1,10 +1,17 @@
-import React, { useEffect, useState } from "react";
-
+import React, { useEffect } from "react";
 import ItemSlot from "./ItemSlot";
 import { useGlobalContext } from "../context";
 
 const ItemSlots = ({ charTWContract, itemTWContract, tokenId }) => {
-  const { characterContract } = useGlobalContext();
+  const {
+    characterContract,
+    equippedItems,
+    setEquippedItems,
+    equippedItemLoading,
+    setEquippedItemLoading,
+    setLocalOwnedItems,
+    allOwnedItems,
+  } = useGlobalContext();
 
   const itemTypes = [
     { type: 0, name: "Weapon" },
@@ -14,18 +21,35 @@ const ItemSlots = ({ charTWContract, itemTWContract, tokenId }) => {
     { type: 4, name: "Footwear" },
   ];
 
-  const [equippedItems, setEquippedItems] = useState({
-    Headgear: null,
-    Weapon: null,
-    BodyArmor: null,
-    Pants: null,
-    Footwear: null,
-  });
-
   const handleUnequipItem = async (_itemTokenId) => {
+    setEquippedItemLoading(true);
     try {
-      const data = await characterContract.unequipItem(tokenId, _itemTokenId);
-      console.info("contract call successs", data);
+      const unequipTx = await characterContract.unequipItem(
+        tokenId,
+        _itemTokenId
+      );
+      await unequipTx.wait();
+
+      setEquippedItems((prevItems) => {
+        // Step 1: Replace the unequipped item with 999999 (as per your previous logic)
+        const newItems = { ...prevItems };
+        for (let itemType in newItems) {
+          if (newItems[itemType] === _itemTokenId) {
+            newItems[itemType] = 999999;
+          }
+        }
+        return newItems;
+      });
+
+      // Step 2: Add the unequipped item to the localOwnedItems
+      const unequippedItem = allOwnedItems.find(
+        (item) => item.metadata.id === _itemTokenId
+      );
+      if (unequippedItem) {
+        setLocalOwnedItems((prevItems) => [...prevItems, unequippedItem]);
+      }
+
+      setEquippedItemLoading(false);
     } catch (err) {
       console.error("contract call failure", err);
     }
@@ -33,30 +57,39 @@ const ItemSlots = ({ charTWContract, itemTWContract, tokenId }) => {
 
   useEffect(() => {
     const fetchEquippedItems = async () => {
-      const fetchedItems = await Promise.all(
-        itemTypes.map(async ({ type, name }) => {
-          const fetchedItemId = await charTWContract.call("getEquippedItem", [
-            tokenId,
-            type,
-          ]);
+      if (
+        !equippedItemLoading &&
+        Object.values(equippedItems).every((itemId) => itemId === null)
+      ) {
+        setEquippedItemLoading(true);
 
-          if (fetchedItemId !== null && fetchedItemId !== undefined) {
-            return { itemType: name, itemId: fetchedItemId.toNumber() };
-          }
+        const fetchedItems = await Promise.all(
+          itemTypes.map(async ({ type, name }) => {
+            const fetchedItemId = await charTWContract.call("getEquippedItem", [
+              tokenId,
+              type,
+            ]);
 
-          return { itemType: name, itemId: null };
-        })
-      );
+            if (fetchedItemId !== null && fetchedItemId !== undefined) {
+              return { itemType: name, itemId: fetchedItemId.toNumber() };
+            }
 
-      const items = fetchedItems.reduce((acc, { itemType, itemId }) => {
-        return { ...acc, [itemType]: itemId };
-      }, {});
+            return { itemType: name, itemId: null };
+          })
+        );
 
-      setEquippedItems(items);
+        const items = fetchedItems.reduce((acc, { itemType, itemId }) => {
+          return { ...acc, [itemType]: itemId };
+        }, {});
+
+        setEquippedItems(items);
+
+        setEquippedItemLoading(false);
+      }
     };
 
     fetchEquippedItems();
-  }, [charTWContract, tokenId]);
+  }, [charTWContract, tokenId, equippedItems, equippedItemLoading]);
 
   return (
     <div className="mt-2">
