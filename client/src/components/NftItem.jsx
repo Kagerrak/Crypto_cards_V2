@@ -22,6 +22,7 @@ const ProgressBar = ({ value, max, color, exp }) => {
 
 const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
   const [charMana, setCharMana] = useState(null);
+  const [charMaxMana, setCharMaxMana] = useState(null);
   const [charStamina, setCharStamina] = useState(null);
   const [charExperience, setCharExperience] = useState(null);
   const [charLevel, setCharLevel] = useState(null);
@@ -33,6 +34,7 @@ const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
       try {
         const mana = await contract.call("getMana", [metadata.id]);
         const stamina = await contract.call("getStamina", [metadata.id]);
+        const maxMana = await contract.call("getRecoveryStats", [metadata.id]);
         const character = await contract.call("getCharacter", [metadata.id]);
         const experience = character.experience;
         const level = character.level;
@@ -45,6 +47,7 @@ const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
         const currentMaxExp = maxExp.toNumber();
 
         setCharMana(mana.toNumber());
+        setCharMaxMana(maxMana.maxMana.toNumber());
         setCharStamina(stamina.toNumber());
         setCharExperience(currentLevelExp);
         setCharLevel(level.toNumber());
@@ -97,7 +100,11 @@ const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
           {charMana !== null && (
             <>
               <div className="text-[12px]">Mana</div>
-              <ProgressBar value={charMana} max={100} color="bg-blue-700" />
+              <ProgressBar
+                value={charMana}
+                max={charMaxMana}
+                color="bg-blue-700"
+              />
             </>
           )}
           {charStamina !== null && (
