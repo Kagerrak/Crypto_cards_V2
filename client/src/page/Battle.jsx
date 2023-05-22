@@ -23,6 +23,7 @@ import {
   player02 as player02Icon,
 } from "../assets";
 import { playAudio } from "../utils/animation.js";
+import { skills } from "../assets/skills";
 
 const Battle = () => {
   const {
@@ -177,21 +178,25 @@ const Battle = () => {
               />
             </div>
 
-            {state.character && (
-              <div className="flex items-center flex-row">
-                {
-                  ("Hello",
-                  state.player1.equippedSkills.map((skillId, index) => (
-                    <ActionButton
-                      key={index}
-                      imgUrl={state.character.icon}
-                      handleClick={() => makeAMove(2, skillId)}
-                      restStyles="ml-6 mt-6 hover:border-red-600"
-                    />
-                  )))
-                }
-              </div>
-            )}
+            {state.player1.equippedSkills &&
+              state.player1.equippedSkills.length > 0 && (
+                <div className="flex items-center flex-row">
+                  {state.player1.equippedSkills.map((skillId, index) => {
+                    const skill = skills.find(
+                      (s) => s.id === skillId.toNumber()
+                    );
+
+                    return (
+                      <ActionButton
+                        key={index}
+                        imgUrl={skill.image}
+                        handleClick={() => makeAMove(2, skillId)}
+                        restStyles="ml-6 mt-6 hover:border-red-600"
+                      />
+                    );
+                  })}
+                </div>
+              )}
 
             <div className="flex items-center flex-row">
               <ActionButton
