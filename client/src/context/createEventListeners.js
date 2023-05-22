@@ -102,26 +102,6 @@ export const createEventListeners = ({
     setUpdateGameData((prevUpdateGameData) => prevUpdateGameData + 1);
   });
 
-  // const NewGameTokenEventFilter = contract.filters.NewGameToken();
-  // AddNewEvent(
-  //   NewGameTokenEventFilter,
-  //   provider,
-  //   characterContractABI,
-  //   ({ args }) => {
-  //     console.log("New game token created!", args.owner);
-
-  //     if (walletAddress.toLowerCase() === args.owner.toLowerCase()) {
-  //       setShowAlert({
-  //         status: true,
-  //         type: "success",
-  //         message: "Player game token has been successfully generated",
-  //       });
-
-  //       navigate("/create-battle");
-  //     }
-  //   }
-  // );
-
   const BattleMoveEventFilter = battleContract.filters.MoveSubmitted();
   AddNewEvent(
     BattleMoveEventFilter,
