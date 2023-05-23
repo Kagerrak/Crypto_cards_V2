@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import "./Character.sol";
-import "./BattleSkills.sol";
+import "./CharacterStamina.sol";
+import "./BattleSkills2.sol";
 import "hardhat/console.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@thirdweb-dev/contracts/extension/Ownable.sol";
@@ -42,6 +42,9 @@ contract Battle is Ownable {
         uint256[2] initialHealth;
         uint256[2] initialMana; // Initial mana for each player's character
         bool[2] moveSubmitted;
+        uint256[2] damageDealt;
+        uint256[2] damageTaken;
+        uint256 round;
     }
 
     struct CharacterProxy {
@@ -89,7 +92,12 @@ contract Battle is Ownable {
         address indexed player2
     );
     event BattleCancelled(uint256 indexed battleId, address indexed player);
-    event RoundEnded(address[2] damagedPlayers);
+    event RoundEnded(
+        address[2] damagedPlayers,
+        uint256[2] damageDealt,
+        uint256[2] damageTaken,
+        uint256 round
+    );
     event BattleEnded(
         string battleName,
         uint256 battleId,
@@ -199,8 +207,11 @@ contract Battle is Ownable {
             battleStatus: BattleStatus.PENDING,
             winner: address(0),
             initialHealth: [uint256(0), uint256(0)],
-            initialMana: [uint256(0), uint256(0)], // Add initialMana field to the memory struct
-            moveSubmitted: [false, false]
+            initialMana: [uint256(0), uint256(0)],
+            moveSubmitted: [false, false],
+            damageDealt: [uint256(0), uint256(0)],
+            damageTaken: [uint256(0), uint256(0)],
+            round: 1
         });
 
         battles[battleId] = newBattle;
@@ -371,7 +382,9 @@ contract Battle is Ownable {
             battle.players[1]
         ];
 
-        address[2] memory _damagedPlayers = [address(0), address(0)];
+        address[2] memory damagedPlayers;
+        uint256[2] memory damageDealt;
+        uint256[2] memory damageTaken;
 
         _resolveStatusEffects(proxyA);
         console.log("proxyA");
@@ -404,7 +417,9 @@ contract Battle is Ownable {
                 : 0;
             proxyA.mana -= 3;
             proxyB.mana -= 3;
-            _damagedPlayers = battle.players;
+            damagedPlayers = battle.players;
+            damageDealt[0] = damageA;
+            damageDealt[1] = damageB;
         } else if (
             battle.moves[0] == uint256(Move.DEFEND) &&
             battle.moves[1] == uint256(Move.DEFEND)
@@ -426,7 +441,8 @@ contract Battle is Ownable {
                 proxyB.health = proxyB.health > damage
                     ? proxyB.health - damage
                     : 0;
-                _damagedPlayers[0] = battle.players[1];
+                damagedPlayers[0] = battle.players[1];
+                damageDealt[0] = damage;
             }
             proxyA.mana -= 3;
             proxyB.mana += 3;
@@ -442,7 +458,8 @@ contract Battle is Ownable {
                 proxyA.health = proxyA.health > damage
                     ? proxyA.health - damage
                     : 0;
-                _damagedPlayers[0] = battle.players[0];
+                damagedPlayers[0] = battle.players[0];
+                damageDealt[1] = damage;
             }
             proxyA.mana += 3;
             proxyB.mana -= 3;
@@ -457,7 +474,8 @@ contract Battle is Ownable {
             proxyB.health = proxyB.health > damageA
                 ? proxyB.health - damageA
                 : 0;
-            _damagedPlayers[0] = battle.players[1];
+            damagedPlayers[0] = battle.players[1];
+            damageDealt[0] = damageA;
             proxyA.mana -= 3;
         } else if (
             battle.moves[0] == uint256(Move.DO_NOTHING) &&
@@ -470,7 +488,8 @@ contract Battle is Ownable {
             proxyA.health = proxyA.health > damageB
                 ? proxyA.health - damageB
                 : 0;
-            _damagedPlayers[0] = battle.players[0];
+            damagedPlayers[0] = battle.players[0];
+            damageDealt[1] = damageB;
             proxyB.mana -= 3;
         } else if (
             battle.moves[0] == uint256(Move.DEFEND) &&
@@ -485,7 +504,7 @@ contract Battle is Ownable {
             battle.moves[1] == uint256(Move.DEFEND)
         ) {
             // Player 1 does nothing, player 2 defends
-            console.log("Player 1 defends, player 2 does nothing");
+            console.log("Player 1 does nothing, player 2 defends");
 
             proxyB.mana += 3;
         }
@@ -494,7 +513,7 @@ contract Battle is Ownable {
         if (battle.moves[0] == uint256(Move.USE_SKILL)) {
             address damagedPlayer = _executeSkill(proxyA, _skillId0, proxyB);
             if (damagedPlayer != address(0)) {
-                _damagedPlayers[0] = damagedPlayer;
+                damagedPlayers[0] = damagedPlayer;
             }
         } else if (battle.moves[0] == uint256(Move.DO_NOTHING)) {
             // Player 1 does nothing
@@ -503,40 +522,14 @@ contract Battle is Ownable {
         if (battle.moves[1] == uint256(Move.USE_SKILL)) {
             address damagedPlayer = _executeSkill(proxyB, _skillId1, proxyA);
             if (damagedPlayer != address(0)) {
-                _damagedPlayers[1] = damagedPlayer;
+                damagedPlayers[1] = damagedPlayer;
             }
         } else if (battle.moves[1] == uint256(Move.DO_NOTHING)) {
             // Player 2 does nothing
         }
 
-        // Emit HealthUpdated event
-        emit HealthUpdated(
-            battleId,
-            battle.players[0],
-            proxyA.health,
-            battle.players[1],
-            proxyB.health
-        );
-        console.log("Player 1 Health: ", proxyA.health);
-        console.log("Player 2 Health: ", proxyB.health);
-
-        console.log("Player 1 Mana: ", proxyA.mana);
-        console.log("Player 2 Mana: ", proxyB.mana);
-
         // Emit RoundEnded event
-        emit RoundEnded(_damagedPlayers);
-
-        // Check if the battle has ended and declare a winner
-        if (proxyA.health == 0 || proxyB.health == 0) {
-            address winner = proxyA.health > proxyB.health
-                ? battle.players[0]
-                : battle.players[1];
-            _endBattle(battleId, winner);
-        } else {
-            // If no character has lost all their health, reset the move submissions for the next round.
-            battle.moveSubmitted[0] = false;
-            battle.moveSubmitted[1] = false;
-        }
+        emit RoundEnded(damagedPlayers, damageDealt, damageTaken, battle.round);
     }
 
     function _applyStatusEffect(
@@ -554,7 +547,7 @@ contract Battle is Ownable {
     function calculateAttackDamage(uint256 attack) public returns (uint256) {
         uint256 randomNumber = (uint256(
             keccak256(
-                abi.encodePacked(block.difficulty, block.timestamp, msg.sender)
+                abi.encodePacked(block.prevrandao, block.timestamp, msg.sender)
             )
         ) % 20) + 1;
 
@@ -827,8 +820,6 @@ contract Battle is Ownable {
         if (battleFought) {
             characterContract.gainXP(battle.characterIds[winnerIndex], 100);
             characterContract.gainXP(battle.characterIds[loserIndex], 30);
-            console.log("Exp gained: ", battle.characterIds[winnerIndex], 100);
-            console.log("Exp gained: ", battle.characterIds[loserIndex], 30);
         }
 
         // Emit the updated BattleEnded event
@@ -887,6 +878,49 @@ contract Battle is Ownable {
 
     function getActiveBattlesCount() external view returns (uint256) {
         return activeBattlesId.length;
+    }
+
+    function getBattleSummary(
+        uint256 _battleId
+    )
+        public
+        view
+        returns (
+            uint256 round,
+            uint256[2] memory damageTaken,
+            uint256[2] memory damageDealt,
+            uint256[2] memory manaConsumed,
+            address winner,
+            address loser
+        )
+    {
+        BattleData storage battle = battles[_battleId];
+
+        round = battle.round;
+        damageTaken = battle.damageTaken;
+        damageDealt = battle.damageDealt;
+
+        address player1 = battle.players[0];
+        address player2 = battle.players[1];
+
+        uint256 initialManaPlayer1 = battle.initialMana[0];
+        uint256 initialManaPlayer2 = battle.initialMana[1];
+
+        uint256 usedManaPlayer1 = initialManaPlayer1 -
+            characterProxies[keccak256(abi.encodePacked(_battleId, player1))][
+                player1
+            ].mana;
+        uint256 usedManaPlayer2 = initialManaPlayer2 -
+            characterProxies[keccak256(abi.encodePacked(_battleId, player2))][
+                player2
+            ].mana;
+
+        manaConsumed = [usedManaPlayer1, usedManaPlayer2];
+
+        winner = battle.winner;
+        loser = winner == player1 ? player2 : player1;
+
+        return (round, damageTaken, damageDealt, manaConsumed, winner, loser);
     }
 
     function getBattleParticipants(
