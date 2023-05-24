@@ -1,0 +1,50 @@
+type Player @entity {
+  id: ID! # Player's address
+  battles: [Battle!]! @derivedFrom(field: "players")
+  characters: [Character!]! @derivedFrom(field: "owner")
+}
+
+type Character @entity {
+  id: ID! # Character's ID
+  owner: Player!
+  battles: [Battle!]! @derivedFrom(field: "characters")
+}
+
+type Battle @entity {
+  id: ID! # Battle's ID
+  name: String!
+  players: [Player!]!
+  characters: [Character!]!
+  status: String!
+  winner: Player
+  rounds: [Round!]! @derivedFrom(field: "battle")
+}
+
+type Round @entity {
+  id: ID! # Combination of Battle's ID and round number
+  battle: Battle!
+  damagedPlayers: [Player!]!
+  damageDealt: [BigInt!]!
+  damageTaken: [BigInt!]!
+  moves: [Move!]! @derivedFrom(field: "round")
+  statusEffects: [StatusEffect!]! @derivedFrom(field: "round")
+  diceRoll: BigInt! # Dice roll result
+}
+
+type Move @entity {
+  id: ID! # Combination of Battle's ID, round number, and player's address
+  round: Round!
+  player: Player!
+  type: String!
+}
+
+type StatusEffect @entity {
+  id: ID! # Combination of Battle's ID, round number, and character's address
+  round: Round!
+  character: Character!
+  health: BigInt!
+  attack: BigInt!
+  defense: BigInt!
+  isStunned: Boolean!
+  tookDamage: Boolean!
+}

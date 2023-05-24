@@ -1,0 +1,50 @@
+specVersion: 0.0.4
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: Battle
+    network: mumbai
+    source:
+      address: "0xB3F37873a910F98E53dA2d34C25E0F3475E35b33"
+      abi: Battle
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - BattleCancelled
+        - BattleCreated
+        - BattleEnded
+        - DiceRolled
+        - HealthUpdated
+        - MoveSubmitted
+        - NewBattle
+        - OwnerUpdated
+        - RoundEnded
+        - StatusEffectsResolved
+      abis:
+        - name: Battle
+          file: ./abis/Battle.json
+      eventHandlers:
+        - event: BattleCancelled(indexed uint256,indexed address)
+          handler: handleBattleCancelled
+        - event: BattleCreated(uint256,address,uint256)
+          handler: handleBattleCreated
+        - event: BattleEnded(string,uint256,indexed address,indexed address)
+          handler: handleBattleEnded
+        - event: DiceRolled(uint256)
+          handler: handleDiceRolled
+        - event: HealthUpdated(uint256,address,uint256,address,uint256)
+          handler: handleHealthUpdated
+        - event: MoveSubmitted(indexed uint256,indexed address,uint8)
+          handler: handleMoveSubmitted
+        - event: NewBattle(string,uint256,indexed address,indexed address)
+          handler: handleNewBattle
+        - event: OwnerUpdated(indexed address,indexed address)
+          handler: handleOwnerUpdated
+        - event: RoundEnded(address[2])
+          handler: handleRoundEnded
+        - event: StatusEffectsResolved(indexed address,uint256,uint256,uint256,bool,bool)
+          handler: handleStatusEffectsResolved
+      file: ./src/battle.ts
