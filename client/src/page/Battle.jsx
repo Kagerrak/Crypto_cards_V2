@@ -130,7 +130,13 @@ const Battle = () => {
     playAudio(choice === 0 ? attackSound : choice === 1 ? defenseSound : null);
 
     try {
-      await battleContract.submitMove(state.battleId, choice, skillId);
+      const moveTx = await battleContract.submitMove(
+        state.battleId,
+        choice,
+        skillId
+      );
+
+      await moveTx.wait();
 
       setShowAlert({
         status: true,
