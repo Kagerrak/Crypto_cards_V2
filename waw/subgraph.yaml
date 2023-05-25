@@ -1,4 +1,4 @@
-specVersion: 0.0.4
+specVersion: 0.0.1
 schema:
   file: ./schema.graphql
 dataSources:
@@ -6,7 +6,7 @@ dataSources:
     name: Battle
     network: mumbai
     source:
-      address: "0xB3F37873a910F98E53dA2d34C25E0F3475E35b33"
+      address: "0x673B51a2BBD33D778669DA1E8BbB1144Fc790014"
       abi: Battle
     mapping:
       kind: ethereum/events
@@ -29,22 +29,22 @@ dataSources:
       eventHandlers:
         - event: BattleCancelled(indexed uint256,indexed address)
           handler: handleBattleCancelled
-        - event: BattleCreated(uint256,address,uint256)
+        - event: BattleCreated(indexed uint256,indexed address,uint256)
           handler: handleBattleCreated
-        - event: BattleEnded(string,uint256,indexed address,indexed address)
+        - event: BattleEnded(string,indexed uint256,indexed address,indexed address)
           handler: handleBattleEnded
-        - event: DiceRolled(uint256)
+        - event: DiceRolled(indexed uint256,uint256,uint256)
           handler: handleDiceRolled
-        - event: HealthUpdated(uint256,address,uint256,address,uint256)
+        - event: HealthUpdated(indexed uint256,indexed address,uint256,indexed address,uint256)
           handler: handleHealthUpdated
         - event: MoveSubmitted(indexed uint256,indexed address,uint8)
           handler: handleMoveSubmitted
-        - event: NewBattle(string,uint256,indexed address,indexed address)
+        - event: NewBattle(string,indexed uint256,indexed address,indexed address)
           handler: handleNewBattle
         - event: OwnerUpdated(indexed address,indexed address)
           handler: handleOwnerUpdated
-        - event: RoundEnded(address[2])
+        - event: RoundEnded(indexed uint256,address[2],uint256[2],uint256[2],uint256)
           handler: handleRoundEnded
-        - event: StatusEffectsResolved(indexed address,uint256,uint256,uint256,bool,bool)
+        - event: StatusEffectsResolved(indexed uint256,indexed address,uint256,uint256,uint256,bool,bool)
           handler: handleStatusEffectsResolved
       file: ./src/battle.ts

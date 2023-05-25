@@ -38,13 +38,13 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "uint256",
         "name": "battleId",
         "type": "uint256"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "creator",
         "type": "address"
@@ -69,7 +69,7 @@
         "type": "string"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "uint256",
         "name": "battleId",
         "type": "uint256"
@@ -94,6 +94,18 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "battleId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "round",
+        "type": "uint256"
+      },
+      {
         "indexed": false,
         "internalType": "uint256",
         "name": "diceNumber",
@@ -107,13 +119,13 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "uint256",
         "name": "battleId",
         "type": "uint256"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "player1",
         "type": "address"
@@ -125,7 +137,7 @@
         "type": "uint256"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "player2",
         "type": "address"
@@ -175,7 +187,7 @@
         "type": "string"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "uint256",
         "name": "battleId",
         "type": "uint256"
@@ -219,10 +231,34 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "battleId",
+        "type": "uint256"
+      },
+      {
         "indexed": false,
         "internalType": "address[2]",
         "name": "damagedPlayers",
         "type": "address[2]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256[2]",
+        "name": "damageDealt",
+        "type": "uint256[2]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256[2]",
+        "name": "damageTaken",
+        "type": "uint256[2]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "round",
+        "type": "uint256"
       }
     ],
     "name": "RoundEnded",
@@ -231,6 +267,12 @@
   {
     "anonymous": false,
     "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "battleId",
+        "type": "uint256"
+      },
       {
         "indexed": true,
         "internalType": "address",
@@ -304,18 +346,37 @@
         "name": "battleStatus",
         "type": "uint8"
       },
-      { "internalType": "address", "name": "winner", "type": "address" }
+      { "internalType": "address", "name": "winner", "type": "address" },
+      { "internalType": "uint256", "name": "round", "type": "uint256" },
+      {
+        "components": [
+          {
+            "internalType": "uint256[2]",
+            "name": "initialHealth",
+            "type": "uint256[2]"
+          },
+          {
+            "internalType": "uint256[2]",
+            "name": "initialMana",
+            "type": "uint256[2]"
+          },
+          {
+            "internalType": "uint256[2]",
+            "name": "totalDamageDealt",
+            "type": "uint256[2]"
+          },
+          {
+            "internalType": "uint256[2]",
+            "name": "totalDamageTaken",
+            "type": "uint256[2]"
+          }
+        ],
+        "internalType": "struct Battle.BattleStats",
+        "name": "battleStats",
+        "type": "tuple"
+      }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "attack", "type": "uint256" }
-    ],
-    "name": "calculateAttackDamage",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -401,19 +462,37 @@
           },
           { "internalType": "address", "name": "winner", "type": "address" },
           {
-            "internalType": "uint256[2]",
-            "name": "initialHealth",
-            "type": "uint256[2]"
-          },
-          {
-            "internalType": "uint256[2]",
-            "name": "initialMana",
-            "type": "uint256[2]"
-          },
-          {
             "internalType": "bool[2]",
             "name": "moveSubmitted",
             "type": "bool[2]"
+          },
+          { "internalType": "uint256", "name": "round", "type": "uint256" },
+          {
+            "components": [
+              {
+                "internalType": "uint256[2]",
+                "name": "initialHealth",
+                "type": "uint256[2]"
+              },
+              {
+                "internalType": "uint256[2]",
+                "name": "initialMana",
+                "type": "uint256[2]"
+              },
+              {
+                "internalType": "uint256[2]",
+                "name": "totalDamageDealt",
+                "type": "uint256[2]"
+              },
+              {
+                "internalType": "uint256[2]",
+                "name": "totalDamageTaken",
+                "type": "uint256[2]"
+              }
+            ],
+            "internalType": "struct Battle.BattleStats",
+            "name": "battleStats",
+            "type": "tuple"
           }
         ],
         "internalType": "struct Battle.BattleData",
@@ -442,6 +521,34 @@
     "name": "getBattleParticipants",
     "outputs": [
       { "internalType": "address[2]", "name": "", "type": "address[2]" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_battleId", "type": "uint256" }
+    ],
+    "name": "getBattleSummary",
+    "outputs": [
+      { "internalType": "uint256", "name": "round", "type": "uint256" },
+      {
+        "internalType": "uint256[2]",
+        "name": "damageTaken",
+        "type": "uint256[2]"
+      },
+      {
+        "internalType": "uint256[2]",
+        "name": "damageDealt",
+        "type": "uint256[2]"
+      },
+      {
+        "internalType": "uint256[2]",
+        "name": "manaConsumed",
+        "type": "uint256[2]"
+      },
+      { "internalType": "address", "name": "winner", "type": "address" },
+      { "internalType": "address", "name": "loser", "type": "address" }
     ],
     "stateMutability": "view",
     "type": "function"

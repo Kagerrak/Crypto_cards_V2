@@ -91,11 +91,24 @@ export function createBattleEndedEvent(
   return battleEndedEvent
 }
 
-export function createDiceRolledEvent(diceNumber: BigInt): DiceRolled {
+export function createDiceRolledEvent(
+  battleId: BigInt,
+  round: BigInt,
+  diceNumber: BigInt
+): DiceRolled {
   let diceRolledEvent = changetype<DiceRolled>(newMockEvent())
 
   diceRolledEvent.parameters = new Array()
 
+  diceRolledEvent.parameters.push(
+    new ethereum.EventParam(
+      "battleId",
+      ethereum.Value.fromUnsignedBigInt(battleId)
+    )
+  )
+  diceRolledEvent.parameters.push(
+    new ethereum.EventParam("round", ethereum.Value.fromUnsignedBigInt(round))
+  )
   diceRolledEvent.parameters.push(
     new ethereum.EventParam(
       "diceNumber",
@@ -221,7 +234,11 @@ export function createOwnerUpdatedEvent(
 }
 
 export function createRoundEndedEvent(
-  damagedPlayers: Array<Address>
+  battleId: BigInt,
+  damagedPlayers: Array<Address>,
+  damageDealt: Array<BigInt>,
+  damageTaken: Array<BigInt>,
+  round: BigInt
 ): RoundEnded {
   let roundEndedEvent = changetype<RoundEnded>(newMockEvent())
 
@@ -229,15 +246,37 @@ export function createRoundEndedEvent(
 
   roundEndedEvent.parameters.push(
     new ethereum.EventParam(
+      "battleId",
+      ethereum.Value.fromUnsignedBigInt(battleId)
+    )
+  )
+  roundEndedEvent.parameters.push(
+    new ethereum.EventParam(
       "damagedPlayers",
       ethereum.Value.fromAddressArray(damagedPlayers)
     )
+  )
+  roundEndedEvent.parameters.push(
+    new ethereum.EventParam(
+      "damageDealt",
+      ethereum.Value.fromUnsignedBigIntArray(damageDealt)
+    )
+  )
+  roundEndedEvent.parameters.push(
+    new ethereum.EventParam(
+      "damageTaken",
+      ethereum.Value.fromUnsignedBigIntArray(damageTaken)
+    )
+  )
+  roundEndedEvent.parameters.push(
+    new ethereum.EventParam("round", ethereum.Value.fromUnsignedBigInt(round))
   )
 
   return roundEndedEvent
 }
 
 export function createStatusEffectsResolvedEvent(
+  battleId: BigInt,
   character: Address,
   health: BigInt,
   attack: BigInt,
@@ -251,6 +290,12 @@ export function createStatusEffectsResolvedEvent(
 
   statusEffectsResolvedEvent.parameters = new Array()
 
+  statusEffectsResolvedEvent.parameters.push(
+    new ethereum.EventParam(
+      "battleId",
+      ethereum.Value.fromUnsignedBigInt(battleId)
+    )
+  )
   statusEffectsResolvedEvent.parameters.push(
     new ethereum.EventParam("character", ethereum.Value.fromAddress(character))
   )
