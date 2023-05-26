@@ -473,6 +473,8 @@ contract Battle is Ownable {
             damageTaken,
             battle.round
         );
+
+        battle.round += 1;
     }
 
     function _handleAttackLogic(
