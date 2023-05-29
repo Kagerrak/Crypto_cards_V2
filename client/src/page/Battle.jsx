@@ -54,7 +54,10 @@ const Battle = () => {
 
   useEffect(() => {
     if (playerData.player1Data && playerData.player2Data) {
-      if (!gameData.activeBattle || !gameData.activeBattle.initialHealth) {
+      if (
+        !gameData.activeBattle ||
+        !gameData.activeBattle.battleStats.initialHealth
+      ) {
         return;
       }
       const player01 = playerData.player1Data;
@@ -70,7 +73,7 @@ const Battle = () => {
           def: player01.defense.toNumber(),
           health: player01.health.toNumber(),
           mana: player01.mana.toNumber(),
-          equippedSkills: player01.equippedSkills, // new line
+          equippedSkills: player01.equippedSkills,
           activeEffectIds: player01.activeEffectIds,
           activeEffectDurations: player01.activeEffectDurations,
         },
@@ -79,19 +82,19 @@ const Battle = () => {
           def: "X",
           health: player02.health.toNumber(),
           mana: player02.mana.toNumber(),
-          equippedSkills: player02.equippedSkills, // new line
+          equippedSkills: player02.equippedSkills,
           activeEffectIds: player02.activeEffectIds,
           activeEffectDurations: player02.activeEffectDurations,
         },
         p1InitHP:
-          gameData.activeBattle.initialHealth[
+          gameData.activeBattle.battleStats.initialHealth[
             gameData.activeBattle.players[0].toLowerCase() ===
             walletAddress.toLowerCase()
               ? 0
               : 1
           ].toNumber(),
         p2InitHP:
-          gameData.activeBattle.initialHealth[
+          gameData.activeBattle.battleStats.initialHealth[
             gameData.activeBattle.players[0].toLowerCase() ===
             walletAddress.toLowerCase()
               ? 1
@@ -100,7 +103,6 @@ const Battle = () => {
         battleId: gameData.activeBattle.battleId,
         character: characterInfo || null,
       };
-
       setState(newState);
     }
   }, [playerData, gameData, walletAddress]);
