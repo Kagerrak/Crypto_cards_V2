@@ -5,6 +5,7 @@ import {
   useContract,
   useContractRead,
 } from "@thirdweb-dev/react";
+import { useQuery } from "@apollo/client";
 
 import { characterContractAddress } from "../contract";
 import styles from "../styles";
@@ -17,6 +18,7 @@ import {
   Loader,
   NftItem,
 } from "../components";
+import { GET_BATTLES } from "../constants";
 
 const CreateBattle = () => {
   const {
@@ -32,6 +34,14 @@ const CreateBattle = () => {
   const [selectedTokenID, setSelectedTokenID] = useState(null); // new state variable
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  const { loading, error, data } = useQuery(GET_BATTLES);
+
+  useEffect(() => {
+    if (!loading && !error) {
+      console.log(data);
+    }
+  }, [data]);
 
   const { contract: charContract, isLoading: charLoad } = useContract(
     characterContractAddress
