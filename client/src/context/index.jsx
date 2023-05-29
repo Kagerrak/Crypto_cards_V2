@@ -259,7 +259,6 @@ export const GlobalContextProvider = ({ children }) => {
         setPlayerData(playerDataWithEffects);
       }
     };
-
     fetchPlayerData();
   }, [battleContract, updateGameData, gameData.activeBattle, walletAddress]);
 
