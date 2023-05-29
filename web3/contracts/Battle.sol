@@ -474,7 +474,19 @@ contract Battle is Ownable {
             battle.round
         );
 
-        battle.round += 1;
+        // Check if the battle has ended and declare a winner
+        if (proxyA.stats.health == 0 || proxyB.stats.health == 0) {
+            address winner = proxyA.stats.health > proxyB.stats.health
+                ? battle.players[0]
+                : battle.players[1];
+            _endBattle(battleId, winner);
+            return;
+        } else {
+            // If no character has lost all their health, reset the move submissions for the next round.
+            battle.moveSubmitted[0] = false;
+            battle.moveSubmitted[1] = false;
+            battle.round += 1;
+        }
     }
 
     function _handleAttackLogic(
@@ -637,6 +649,7 @@ contract Battle is Ownable {
             address[2] memory damagedPlayers
         )
     {
+        damageDealt = [uint256(0), uint256(0)]; // Initialize to zeros
         uint256 damageA = (proxyA.stats.attack * proxyA.attackMultiplier) /
             1000;
         if (proxyB.stats.defense < damageA) {
@@ -664,6 +677,7 @@ contract Battle is Ownable {
             address[2] memory damagedPlayers
         )
     {
+        damageDealt = [uint256(0), uint256(0)]; // Initialize to zeros
         uint256 damageB = (proxyB.stats.attack * proxyB.attackMultiplier) /
             1000;
         if (proxyA.stats.defense < damageB) {
