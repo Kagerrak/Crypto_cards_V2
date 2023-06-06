@@ -21,6 +21,7 @@ import {
   MagicShop,
   InnPage,
   Withdraw,
+  BattleHistory,
 } from "./page";
 import { OnboardModal, Navbar } from "./components";
 import { GlobalContextProvider } from "./context";
@@ -45,6 +46,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <Route path="/battle/:battleName" element={<Battle />} />
               <Route path="/create-battle" element={<CreateBattle />} />
               <Route path="/join-battle" element={<JoinBattle />} />
+              <Route path="/battle-history" element={<BattleHistory />} />
               <Route path="/colosseum" element={<Colosseum />} />
               <Route path="/recruitment-guild" element={<RecruitmentGuild />} />
               <Route path="/my-champions" element={<MyChampion />} />
