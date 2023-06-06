@@ -107,6 +107,19 @@ const Navbar = () => {
                 </li>
                 <li>
                   <a
+                    onClick={() => navigate("/battle-history")}
+                    href={undefined}
+                    className={
+                      location.pathname.includes("battle-history")
+                        ? styles.linkActive
+                        : styles.linkText
+                    }
+                  >
+                    Battle History
+                  </a>
+                </li>
+                <li>
+                  <a
                     onClick={() => navigate("/recruitment-guild")}
                     href={undefined}
                     className={
