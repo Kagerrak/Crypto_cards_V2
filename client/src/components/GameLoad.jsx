@@ -33,7 +33,9 @@ const GameLoad = () => {
 
   return (
     <>
-      {isLoading && <Loader />}
+      {isLoading && (
+        <Loader message="Cancelling Battle. Confirm transaction." />
+      )}
       <div className={`${styles.flexBetween} ${styles.gameLoadContainer}`}>
         <div className={styles.gameLoadBtnBox}>
           <CustomButton
@@ -69,12 +71,6 @@ const GameLoad = () => {
 
           <div className="mt-10">
             <p className={`${styles.infoText} text-center mb-5`}>OR</p>
-
-            <CustomButton
-              title="Join other battles"
-              handleClick={() => navigate("/join-battle")}
-              restStyles="mx-6"
-            />
 
             <CustomButton
               title="Cancel Battle"
