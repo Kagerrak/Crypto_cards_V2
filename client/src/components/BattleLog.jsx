@@ -147,8 +147,8 @@ const BattleLog = ({ battleId }) => {
         }
       );
 
-      const statusEffectsResolvedEvents =
-        await battleTWContract.events.getEvents("StatusEffectsResolved", {
+      const statusEffectResolvedEvents =
+        await battleTWContract.events.getEvents("StatusEffectResolved", {
           filters: {
             battleId: ID,
           },
@@ -169,7 +169,7 @@ const BattleLog = ({ battleId }) => {
         ...roundEndedEvents,
         ...diceRolledEvents,
         ...statusEffectAppliedEvents,
-        ...statusEffectsResolvedEvents,
+        ...statusEffectResolvedEvents,
         ...skillExecutedEvents,
       ];
 
