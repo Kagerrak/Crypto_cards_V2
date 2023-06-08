@@ -11,6 +11,7 @@ import {
   PlayerInfo,
   Loader,
   StatusEffect,
+  BattleLog,
 } from "../components";
 import { useGlobalContext } from "../context";
 import {
@@ -242,6 +243,7 @@ const Battle = () => {
           />
 
           <GameInfo id={state.battleId} />
+          <BattleLog battleId={state.battleId.toNumber()} />
         </>
       )}
     </div>
