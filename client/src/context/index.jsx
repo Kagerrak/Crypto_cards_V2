@@ -154,8 +154,8 @@ export const GlobalContextProvider = ({ children }) => {
     if (step === -1 && battleContract) {
       createEventListeners({
         navigate,
-        battleContract,
-        characterContract,
+        battleContractAddress,
+        characterContractAddress,
         provider,
         walletAddress,
         setShowAlert,
