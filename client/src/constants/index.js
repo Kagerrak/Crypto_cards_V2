@@ -1,3 +1,3 @@
-import GET_BATTLES from "./subgraphQueries";
+import { GET_BATTLES, GET_PLAYERS, GET_CHARACTERS } from "./subgraphQueries";
 
-export { GET_BATTLES };
+export { GET_BATTLES, GET_PLAYERS, GET_CHARACTERS };
