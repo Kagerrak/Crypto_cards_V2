@@ -13,6 +13,7 @@ import WeaponShop from "./WeaponShop";
 import MagicShop from "./MagicShop";
 import InnPage from "./InnPage";
 import Withdraw from "./Withdraw";
+import BattleHistory from "./BattleHistory";
 
 export {
   Battle,
@@ -30,4 +31,5 @@ export {
   MagicShop,
   InnPage,
   Withdraw,
+  BattleHistory,
 };
