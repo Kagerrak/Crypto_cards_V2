@@ -4,15 +4,15 @@ import battleItems from "./battleItems.json";
 import battleContract from "./battleContract.json";
 
 export const characterContractAddress =
-  "0xc1ccc4F2774B9f032C6118DD59715f6DD7F21BC2";
+  "0xB4DF2Eb5F0a429Adc600343D0BEA4A136c8f8532";
 export const characterContractABI = characterContract.abi;
 
-export const battleSkillsAddress = "0xA2439A32d84F812D50cc844d40ad8513531A386c";
+export const battleSkillsAddress = "0x54bC80Fa376BBEF04013c1F6019f79922E1bCFA7";
 export const battleSkillsABI = battleSkills.abi;
 
-export const battleItemsAddress = "0x9A3b293dB1678638CF6DEd8daf2FF451854516f5";
+export const battleItemsAddress = "0xD05efF6E52C75a91A46C678624A30318Bd73f184";
 export const battleItemsABI = battleItems.abi;
 
 export const battleContractAddress =
-  "0x673B51a2BBD33D778669DA1E8BbB1144Fc790014";
+  "0x65d63958fc1Bf199e8a44762F77b329c864898fA";
 export const battleContractABI = battleContract.abi;
