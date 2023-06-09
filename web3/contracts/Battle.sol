@@ -111,7 +111,7 @@ contract Battle is Ownable {
         address[2] damagedPlayers,
         uint256[2] damageDealt,
         uint256[2] damageTaken,
-        uint256 round
+        uint256 indexed round
     );
     event BattleEnded(
         string battleName,
@@ -458,7 +458,6 @@ contract Battle is Ownable {
 
         address[2] memory damagedPlayers;
         uint256[2] memory damageDealt;
-        uint256[2] memory damageTaken;
 
         uint256[2] memory statusEffectDamage;
 
@@ -498,7 +497,6 @@ contract Battle is Ownable {
             statusEffectDamage,
             proxyA,
             proxyB,
-            damageTaken,
             damageDealt
         );
 
@@ -509,14 +507,14 @@ contract Battle is Ownable {
         // Update total damage dealt and taken
         battle.battleStats.totalDamageDealt[0] += damageDealt[0];
         battle.battleStats.totalDamageDealt[1] += damageDealt[1];
-        battle.battleStats.totalDamageTaken[0] += damageTaken[0];
-        battle.battleStats.totalDamageTaken[1] += damageTaken[1];
+        battle.battleStats.totalDamageTaken[0] += damageDealt[1]; // Player 0 takes the damage dealt by player 1
+        battle.battleStats.totalDamageTaken[1] += damageDealt[0]; // Player 1 takes the damage dealt by player 0
 
         emit RoundEnded(
             battleId,
             damagedPlayers,
             damageDealt,
-            damageTaken,
+            [damageDealt[1], damageDealt[0]], // Damage taken is the damage dealt by the opponent
             battle.round
         );
 
@@ -626,23 +624,18 @@ contract Battle is Ownable {
         uint256[2] memory statusEffectDamage,
         CharacterProxy storage proxyA,
         CharacterProxy storage proxyB,
-        uint256[2] memory damageTaken,
         uint256[2] memory damageDealt
     ) private {
-        // Apply status effects damage to health and accumulate it to the damageTaken
+        // Apply status effects damage to health
         if (proxyA.stats.health > statusEffectDamage[0]) {
             proxyA.stats.health -= statusEffectDamage[0];
-            damageTaken[0] += statusEffectDamage[0];
         } else {
-            damageTaken[0] += proxyA.stats.health;
             proxyA.stats.health = 0;
         }
 
         if (proxyB.stats.health > statusEffectDamage[1]) {
             proxyB.stats.health -= statusEffectDamage[1];
-            damageTaken[1] += statusEffectDamage[1];
         } else {
-            damageTaken[1] += proxyB.stats.health;
             proxyB.stats.health = 0;
         }
 
