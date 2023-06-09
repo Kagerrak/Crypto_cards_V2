@@ -77,27 +77,42 @@ export const createEventListeners = async ({
     console.log("Battle move initiated!", event);
   });
 
-  // RoundEnded event listener
-  battleContract.events.addEventListener("RoundEnded", (event) => {
+  // Process a RoundEnded event
+  const processEvent = (event) => {
     console.log("Round ended!", event, walletAddress);
 
-    if (event.data && event.data.damagedPlayers) {
-      for (let i = 0; i < event.data.damagedPlayers.length; i += 1) {
-        if (event.data.damagedPlayers[i] !== emptyAccount) {
-          if (event.data.damagedPlayers[i] === walletAddress) {
-            sparcle(getCoords(player1Ref));
-            console.log("sparcled", i, player1Ref);
-          } else if (event.data.damagedPlayers[i] !== walletAddress) {
-            sparcle(getCoords(player2Ref));
-            console.log("sparcled", i, player2Ref);
-          }
-        } else {
-          playAudio(defenseSound);
+    for (let i = 0; i < event.data.damagedPlayers.length; i += 1) {
+      if (event.data.damagedPlayers[i] !== emptyAccount) {
+        if (event.data.damagedPlayers[i] === walletAddress) {
+          sparcle(getCoords(player1Ref));
+          console.log("sparcled", i, player1Ref);
+        } else if (event.data.damagedPlayers[i] !== walletAddress) {
+          sparcle(getCoords(player2Ref));
+          console.log("sparcled", i, player2Ref);
         }
+      } else {
+        playAudio(defenseSound);
       }
     }
 
     setUpdateGameData((prevUpdateGameData) => prevUpdateGameData + 1);
+  };
+
+  // Listen for new RoundEnded events
+  battleContract.events.addEventListener("RoundEnded", async (event) => {
+    // Get the battleId and round from the event
+    const { battleId, round } = event.data;
+
+    // Fetch the event with the specific battleId and round
+    const events = await battleContract.events.getEvents("RoundEnded", {
+      filters: {
+        battleId: battleId,
+        round: round,
+      },
+    });
+
+    // Process each event (there should only be one)
+    events.forEach(processEvent);
   });
 
   // BattleEnded event listener
