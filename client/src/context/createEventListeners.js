@@ -23,6 +23,7 @@ export const createEventListeners = async ({
   player1Ref,
   player2Ref,
   setUpdateGameData,
+  fetchGameData,
 }) => {
   const sdk = new ThirdwebSDK("mumbai");
   const battleContract = await sdk.getContract(battleContractAddress);
@@ -58,18 +59,27 @@ export const createEventListeners = async ({
   battleContract.events.addEventListener("NewBattle", (event) => {
     console.log("New battle started!", event, walletAddress);
 
-    if (
-      walletAddress.toLowerCase() === event.data.player1.toLowerCase() ||
-      walletAddress.toLowerCase() === event.data.player2.toLowerCase()
-    ) {
-      console.log(
-        "Navigating to battle from NewBattle event listener:",
-        event.data.battleName
-      );
-      navigate(`/battle/${event.data.battleName}`);
-    }
+    if (walletAddress.toLowerCase() === event.data.player1.toLowerCase()) {
+      console.log("About to call fetchGameData"); // Add this line
 
-    setUpdateGameData((prevUpdateGameData) => prevUpdateGameData + 1);
+      let countdown = 5;
+      const countdownInterval = setInterval(() => {
+        console.log(`Fetching game data in ${countdown} seconds...`);
+        countdown -= 1;
+      }, 1000);
+
+      // Add a delay before fetching game data
+      setTimeout(async () => {
+        clearInterval(countdownInterval);
+        await fetchGameData();
+
+        console.log(
+          "Navigating to battle from NewBattle event listener:",
+          event.data.battleName
+        );
+        navigate(`/battle/${event.data.battleName}`);
+      }, 5000); // Adjust the delay as needed
+    }
   });
 
   // MoveSubmitted event listener
