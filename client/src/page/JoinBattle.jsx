@@ -19,6 +19,7 @@ const JoinBattle = () => {
     setBattleName,
     setErrorMessage,
     walletAddress,
+    fetchGameData,
   } = useGlobalContext();
 
   const { contract: charContract, isLoading: charLoad } = useContract(
@@ -38,7 +39,7 @@ const JoinBattle = () => {
         navigate(`/battle/${gameData.activeBattle.name}`);
       }
     }
-  }, [gameData, walletAddress]);
+  }, [gameData, walletAddress, battleContract]);
 
   useEffect(() => {
     if (Array.isArray(ownedNfts) && ownedNfts.length === 1) {
@@ -52,23 +53,39 @@ const JoinBattle = () => {
 
     try {
       setIsLoading(true);
+      console.log("Joining battle...");
       const tx = await battleContract.joinBattle(
         battleId.toNumber(),
         characterId
       );
+      console.log("Waiting for tx to be mined...");
       await tx.wait();
-      setIsLoading(false);
+      console.log("Tx mined successfully!");
 
+      console.log("Updating game data...");
+      await fetchGameData();
+
+      setIsLoading(false);
+      console.log(`navigating to ${battleName}`);
+      navigate(`/battle/${battleName}`);
       setShowAlert({
         status: true,
         type: "success",
         message: `Joining ${battleName}`,
       });
+      console.log("done");
     } catch (error) {
       setErrorMessage(error);
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (gameData.activeBattle) {
+      console.log("Active battle found, navigating to Battle page");
+      navigate(`/battle/${gameData.activeBattle.name}`);
+    }
+  }, [gameData.activeBattle, navigate]);
 
   let content;
   if (charLoad) {
