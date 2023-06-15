@@ -66,6 +66,14 @@ export const GlobalContextProvider = ({ children }) => {
   const player1Ref = useRef();
   const player2Ref = useRef();
 
+  const setPlayer1Ref = (ref) => {
+    player1Ref.current = ref;
+  };
+
+  const setPlayer2Ref = (ref) => {
+    player2Ref.current = ref;
+  };
+
   const navigate = useNavigate();
 
   //* Set battleground to local storage
@@ -149,6 +157,106 @@ export const GlobalContextProvider = ({ children }) => {
     setSmartContractsAndProvider();
   }, [walletAddress]);
 
+  // Define fetchGameData
+  const fetchGameData = async () => {
+    console.log("fetchGameData is being called"); // Add this line
+    if (battleContract) {
+      const activeBattlesId = await battleContract.getActiveBattlesId();
+      const fetchedBattles = await Promise.all(
+        activeBattlesId.map((id) => battleContract.getBattle(id))
+      );
+      const pendingBattles = fetchedBattles.filter(
+        (battle) => battle.battleStatus === 0
+      );
+      let activeBattle = null;
+      fetchedBattles.forEach((battle) => {
+        if (
+          battle.players.find(
+            (player) => player.toLowerCase() === walletAddress.toLowerCase()
+          )
+        ) {
+          if (battle.winner.startsWith("0x00") && battle.battleStatus !== 2) {
+            activeBattle = battle;
+          }
+        }
+      });
+
+      console.log("Fetched game data:", {
+        pendingBattles: pendingBattles,
+        activeBattle,
+      }); // Add this line
+
+      setGameData({
+        pendingBattles: pendingBattles,
+        activeBattle,
+      });
+    }
+  };
+
+  // Use fetchGameData in useEffect
+  useEffect(() => {
+    fetchGameData();
+  }, [battleContract, updateGameData, walletAddress]);
+
+  const fetchPlayerData = async () => {
+    if (gameData.activeBattle && battleContract) {
+      let player01Address = null;
+      let player02Address = null;
+      if (
+        gameData.activeBattle.players[0].toLowerCase() ===
+        walletAddress.toLowerCase()
+      ) {
+        player01Address = gameData.activeBattle.players[0];
+        player02Address = gameData.activeBattle.players[1];
+      } else {
+        player01Address = gameData.activeBattle.players[1];
+        player02Address = gameData.activeBattle.players[0];
+      }
+
+      const [player1Data, player2Data] = await Promise.all([
+        battleContract.getCharacterProxy(
+          gameData.activeBattle.battleId,
+          player01Address
+        ),
+        battleContract.getCharacterProxy(
+          gameData.activeBattle.battleId,
+          player02Address
+        ),
+      ]);
+
+      const [player1Effects, player2Effects] = await Promise.all([
+        battleContract.getCharacterProxyActiveEffects(
+          gameData.activeBattle.battleId,
+          player01Address
+        ),
+        battleContract.getCharacterProxyActiveEffects(
+          gameData.activeBattle.battleId,
+          player02Address
+        ),
+      ]);
+
+      const playerDataWithEffects = {
+        player1Data: {
+          ...player1Data,
+          activeEffectIds: player1Effects[0],
+          activeEffectDurations: player1Effects[1],
+        },
+        player2Data: {
+          ...player2Data,
+          activeEffectIds: player2Effects[0],
+          activeEffectDurations: player2Effects[1],
+        },
+      };
+
+      setPlayerData(playerDataWithEffects);
+    }
+  };
+
+  // Inside your component
+  useEffect(() => {
+    fetchPlayerData();
+  }, [battleContract, updateGameData, gameData.activeBattle, walletAddress]);
+
   //* Activate event listeners for the smart contract
   useEffect(() => {
     if (step === -1 && battleContract) {
@@ -162,105 +270,11 @@ export const GlobalContextProvider = ({ children }) => {
         player1Ref,
         player2Ref,
         setUpdateGameData,
+        fetchGameData,
+        fetchPlayerData,
       });
     }
   }, [step, battleContract]);
-
-  //* Set the game data to the state
-  useEffect(() => {
-    const fetchGameData = async () => {
-      if (battleContract) {
-        const activeBattlesId = await battleContract.getActiveBattlesId();
-        const fetchedBattles = await Promise.all(
-          activeBattlesId.map((id) => battleContract.getBattle(id))
-        );
-        const pendingBattles = fetchedBattles.filter(
-          (battle) => battle.battleStatus === 0
-        );
-        let activeBattle = null;
-        fetchedBattles.forEach((battle) => {
-          if (
-            battle.players.find(
-              (player) => player.toLowerCase() === walletAddress.toLowerCase()
-            )
-          ) {
-            if (battle.winner.startsWith("0x00") && battle.battleStatus !== 2) {
-              activeBattle = battle;
-            }
-          }
-        });
-
-        console.log("Fetched game data:", {
-          pendingBattles: pendingBattles,
-          activeBattle,
-        }); // Add this line
-
-        setGameData({
-          pendingBattles: pendingBattles,
-          activeBattle,
-        });
-      }
-    };
-
-    fetchGameData();
-  }, [battleContract, updateGameData, walletAddress]);
-
-  useEffect(() => {
-    const fetchPlayerData = async () => {
-      if (gameData.activeBattle && battleContract) {
-        let player01Address = null;
-        let player02Address = null;
-        if (
-          gameData.activeBattle.players[0].toLowerCase() ===
-          walletAddress.toLowerCase()
-        ) {
-          player01Address = gameData.activeBattle.players[0];
-          player02Address = gameData.activeBattle.players[1];
-        } else {
-          player01Address = gameData.activeBattle.players[1];
-          player02Address = gameData.activeBattle.players[0];
-        }
-
-        const [player1Data, player2Data] = await Promise.all([
-          battleContract.getCharacterProxy(
-            gameData.activeBattle.battleId,
-            player01Address
-          ),
-          battleContract.getCharacterProxy(
-            gameData.activeBattle.battleId,
-            player02Address
-          ),
-        ]);
-
-        const [player1Effects, player2Effects] = await Promise.all([
-          battleContract.getCharacterProxyActiveEffects(
-            gameData.activeBattle.battleId,
-            player01Address
-          ),
-          battleContract.getCharacterProxyActiveEffects(
-            gameData.activeBattle.battleId,
-            player02Address
-          ),
-        ]);
-
-        const playerDataWithEffects = {
-          player1Data: {
-            ...player1Data,
-            activeEffectIds: player1Effects[0],
-            activeEffectDurations: player1Effects[1],
-          },
-          player2Data: {
-            ...player2Data,
-            activeEffectIds: player2Effects[0],
-            activeEffectDurations: player2Effects[1],
-          },
-        };
-
-        setPlayerData(playerDataWithEffects);
-      }
-    };
-    fetchPlayerData();
-  }, [battleContract, updateGameData, gameData.activeBattle, walletAddress]);
 
   //* Handle alerts
   useEffect(() => {
@@ -291,6 +305,8 @@ export const GlobalContextProvider = ({ children }) => {
       value={{
         player1Ref,
         player2Ref,
+        setPlayer1Ref,
+        setPlayer2Ref,
         battleGround,
         setBattleGround,
         characterContract,
@@ -323,6 +339,8 @@ export const GlobalContextProvider = ({ children }) => {
         setAllOwnedSkills,
         allOwnedItems,
         setAllOwnedItems,
+        fetchGameData,
+        fetchPlayerData,
       }}
     >
       {children}
