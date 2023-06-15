@@ -16,12 +16,15 @@ const GameInfo = ({ id }) => {
     const battleName = gameData.activeBattle.name;
 
     try {
-      await battleContract.quitBattle(id);
+      const quitTx = await battleContract.quitBattle(id);
       setShowAlert({
         status: true,
         type: "info",
         message: `You're quitting the ${battleName}`,
       });
+
+      await quitTx.wait();
+      navigate("/create-battle");
     } catch (error) {
       setErrorMessage(error);
     }
