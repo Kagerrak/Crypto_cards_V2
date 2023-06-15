@@ -93,6 +93,19 @@ contract Battle is Ownable {
 
     mapping(address => uint256) public playerCredit; // mapping of player addresses to the number of player
 
+    event CharacterProxyData(
+        uint256 battleId,
+        address player,
+        uint256 id,
+        address owner,
+        uint256 health,
+        uint256 attack,
+        uint256 defense,
+        uint256 mana,
+        uint256 typeId,
+        uint256[] equippedSkills
+    );
+
     event BattleCreated(
         uint256 indexed battleId,
         address indexed creator,
@@ -162,12 +175,13 @@ contract Battle is Ownable {
 
     event StatusEffectResolved(
         uint256 indexed battleId,
-        address indexed owner,
+        address indexed player,
         uint256 effectId,
         string effectName,
         string effectType,
         uint256 effectValue,
-        uint256 round
+        uint256 round,
+        uint256 duration
     );
 
     modifier onlyParticipant(uint256 battleId) {
@@ -956,6 +970,26 @@ contract Battle is Ownable {
             BattleSkills.StatusEffect memory statusEffect = battleSkillsContract
                 .getStatusEffect(effectId);
 
+            if (
+                statusEffect.isStun &&
+                character.activeEffectDurations[effectId] > 0
+            ) {
+                isStunned = true;
+                emit StatusEffectResolved(
+                    battleId,
+                    character.owner,
+                    effectId,
+                    statusEffect.name,
+                    "stun",
+                    1,
+                    round,
+                    character.activeEffectDurations[effectId]
+                );
+            }
+
+            // Decrement the duration of the status effect
+            character.activeEffectDurations[effectId] -= 1;
+
             if (statusEffect.attackBoost > 0) {
                 _boostAttack(character, effectId, statusEffect.attackBoost);
                 emit StatusEffectResolved(
@@ -965,7 +999,8 @@ contract Battle is Ownable {
                     statusEffect.name,
                     "attackBoost",
                     statusEffect.attackBoost,
-                    round
+                    round,
+                    character.activeEffectDurations[effectId]
                 );
             }
             if (statusEffect.attackReduction > 0) {
@@ -981,7 +1016,8 @@ contract Battle is Ownable {
                     statusEffect.name,
                     "attackReduction",
                     statusEffect.attackReduction,
-                    round
+                    round,
+                    character.activeEffectDurations[effectId]
                 );
             }
             if (statusEffect.defenseBoost > 0) {
@@ -993,7 +1029,8 @@ contract Battle is Ownable {
                     statusEffect.name,
                     "defenseBoost",
                     statusEffect.defenseBoost,
-                    round
+                    round,
+                    character.activeEffectDurations[effectId]
                 );
             }
             if (statusEffect.defenseReduction > 0) {
@@ -1009,7 +1046,8 @@ contract Battle is Ownable {
                     statusEffect.name,
                     "defenseReduction",
                     statusEffect.defenseReduction,
-                    round
+                    round,
+                    character.activeEffectDurations[effectId]
                 );
             }
             if (statusEffect.healPerTurn > 0) {
@@ -1021,21 +1059,8 @@ contract Battle is Ownable {
                     statusEffect.name,
                     "healPerTurn",
                     statusEffect.healPerTurn,
-                    round
-                );
-            }
-            if (statusEffect.isStun) {
-                if (character.activeEffectDurations[effectId] > 0) {
-                    isStunned = true;
-                }
-                emit StatusEffectResolved(
-                    battleId,
-                    character.owner,
-                    effectId,
-                    statusEffect.name,
-                    "stun",
-                    1,
-                    round
+                    round,
+                    character.activeEffectDurations[effectId]
                 );
             }
             if (statusEffect.damagePerTurn > 0) {
@@ -1051,12 +1076,10 @@ contract Battle is Ownable {
                     statusEffect.name,
                     "damagePerTurn",
                     statusEffect.damagePerTurn,
-                    round
+                    round,
+                    character.activeEffectDurations[effectId]
                 );
             }
-
-            // Decrement the duration of the status effect
-            character.activeEffectDurations[effectId] -= 1;
 
             if (character.activeEffectDurations[effectId] == 0) {
                 if (statusEffect.attackBoost > 0) {
