@@ -68,7 +68,7 @@
 }
 
 body {
-  overflow: hidden; /* Hide scrollbars */
+  overflow: auto; /* Hide scrollbars */
 }
 
 /* Battle Animation Effect */
