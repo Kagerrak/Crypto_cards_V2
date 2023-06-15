@@ -1,5 +1,5 @@
 /* eslint-disable prefer-destructuring */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 import styles from "../styles";
@@ -35,10 +35,13 @@ const Battle = () => {
     setErrorMessage,
     showAlert,
     setShowAlert,
-    player1Ref,
-    player2Ref,
+    setPlayer1Ref,
+    setPlayer2Ref,
     playerData,
   } = useGlobalContext();
+
+  const player1Ref = useRef();
+  const player2Ref = useRef();
 
   const [state, setState] = useState({
     player1: {},
@@ -52,6 +55,11 @@ const Battle = () => {
 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setPlayer1Ref(player1Ref.current);
+    setPlayer2Ref(player2Ref.current);
+  }, [player1Ref, player2Ref, setPlayer1Ref, setPlayer2Ref]);
 
   useEffect(() => {
     if (playerData.player1Data && playerData.player2Data) {
@@ -123,7 +131,10 @@ const Battle = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!gameData?.activeBattle) navigate("/create-battle");
+      if (!gameData?.activeBattle) {
+        console.log("No active battle found");
+        navigate("/create-battle");
+      }
     }, [3000]);
 
     return () => clearTimeout(timer);
@@ -215,12 +226,13 @@ const Battle = () => {
               />
 
               <div className="relative">
-                <Card
-                  card={state.player1}
-                  title={state.player1.id}
-                  cardRef={player1Ref}
-                  restStyles="mt-3"
-                />
+                <div ref={player1Ref}>
+                  <Card
+                    card={state.player1}
+                    title={state.player1.id}
+                    restStyles="mt-3"
+                  />
+                </div>
                 <StatusEffect
                   activeEffectIds={state.player1.activeEffectIds}
                   activeEffectDurations={state.player1.activeEffectDurations}
