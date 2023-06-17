@@ -3,9 +3,12 @@ pragma solidity ^0.8.0;
 
 import "@thirdweb-dev/contracts/base/ERC721Base.sol";
 
-import "./BattleSkills.sol";
-import "./BattleItems.sol";
+import "./BattleSkills2.sol";
+import "./BattleItems2.sol";
 import "./Class.sol";
+import "./StatCalculation.sol";
+import "./IBattleSkills.sol";
+import "./IBattleItems.sol";
 import "hardhat/console.sol";
 
 import "@thirdweb-dev/contracts/openzeppelin-presets/utils/ERC1155/ERC1155Holder.sol";
@@ -21,27 +24,12 @@ contract Character is ERC721Base, ERC1155Holder {
     }
 
     using TWStrings for uint256;
-
-    struct CharacterStats {
-        uint256 tokenId;
-        uint256 level;
-        uint256 experience;
-        uint256 health;
-        uint256 mana;
-        uint256 attack;
-        uint256 defense;
-        uint256 strength;
-        uint256 dexterity;
-        uint256 intelligence;
-        uint256 vitality;
-        uint256 accuracy;
-        uint256 statPoints;
-        uint256 typeId;
-    }
+    using StatCalculation for StatCalculation.CharacterStats;
+    using StatCalculation for StatCalculation.RecoveryStats;
 
     struct CharacterEquips {
         uint256[] equippedSkills;
-        mapping(BattleItems.ItemType => uint256) equippedItems;
+        mapping(IBattleItems.ItemType => uint256) equippedItems;
         uint256 equippedClass;
     }
 
@@ -51,34 +39,94 @@ contract Character is ERC721Base, ERC1155Holder {
         string uri;
     }
 
-    struct RecoveryStats {
-        uint256 stamina;
-        uint256 maxMana;
-        uint256 lastStaminaUpdateTime;
-        uint256 lastManaUpdateTime;
-    }
-
     uint256 private baseXP = 100;
 
-    event NewCharacter(uint256 indexed tokenId, uint256 indexed typeId);
+    event NewCharacter(uint256 indexed tokenId, uint256 typeId);
+    event CharacterStatsEvent(
+        uint256 indexed tokenId,
+        uint256 level,
+        uint256 experience,
+        uint256 health,
+        uint256 mana,
+        uint256 attack,
+        uint256 defense,
+        uint256 strength,
+        uint256 dexterity,
+        uint256 intelligence,
+        uint256 vitality,
+        uint256 accuracy,
+        uint256 statPoints
+    );
+    event CharacterRecoveryStats(
+        uint256 indexed tokenId,
+        uint256 stamina,
+        uint256 maxMana,
+        uint256 lastStaminaUpdateTime,
+        uint256 lastManaUpdateTime
+    );
 
-    mapping(uint256 => CharacterStats) public characterStats;
+    event CharacterStatsUpdated(
+        uint256 indexed tokenId,
+        uint256 strength,
+        uint256 dexterity,
+        uint256 intelligence,
+        uint256 vitality
+    );
+
+    event CharacterXPUpdated(uint256 indexed tokenId, uint256 xp);
+
+    event ItemEquipped(
+        uint256 indexed characterTokenId,
+        uint256 indexed itemTokenId
+    );
+
+    event ItemUnequipped(
+        uint256 indexed characterTokenId,
+        uint256 indexed itemTokenId
+    );
+
+    event SkillEquipped(
+        uint256 indexed characterTokenId,
+        uint256 indexed skillId
+    );
+
+    event SkillUnequipped(
+        uint256 indexed characterTokenId,
+        uint256 indexed skillId
+    );
+
+    event ClassEquipped(
+        uint256 indexed characterTokenId,
+        uint256 indexed classId
+    );
+
+    event ClassUnequipped(
+        uint256 indexed characterTokenId,
+        uint256 indexed classId
+    );
+
+    event StaminaUpdated(uint256 indexed tokenId, uint256 stamina);
+
+    event ManaUpdated(uint256 indexed tokenId, uint256 mana);
+
+    mapping(uint256 => StatCalculation.CharacterStats) public characterStats;
+    mapping(uint256 => StatCalculation.RecoveryStats)
+        private characterRecoveryStats;
     mapping(uint256 => CharacterEquips) public characterEquips;
-    mapping(uint256 => RecoveryStats) private characterRecoveryStats;
     mapping(uint256 => string) private fullURI;
 
-    BattleSkills public battleSkills;
-    BattleItems public battleItems;
+    IBattleSkills public battleSkills;
+    IBattleItems public battleItems;
     CharacterClass public characterClasses;
 
     address public battleContractAddress;
 
     function setBattleSkills(address _address) public onlyOwner {
-        battleSkills = BattleSkills(_address);
+        battleSkills = IBattleSkills(_address);
     }
 
     function setBattleItems(address _address) public onlyOwner {
-        battleItems = BattleItems(_address);
+        battleItems = IBattleItems(_address);
     }
 
     function setClassContract(address _address) public onlyOwner {
@@ -99,7 +147,7 @@ contract Character is ERC721Base, ERC1155Holder {
 
     function _initializeCharacters() private {
         charStats.push(
-            CharacterStats(
+            StatCalculation.CharacterStats(
                 0,
                 1,
                 0,
@@ -117,7 +165,7 @@ contract Character is ERC721Base, ERC1155Holder {
             )
         );
         charStats.push(
-            CharacterStats(
+            StatCalculation.CharacterStats(
                 0,
                 1,
                 0,
@@ -135,7 +183,7 @@ contract Character is ERC721Base, ERC1155Holder {
             )
         );
         charStats.push(
-            CharacterStats(
+            StatCalculation.CharacterStats(
                 0,
                 1,
                 0,
@@ -179,7 +227,7 @@ contract Character is ERC721Base, ERC1155Holder {
     }
 
     uint256 public numCharacters = 0;
-    CharacterStats[] public charStats;
+    StatCalculation.CharacterStats[] public charStats;
     CharacterType[] public charTypes;
 
     constructor() ERC721Base("Character", "CNFT", msg.sender, 0) {
@@ -189,34 +237,34 @@ contract Character is ERC721Base, ERC1155Holder {
 
     function getCharacter(
         uint256 _tokenId
-    ) public view returns (CharacterStats memory) {
+    ) public view returns (StatCalculation.CharacterStats memory) {
         return characterStats[_tokenId];
     }
 
     function getCharacterLevel(uint256 tokenId) public view returns (uint256) {
-        CharacterStats storage hero = characterStats[tokenId];
+        StatCalculation.CharacterStats memory hero = characterStats[tokenId];
         return hero.level;
     }
 
     function getCharacterAttack(uint256 tokenId) public view returns (uint256) {
-        CharacterStats storage hero = characterStats[tokenId];
+        StatCalculation.CharacterStats memory hero = characterStats[tokenId];
         return hero.attack;
     }
 
     function getCharacterDefense(
         uint256 tokenId
     ) public view returns (uint256) {
-        CharacterStats storage hero = characterStats[tokenId];
+        StatCalculation.CharacterStats memory hero = characterStats[tokenId];
         return hero.defense;
     }
 
     function getCharacterHealth(uint256 tokenId) public view returns (uint256) {
-        CharacterStats storage hero = characterStats[tokenId];
+        StatCalculation.CharacterStats memory hero = characterStats[tokenId];
         return hero.health;
     }
 
     function getCharacterType(uint256 tokenId) public view returns (uint256) {
-        CharacterStats storage hero = characterStats[tokenId];
+        StatCalculation.CharacterStats memory hero = characterStats[tokenId];
         return hero.typeId;
     }
 
@@ -258,54 +306,88 @@ contract Character is ERC721Base, ERC1155Holder {
         _setTokenURI(numCharacters, charTypes[_typeId].uri);
 
         // Initialize the character stats and equipment
-        CharacterStats memory _stats = CharacterStats(
-            numCharacters,
-            charStats[_typeId].level,
-            charStats[_typeId].experience,
-            charStats[_typeId].health,
-            charStats[_typeId].mana,
-            charStats[_typeId].attack,
-            charStats[_typeId].defense,
-            charStats[_typeId].strength,
-            charStats[_typeId].dexterity,
-            charStats[_typeId].intelligence,
-            charStats[_typeId].vitality,
-            charStats[_typeId].accuracy,
-            charStats[_typeId].statPoints,
-            _typeId
-        );
-        characterStats[numCharacters] = _stats;
-
-        // Initialize no items equipped
-        characterEquips[numCharacters].equippedItems[
-            BattleItems.ItemType.Headgear
-        ] = 999999;
-        characterEquips[numCharacters].equippedItems[
-            BattleItems.ItemType.Weapon
-        ] = 999999;
-        characterEquips[numCharacters].equippedItems[
-            BattleItems.ItemType.BodyArmor
-        ] = 999999;
-        characterEquips[numCharacters].equippedItems[
-            BattleItems.ItemType.Pants
-        ] = 999999;
-        characterEquips[numCharacters].equippedItems[
-            BattleItems.ItemType.Footwear
-        ] = 999999;
-
-        // Initialize character recovery stats
-        characterRecoveryStats[numCharacters] = RecoveryStats(
-            100,
-            charStats[_typeId].mana,
-            block.timestamp,
-            block.timestamp
-        );
+        _initializeCharacterStats(_typeId);
+        _initializeCharacterEquips();
+        _initializeCharacterRecoveryStats(_typeId);
 
         // Increment the token ID counter for the next mint
         numCharacters++;
 
         // Emit the new character event
-        emit NewCharacter(numCharacters - 1, _typeId);
+        emit NewCharacter(numCharacters, _typeId);
+    }
+
+    function _initializeCharacterStats(uint256 _typeId) private {
+        StatCalculation.CharacterStats memory _stats = StatCalculation
+            .CharacterStats(
+                numCharacters,
+                charStats[_typeId].level,
+                charStats[_typeId].experience,
+                charStats[_typeId].health,
+                charStats[_typeId].mana,
+                charStats[_typeId].attack,
+                charStats[_typeId].defense,
+                charStats[_typeId].strength,
+                charStats[_typeId].dexterity,
+                charStats[_typeId].intelligence,
+                charStats[_typeId].vitality,
+                charStats[_typeId].accuracy,
+                charStats[_typeId].statPoints,
+                _typeId
+            );
+        characterStats[numCharacters] = _stats;
+        emit CharacterStatsEvent(
+            numCharacters,
+            _stats.level,
+            _stats.experience,
+            _stats.health,
+            _stats.mana,
+            _stats.attack,
+            _stats.defense,
+            _stats.strength,
+            _stats.dexterity,
+            _stats.intelligence,
+            _stats.vitality,
+            _stats.accuracy,
+            _stats.statPoints
+        );
+    }
+
+    function _initializeCharacterEquips() private {
+        characterEquips[numCharacters].equippedItems[
+            IBattleItems.ItemType.Headgear
+        ] = 999999;
+        characterEquips[numCharacters].equippedItems[
+            IBattleItems.ItemType.Weapon
+        ] = 999999;
+        characterEquips[numCharacters].equippedItems[
+            IBattleItems.ItemType.BodyArmor
+        ] = 999999;
+        characterEquips[numCharacters].equippedItems[
+            IBattleItems.ItemType.Pants
+        ] = 999999;
+        characterEquips[numCharacters].equippedItems[
+            IBattleItems.ItemType.Footwear
+        ] = 999999;
+    }
+
+    function _initializeCharacterRecoveryStats(uint256 _typeId) private {
+        // Initialize the recovery stats for the new character
+        StatCalculation.RecoveryStats memory _recoveryStats = StatCalculation
+            .RecoveryStats(
+                100,
+                charStats[_typeId].mana,
+                block.timestamp,
+                block.timestamp
+            );
+        characterRecoveryStats[numCharacters] = _recoveryStats;
+        emit CharacterRecoveryStats(
+            numCharacters,
+            _recoveryStats.stamina,
+            _recoveryStats.maxMana,
+            _recoveryStats.lastStaminaUpdateTime,
+            _recoveryStats.lastManaUpdateTime
+        );
     }
 
     function calculateExperienceRequired(
@@ -314,176 +396,83 @@ contract Character is ERC721Base, ERC1155Holder {
         return baseXP * level;
     }
 
-    function levelFromXP(uint256 totalXP) private view returns (uint256) {
-        uint256 currentLevel = 1;
-
-        // Keep subtracting the XP required for each level from the total XP until the remaining XP is not enough for the next level
-        while (totalXP >= calculateExperienceRequired(currentLevel)) {
-            totalXP -= calculateExperienceRequired(currentLevel);
-            currentLevel += 1;
-        }
-
-        // Return the current level
-        return currentLevel;
-    }
-
     function addStats(
         uint256 characterTokenId,
         uint256 strength,
         uint256 dexterity,
         uint256 intelligence,
         uint256 vitality
-    ) public {
-        require(
-            ownerOf(characterTokenId) == msg.sender,
-            "Caller is not the owner of the character"
+    ) external {
+        StatCalculation.CharacterStats storage hero = characterStats[
+            characterTokenId
+        ];
+        hero.addStats(strength, dexterity, intelligence, vitality);
+        emit CharacterStatsUpdated(
+            characterTokenId,
+            strength,
+            dexterity,
+            intelligence,
+            vitality
         );
-
-        CharacterStats storage charStat = characterStats[characterTokenId];
-
-        uint256 totalStatPointsToSpend = strength +
-            dexterity +
-            intelligence +
-            vitality;
-
-        require(
-            totalStatPointsToSpend <= charStat.statPoints,
-            "Stat points to spend should not exceed available stat points"
-        );
-
-        charStat.strength += strength;
-        charStat.dexterity += dexterity;
-        charStat.intelligence += intelligence;
-        charStat.vitality += vitality;
-
-        charStat.health += vitality * 5;
-        characterRecoveryStats[characterTokenId].maxMana += intelligence * 5;
-        charStat.accuracy += dexterity * 5;
-        charStat.attack += strength * 5;
-        charStat.statPoints -= totalStatPointsToSpend;
-    }
-
-    function _levelUp(uint256 characterTokenId) internal {
-        CharacterStats storage hero = characterStats[characterTokenId];
-        uint256 currentLevel = hero.level;
-        uint256 currentXP = hero.experience;
-
-        uint256 newLevel = levelFromXP(currentXP);
-        require(
-            newLevel > currentLevel,
-            "Not enough experience points to level up"
-        );
-
-        hero.level = newLevel;
-        hero.statPoints += 5 * (newLevel - currentLevel);
     }
 
     function gainXP(
         uint256 characterTokenId,
         uint256 xp
     ) external onlyBattleContract {
-        CharacterStats storage hero = characterStats[characterTokenId];
-        hero.experience += xp;
-
-        uint256 newLevel = levelFromXP(hero.experience);
-        if (newLevel > hero.level) {
-            _levelUp(characterTokenId);
-        }
+        StatCalculation.CharacterStats storage hero = characterStats[
+            characterTokenId
+        ];
+        hero.gainXP(xp, baseXP);
+        emit CharacterXPUpdated(characterTokenId, xp);
     }
 
     function getStamina(uint256 tokenId) public view returns (uint256) {
-        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
-        uint256 elapsedTime = block.timestamp -
-            heroRecovery.lastStaminaUpdateTime;
-        uint256 recoveredStamina = (elapsedTime * 100) / (24 * 60 * 60); // Recover 100% in 24 hours
-        uint256 currentStamina = heroRecovery.stamina + recoveredStamina;
-
-        if (currentStamina > 100) {
-            currentStamina = 100;
-        }
-
-        return currentStamina;
+        return characterRecoveryStats[tokenId].getStamina();
     }
 
     function consumeStamina(
         uint256 tokenId,
         uint256 amount
     ) external onlyBattleContract {
-        uint256 currentStamina = getStamina(tokenId);
-        require(currentStamina >= amount, "Not enough stamina");
-
-        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
-        heroRecovery.stamina = currentStamina - amount;
-        heroRecovery.lastStaminaUpdateTime = block.timestamp;
-        console.log("stamina consumed ", heroRecovery.stamina);
+        characterRecoveryStats[tokenId].consumeStamina(amount);
+        emit StaminaUpdated(tokenId, characterRecoveryStats[tokenId].stamina);
     }
 
     function addStamina(uint256 tokenId, uint256 amount) external onlyOwner {
-        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
-
-        uint256 currentStamina = getStamina(tokenId);
-        uint256 newStamina = currentStamina + amount;
-
-        if (newStamina > 100) {
-            newStamina = 100;
-        }
-
-        heroRecovery.stamina = newStamina;
-        heroRecovery.lastStaminaUpdateTime = block.timestamp;
+        characterRecoveryStats[tokenId].addStamina(amount);
     }
 
     function restoreStaminaToFull(uint256 tokenId) external {
-        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
-        heroRecovery.stamina = 100;
-        heroRecovery.lastStaminaUpdateTime = block.timestamp;
+        characterRecoveryStats[tokenId].restoreStaminaToFull();
     }
 
     function getMana(uint256 tokenId) public view returns (uint256) {
-        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
-        uint256 elapsedTime = block.timestamp - heroRecovery.lastManaUpdateTime;
-        uint256 recoveredMana = (elapsedTime * heroRecovery.maxMana) /
-            (30 * 60); // Recover 100% in 30 minutes
-        uint256 currentMana = characterStats[tokenId].mana + recoveredMana;
-
-        if (currentMana > heroRecovery.maxMana) {
-            currentMana = heroRecovery.maxMana;
-        }
-
-        return currentMana;
+        return characterRecoveryStats[tokenId].getMana(characterStats[tokenId]);
     }
 
     function consumeMana(
         uint256 tokenId,
         uint256 amount
     ) external onlyBattleContract {
-        uint256 currentMana = getMana(tokenId);
-        require(currentMana >= amount, "Not enough mana");
-
-        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
-        characterStats[tokenId].mana = currentMana - amount;
-        heroRecovery.lastManaUpdateTime = block.timestamp;
-        console.log("mana consumed ", characterStats[tokenId].mana);
+        characterRecoveryStats[tokenId].consumeMana(
+            characterStats[tokenId],
+            amount
+        );
     }
 
     function addMana(uint256 tokenId, uint256 amount) external onlyOwner {
-        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
-
-        uint256 maxMana = characterStats[tokenId].mana;
-        uint256 currentMana = getMana(tokenId);
-        uint256 newMana = currentMana + amount;
-
-        if (newMana > maxMana) {
-            newMana = maxMana;
-        }
-
-        characterStats[tokenId].mana = newMana;
-        heroRecovery.lastManaUpdateTime = block.timestamp;
+        characterRecoveryStats[tokenId].addMana(
+            characterStats[tokenId],
+            amount
+        );
+        emit ManaUpdated(tokenId, characterStats[tokenId].mana);
     }
 
     function restoreManaToFull(uint256 tokenId) external {
-        RecoveryStats storage heroRecovery = characterRecoveryStats[tokenId];
-        characterStats[tokenId].mana = characterStats[tokenId].mana;
-        heroRecovery.lastManaUpdateTime = block.timestamp;
+        characterRecoveryStats[tokenId].restoreManaToFull(
+            characterStats[tokenId]
+        );
     }
 
     function equipItem(uint256 characterTokenId, uint256 tokenId) public {
@@ -504,7 +493,7 @@ contract Character is ERC721Base, ERC1155Holder {
         );
 
         // Get the ItemType of the item
-        BattleItems.ItemType itemType = battleItems.getItemType(tokenId);
+        IBattleItems.ItemType itemType = battleItems.getItemType(tokenId);
 
         // Check if the item is not already equipped in the specified slot
         require(
@@ -525,13 +514,14 @@ contract Character is ERC721Base, ERC1155Holder {
         battleItems.safeTransferFrom(msg.sender, address(this), tokenId, 1, "");
 
         // Get stats of the new item
-        BattleItems.Item memory newItem = battleItems.getItem(tokenId);
+        IBattleItems.Item memory newItem = battleItems.getItem(tokenId);
 
         // Update character stats based on the new item
         characterStats[characterTokenId].attack += newItem.attack;
         characterStats[characterTokenId].defense += newItem.defense;
         characterStats[characterTokenId].health += newItem.health;
         characterStats[characterTokenId].mana += newItem.skill;
+        emit ItemEquipped(characterTokenId, tokenId);
     }
 
     function unequipItem(uint256 characterTokenId, uint256 itemTokenId) public {
@@ -541,10 +531,10 @@ contract Character is ERC721Base, ERC1155Holder {
             "Not the owner of the character"
         );
 
-        BattleItems.Item memory itemToUnequip = battleItems.getItem(
+        IBattleItems.Item memory itemToUnequip = battleItems.getItem(
             itemTokenId
         );
-        BattleItems.ItemType itemType = itemToUnequip.itemType;
+        IBattleItems.ItemType itemType = itemToUnequip.itemType;
 
         // Check if the item is equipped
         require(
@@ -568,6 +558,7 @@ contract Character is ERC721Base, ERC1155Holder {
             1,
             ""
         );
+        emit ItemUnequipped(characterTokenId, itemTokenId);
     }
 
     function equipSkill(uint256 characterTokenId, uint256 skillId) public {
@@ -605,6 +596,7 @@ contract Character is ERC721Base, ERC1155Holder {
             ""
         );
         equippedSkills.push(skillId);
+        emit SkillEquipped(characterTokenId, skillId);
     }
 
     function unequipSkill(uint256 characterTokenId, uint256 skillId) public {
@@ -638,6 +630,7 @@ contract Character is ERC721Base, ERC1155Holder {
         );
         equippedSkills[skillIndex] = equippedSkills[equippedSkills.length - 1];
         equippedSkills.pop();
+        emit SkillUnequipped(characterTokenId, skillId);
     }
 
     function equipClass(uint256 characterTokenId, uint256 classId) public {
@@ -687,6 +680,7 @@ contract Character is ERC721Base, ERC1155Holder {
             1,
             ""
         );
+        emit ClassEquipped(characterTokenId, classId);
     }
 
     function unequipClass(uint256 characterTokenId) external {
@@ -702,6 +696,7 @@ contract Character is ERC721Base, ERC1155Holder {
         require(equippedClassId != 0, "No class equipped");
 
         // Unequip the class
+        emit ClassUnequipped(characterTokenId, equippedClassId);
         characterEquips[characterTokenId].equippedClass = 0;
         characterClasses.safeTransferFrom(
             address(this),
@@ -714,7 +709,7 @@ contract Character is ERC721Base, ERC1155Holder {
 
     function getRecoveryStats(
         uint256 tokenId
-    ) public view returns (RecoveryStats memory) {
+    ) public view returns (StatCalculation.RecoveryStats memory) {
         require(
             characterRecoveryStats[tokenId].lastStaminaUpdateTime != 0,
             "Token ID not found"
@@ -724,7 +719,7 @@ contract Character is ERC721Base, ERC1155Holder {
 
     function getEquippedItem(
         uint256 characterTokenId,
-        BattleItems.ItemType itemType
+        IBattleItems.ItemType itemType
     ) external view returns (uint256) {
         return characterEquips[characterTokenId].equippedItems[itemType];
     }
