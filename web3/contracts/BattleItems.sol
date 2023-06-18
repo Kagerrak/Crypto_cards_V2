@@ -25,6 +25,26 @@ contract BattleItems is ERC1155Base {
     mapping(uint256 => Item) public items;
     uint256 public numItems;
 
+    event NewItem(
+        uint256 indexed itemId,
+        string name,
+        uint256 attack,
+        uint256 defense,
+        uint256 health,
+        uint256 mana,
+        uint256 skill,
+        ItemType itemType
+    );
+    event UpdatedItem(
+        uint256 indexed itemId,
+        string name,
+        uint256 attack,
+        uint256 defense,
+        uint256 health,
+        uint256 mana,
+        uint256 skill
+    );
+
     constructor() ERC1155Base("ItemContract", "IC", address(0), 0) {}
 
     function createItem(
@@ -40,6 +60,17 @@ contract BattleItems is ERC1155Base {
         uint256 tokenId = type(uint256).max; // pass type(uint256).max as the tokenId argument
         mintTo(msg.sender, tokenId, _tokenURI, 1);
         items[numItems] = Item(
+            _name,
+            _attack,
+            _defense,
+            _health,
+            _mana,
+            _skill,
+            _itemType
+        );
+        // Emit the event
+        emit NewItem(
+            numItems,
             _name,
             _attack,
             _defense,
@@ -80,6 +111,16 @@ contract BattleItems is ERC1155Base {
         items[_itemId].health = _health;
         items[_itemId].mana = _mana;
         items[_itemId].skill = _skill;
+        // Emit the event
+        emit UpdatedItem(
+            _itemId,
+            _name,
+            _attack,
+            _defense,
+            _health,
+            _mana,
+            _skill
+        );
     }
 
     function getItemType(uint256 tokenId) public view returns (ItemType) {
