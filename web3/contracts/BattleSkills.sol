@@ -32,6 +32,27 @@ contract BattleSkills is ERC1155Base {
     uint256 public numSkills;
     uint256 public numStatusEffects;
 
+    event NewSkill(
+        uint256 indexed skillId,
+        string name,
+        uint256 damage,
+        uint256 manaCost,
+        uint256 statusEffectId
+    );
+    event NewStatusEffect(
+        uint256 indexed effectId,
+        string name,
+        bool isPositive,
+        uint256 duration,
+        uint256 attackBoost,
+        uint256 attackReduction,
+        uint256 defenseBoost,
+        uint256 defenseReduction,
+        uint256 healPerTurn,
+        uint256 damagePerTurn,
+        bool isStun
+    );
+
     constructor() ERC1155Base("BattleSkills", "BS", address(0), 0) {
         initializeStatusEffects(); // for testing
         //initializeSkills(); // for testing
@@ -53,6 +74,8 @@ contract BattleSkills is ERC1155Base {
             _manaCost,
             _statusEffectId
         );
+        // Emit the event
+        emit NewSkill(numSkills, _name, _damage, _manaCost, _statusEffectId);
         numSkills++;
     }
 
@@ -69,6 +92,20 @@ contract BattleSkills is ERC1155Base {
         bool _isStun
     ) public {
         statusEffects[numStatusEffects] = StatusEffect(
+            numStatusEffects,
+            _name,
+            _isPositive,
+            _duration,
+            _attackBoost,
+            _attackReduction,
+            _defenseBoost,
+            _defenseReduction,
+            _healPerTurn,
+            _damagePerTurn,
+            _isStun
+        );
+        // Emit the event
+        emit NewStatusEffect(
             numStatusEffects,
             _name,
             _isPositive,
