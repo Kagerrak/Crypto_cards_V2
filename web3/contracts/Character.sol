@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 import "@thirdweb-dev/contracts/base/ERC721Base.sol";
 
-import "./BattleSkills2.sol";
-import "./BattleItems2.sol";
+import "./BattleSkills.sol";
+import "./BattleItems.sol";
 import "./Class.sol";
 import "./StatCalculation.sol";
 import "./IBattleSkills.sol";
