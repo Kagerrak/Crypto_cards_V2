@@ -4,7 +4,6 @@ import { verify } from "./verify";
 
 async function deploy(name: string, ...params: [string]) {
   const contractFactory = await ethers.getContractFactory(name);
-
   return await contractFactory.deploy(...params).then((f) => f.deployed());
 }
 
@@ -12,6 +11,12 @@ async function main() {
   const [admin] = await ethers.getSigners();
 
   console.log(`Deploying smart contracts...`);
+
+  // Deploy StatCalculation library
+  const StatCalculation = await ethers.getContractFactory("StatCalculation");
+  const statCalculation = await StatCalculation.deploy();
+  await statCalculation.deployed();
+  console.log("StatCalculation deployed to:", statCalculation.address);
 
   // Deploy BattleSkills contract
   const BattleSkills = await ethers.getContractFactory("BattleSkills");
@@ -25,13 +30,17 @@ async function main() {
   await battleItems.deployed();
   console.log("BattleItems deployed to:", battleItems.address);
 
-  // Deploy Character contract
-  const Character = await ethers.getContractFactory("Character");
+  // Deploy Character contract with StatCalculation library address
+  const Character = await ethers.getContractFactory("Character", {
+    libraries: {
+      StatCalculation: statCalculation.address,
+    },
+  });
   const character = await Character.deploy();
   await character.deployed();
   console.log("Character deployed to:", character.address);
 
-  // Deploy Battle contract with Character and BattleSkills addresses as arguments
+  // Deploy Battle contract with BattleResolutionLibrary and StatusEffectsLibrary addresses
   const Battle = await ethers.getContractFactory("Battle");
   const battle = await Battle.deploy(character.address, battleSkills.address);
   await battle.deployed();
@@ -45,23 +54,6 @@ async function main() {
 
   // Set the Battle contract address in the Character contract
   await character.setBattleContract(battle.address);
-
-  // Create a new skill
-  // const skillName = "fire";
-  // const damage = 40;
-  // const manaCost = 40;
-  // const statusEffects = [];
-  // const tokenURI = "https://example.com/fire.json";
-  // await battleSkills.createSkill(
-  //   skillName,
-  //   damage,
-  //   manaCost,
-  //   statusEffects,
-  //   tokenURI
-  // );
-  // console.log(
-  //   `Skill "${skillName}" created with damage ${damage} and mana cost ${manaCost}`
-  // );
 
   // Set approval for the character contract address for two accounts
   const accounts = await ethers.getSigners();
@@ -88,17 +80,6 @@ async function main() {
   console.log(
     "Approved character contract address for approved operator account"
   );
-
-  // // Mint a character with typeId 0 and skillID 0 for owner account
-  // await character.mintNewCharacterWithItemAndEquip(0, 0);
-  // console.log("Minted character with typeId 0 and skillID 0 for owner account");
-
-  // // Mint a character with typeId 1 and skillID 0 for approved operator account
-  // const characterWithApprovedOperator = character.connect(approvedOperator);
-  // await characterWithApprovedOperator.mintNewCharacterWithItemAndEquip(1, 0);
-  // console.log(
-  //   "Minted character with typeId 1 and skillID 0 for approved operator account"
-  // );
 
   // Copy contract artifacts to client directory
   await copyContracts(
