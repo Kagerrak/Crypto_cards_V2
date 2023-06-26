@@ -382,6 +382,7 @@ export function createSkillExecutedEvent(
   battleId: BigInt,
   round: BigInt,
   player: Address,
+  skillId: BigInt,
   skillName: string,
   totalDamage: BigInt
 ): SkillExecuted {
@@ -400,6 +401,12 @@ export function createSkillExecutedEvent(
   )
   skillExecutedEvent.parameters.push(
     new ethereum.EventParam("player", ethereum.Value.fromAddress(player))
+  )
+  skillExecutedEvent.parameters.push(
+    new ethereum.EventParam(
+      "skillId",
+      ethereum.Value.fromUnsignedBigInt(skillId)
+    )
   )
   skillExecutedEvent.parameters.push(
     new ethereum.EventParam("skillName", ethereum.Value.fromString(skillName))
