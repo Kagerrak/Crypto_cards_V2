@@ -1,0 +1,156 @@
+type Player @entity {
+  id: ID! # Player's address
+  battles: [Battle!] @derivedFrom(field: "players")
+  characters: [Character!] @derivedFrom(field: "owner")
+  totalDamageDealt: BigInt!
+  totalDamageTaken: BigInt!
+  wins: Int
+  losses: Int
+}
+
+type Character @entity {
+  id: ID! # Character's ID
+  owner: Player!
+  battles: [Battle!]
+  totalDamageDealt: BigInt!
+  totalDamageTaken: BigInt!
+  level: BigInt! # Added based on CharacterStatsEvent
+  health: BigInt! # Added based on CharacterStatsEvent
+  mana: BigInt! # Added based on CharacterStatsEvent
+  attack: BigInt! # Added based on CharacterStatsEvent
+  defense: BigInt! # Added based on CharacterStatsEvent
+  strength: BigInt! # Added based on CharacterStatsEvent
+  dexterity: BigInt! # Added based on CharacterStatsEvent
+  intelligence: BigInt! # Added based on CharacterStatsEvent
+  vitality: BigInt! # Added based on CharacterStatsEvent
+  accuracy: BigInt! # Added based on CharacterStatsEvent
+  statPoints: BigInt! # Added based on CharacterStatsEvent
+  stamina: BigInt! # Added based on CharacterRecoveryStats
+  maxMana: BigInt! # Added based on CharacterRecoveryStats
+  lastStaminaUpdateTime: BigInt! # Added based on CharacterRecoveryStats
+  lastManaUpdateTime: BigInt! # Added based on CharacterRecoveryStats
+  typeId: BigInt! # Added based on NewCharacter event
+  experience: BigInt! # Added based on CharacterXPUpdated event
+  skills: [CharacterSkill!] @derivedFrom(field: "character") # Updated to reference CharacterSkill entity
+  wins: Int # Wins attributed to this character
+  losses: Int # Losses attributed to this character
+}
+
+type Skill @entity {
+  id: ID! # Skill's ID, populated from the NewSkill event's skillId field
+  name: String! # Skill's name, populated from the NewSkill event's name field
+  damage: BigInt! # Skill's damage, populated from the NewSkill event's damage field
+  manaCost: BigInt! # Skill's mana cost, populated from the NewSkill event's manaCost field
+  statusEffect: StatusEffect! # Reference to the associated StatusEffect
+  characters: [CharacterSkill!] @derivedFrom(field: "skill") # Updated to reference CharacterSkill entity
+}
+
+type StatusEffect @entity {
+  id: ID! # StatusEffect's ID, populated from the NewStatusEffect event's effectId field
+  name: String! # StatusEffect's name, populated from the NewStatusEffect event's name field
+  isPositive: Boolean! # Whether the StatusEffect is positive, populated from the NewStatusEffect event's isPositive field
+  duration: BigInt! # StatusEffect's duration, populated from the NewStatusEffect event's duration field
+  attackBoost: BigInt! # StatusEffect's attack boost, populated from the NewStatusEffect event's attackBoost field
+  attackReduction: BigInt! # StatusEffect's attack reduction, populated from the NewStatusEffect event's attackReduction field
+  defenseBoost: BigInt! # StatusEffect's defense boost, populated from the NewStatusEffect event's defenseBoost field
+  defenseReduction: BigInt! # StatusEffect's defense reduction, populated from the NewStatusEffect event's defenseReduction field
+  healPerTurn: BigInt! # StatusEffect's heal per turn, populated from the NewStatusEffect event's healPerTurn field
+  damagePerTurn: BigInt! # StatusEffect's damage per turn, populated from the NewStatusEffect event's damagePerTurn field
+  isStun: Boolean! # Whether the StatusEffect is a stun, populated from the NewStatusEffect event's isStun field
+  skills: [Skill!] @derivedFrom(field: "statusEffect") # List of Skill entities that have this StatusEffect
+}
+
+type CharacterSkill @entity {
+  id: ID! # This could be a combination of the character's ID and the skill's ID
+  character: Character! # The character that owns this skill, populated from the SkillEquipped event's characterTokenId field
+  skill: Skill! # The skill that is owned, populated from the SkillEquipped event's skillId field
+  quantity: BigInt! # The quantity of the skill, incremented when a SkillEquipped event is emitted and decremented when a SkillUnequipped event is emitted
+}
+
+type Item @entity {
+  id: ID! # Item's ID, populated from the NewItem event's itemId field
+  name: String! # Item's name, populated from the NewItem event's name field
+  attack: BigInt! # Item's attack, populated from the NewItem event's attack field
+  defense: BigInt! # Item's defense, populated from the NewItem event's defense field
+  health: BigInt! # Item's health, populated from the NewItem event's health field
+  mana: BigInt! # Item's mana, populated from the NewItem event's mana field
+  skill: BigInt! # Item's skill, populated from the NewItem event's skill field
+  itemType: String! # Item's type, populated from the NewItem event's itemType field
+  characters: [CharacterItem!] @derivedFrom(field: "item") # List of CharacterItem entities that represent the characters that own this item and their quantities
+}
+
+type CharacterItem @entity {
+  id: ID! # This could be a combination of the character's ID and the item's ID
+  character: Character! # The character that owns this item, populated from the ItemEquipped event's characterTokenId field
+  item: Item! # The item that is owned, populated from the ItemEquipped event's itemTokenId field
+  quantity: BigInt! # The quantity of the item, incremented when an ItemEquipped event is emitted and decremented when an ItemUnequipped event is emitted
+}
+
+type CharacterProxy @entity {
+  id: ID! # CharacterProxy's ID (combination of battleId and player's address)
+  battleId: BigInt!
+  player: Player! # Reference to Player entity
+  character: Character! # From the CharacterProxyData event
+  owner: Player! # From the CharacterProxyData event
+  health: BigInt! # From the CharacterProxyData event
+  attack: BigInt! # From the CharacterProxyData event
+  defense: BigInt! # From the CharacterProxyData event
+  mana: BigInt! # From the CharacterProxyData event
+  typeId: BigInt! # From the CharacterProxyData event
+  equippedSkills: [BigInt!]! # From the CharacterProxyData event
+  activeEffects: [ActiveEffect!] @derivedFrom(field: "characterProxy") # Updated to reference ActiveEffect entity
+}
+
+type ActiveEffect @entity {
+  id: ID! # ActiveEffect's ID (combination of CharacterProxy's ID and effectId)
+  characterProxy: CharacterProxy!
+  statusEffectId: BigInt! # From the StatusEffectApplied event
+  duration: BigInt! # From the StatusEffectApplied event
+}
+
+type Battle @entity {
+  id: ID! # Battle's ID
+  name: String! # Battle's name, populated from the NewBattle and BattleEnded events
+  creator: Player! # Creator's address, populated from the BattleCreated event's creator field
+  players: [Player!] # Players in the battle, populated from the NewBattle event's player1 and player2 fields
+  characters: [CharacterProxy!] # The character proxies for the players, created based on the BattleCreated and NewBattle events' characterId fields
+  status: String! # Battle status (could be derived from BattleCreated, NewBattle, BattleEnded, and BattleQuit events)
+  winner: Player # Winner's address, populated from the BattleEnded event's winner field
+  loser: Player # Loser's address, populated from the BattleEnded event's loser field
+  rounds: [Round!] @derivedFrom(field: "battle") # List of Round entities associated with this Battle
+  totalDamageDealt: [BigInt!]! # Total damage dealt by each player in the battle
+  totalDamageTaken: [BigInt!]! # Total damage taken by each player in the battle
+  roundNumber: Int # Current round number (could be updated based on RoundEnded, MoveSubmitted, and DiceRolled events)
+}
+
+type Round @entity {
+  id: ID!
+  battle: Battle!
+  damagedPlayers: [Player!]!
+  damages: [Damage!] @derivedFrom(field: "round")
+  moves: [Move!] @derivedFrom(field: "round")
+  skillsUsed: [Skill!] # The skills that were used during this round
+}
+
+enum MoveType {
+  ATTACK
+  DEFEND
+  USE_SKILL
+  DO_NOTHING
+}
+
+type Move @entity {
+  id: ID!
+  round: Round!
+  player: Player!
+  moveType: MoveType!
+  attackMultiplier: BigInt!
+}
+
+type Damage @entity {
+  id: ID! # Combination of Battle's ID, round number, and player's address
+  round: Round!
+  player: Player!
+  damageDealt: BigInt!
+  damageTaken: BigInt!
+}
