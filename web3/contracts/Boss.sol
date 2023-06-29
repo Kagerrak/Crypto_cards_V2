@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 import "@thirdweb-dev/contracts/base/ERC721Base.sol";
 
@@ -24,46 +24,36 @@ contract Boss is ERC721Base {
         _initializeBossCharacters();
     }
 
-    function getBossCharacter(uint256 _tokenId)
-        public
-        view
-        returns (BossCharacterStruct memory)
-    {
+    function getBossCharacter(
+        uint256 _tokenId
+    ) public view returns (BossCharacterStruct memory) {
         return bossCharacters[_tokenId];
     }
 
-    function getBossCharacterLevel(uint256 tokenId)
-        public
-        view
-        returns (uint256)
-    {
+    function getBossCharacterLevel(
+        uint256 tokenId
+    ) public view returns (uint256) {
         BossCharacterStruct storage boss = bossCharacters[tokenId];
         return boss.level;
     }
 
-    function getBossCharacterAttack(uint256 tokenId)
-        public
-        view
-        returns (uint256)
-    {
+    function getBossCharacterAttack(
+        uint256 tokenId
+    ) public view returns (uint256) {
         BossCharacterStruct storage boss = bossCharacters[tokenId];
         return boss.attack;
     }
 
-    function getBossCharacterHealth(uint256 tokenId)
-        public
-        view
-        returns (uint256)
-    {
+    function getBossCharacterHealth(
+        uint256 tokenId
+    ) public view returns (uint256) {
         BossCharacterStruct storage boss = bossCharacters[tokenId];
         return boss.health;
     }
 
-    function getBossCharacterSkill(uint256 tokenId)
-        public
-        view
-        returns (uint256)
-    {
+    function getBossCharacterSkill(
+        uint256 tokenId
+    ) public view returns (uint256) {
         BossCharacterStruct storage boss = bossCharacters[tokenId];
         return boss.bossSkill;
     }

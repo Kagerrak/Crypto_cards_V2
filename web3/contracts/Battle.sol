@@ -80,13 +80,6 @@ contract Battle is Ownable {
         StructsLibrary.Move move,
         uint256 round
     );
-    event HealthUpdated(
-        uint256 indexed battleId,
-        address indexed player1,
-        uint256 health1,
-        address indexed player2,
-        uint256 health2
-    );
     event DiceRolled(
         uint256 indexed battleId,
         address indexed player,
@@ -97,10 +90,10 @@ contract Battle is Ownable {
         uint256 indexed battleId,
         uint256 round,
         address indexed player,
+        uint256 skillId,
         string skillName,
         uint256 totalDamage
     );
-
     event StatusEffectApplied(
         uint256 indexed battleId,
         uint256 round,
@@ -181,6 +174,19 @@ contract Battle is Ownable {
             battle.battleStats.initialHealth[1] = p.stats.health;
             battle.battleStats.initialMana[1] = p.stats.mana; // Populate initialMana for player 2
         }
+
+        emit CharacterProxyData(
+            battleId,
+            player,
+            p.id,
+            p.owner,
+            p.stats.health,
+            p.stats.attack,
+            p.stats.defense,
+            p.stats.mana,
+            p.stats.typeId,
+            p.equippedSkills
+        );
     }
 
     function createBattle(
@@ -559,6 +565,7 @@ contract Battle is Ownable {
             battleId,
             round,
             player.owner,
+            skillId,
             skill.name,
             totalDamage
         );

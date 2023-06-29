@@ -41,7 +41,12 @@ contract Character is ERC721Base, ERC1155Holder {
 
     uint256 private baseXP = 100;
 
-    event NewCharacter(uint256 indexed tokenId, uint256 typeId);
+    event NewCharacter(
+        address indexed player,
+        uint256 indexed tokenId,
+        uint256 typeId
+    );
+
     event CharacterStatsEvent(
         uint256 indexed tokenId,
         uint256 level,
@@ -305,6 +310,9 @@ contract Character is ERC721Base, ERC1155Holder {
         console.log(numCharacters);
         _setTokenURI(numCharacters, charTypes[_typeId].uri);
 
+        // Emit the new character event
+        emit NewCharacter(msg.sender, numCharacters, _typeId);
+
         // Initialize the character stats and equipment
         _initializeCharacterStats(_typeId);
         _initializeCharacterEquips();
@@ -312,9 +320,6 @@ contract Character is ERC721Base, ERC1155Holder {
 
         // Increment the token ID counter for the next mint
         numCharacters++;
-
-        // Emit the new character event
-        emit NewCharacter(numCharacters, _typeId);
     }
 
     function _initializeCharacterStats(uint256 _typeId) private {
