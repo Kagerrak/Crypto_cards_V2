@@ -80,7 +80,7 @@ body {
   pointer-events: none;
 }
 
-.container:before {
+/* .container:before {
   content: "";
   position: absolute;
   top: 50%;
@@ -96,7 +96,7 @@ body {
 .container:nth-child(4n):before,
 .container:nth-child(7n):before {
   display: none;
-}
+} */
 
 .particle {
   position: absolute;
