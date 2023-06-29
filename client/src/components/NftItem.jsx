@@ -41,9 +41,16 @@ const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
         const maxExp = await contract.call("calculateExperienceRequired", [
           level,
         ]);
-        const prevMaxExp = level > 1 ? (level - 1) * baseXP : 0;
 
-        const currentLevelExp = experience.toNumber() - prevMaxExp;
+        const totalExpUpToLevel = ((_level, _baseXP) => {
+          let totalXP = 0;
+          for (let i = 1; i < _level; i++) {
+            totalXP += i * _baseXP;
+          }
+          return totalXP;
+        })(level, baseXP);
+
+        const currentLevelExp = experience.toNumber() - totalExpUpToLevel;
         const currentMaxExp = maxExp.toNumber();
 
         setCharMana(mana.toNumber());
