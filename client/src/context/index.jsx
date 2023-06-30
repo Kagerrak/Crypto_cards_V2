@@ -8,7 +8,9 @@ import React, {
 import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 import { useNavigate } from "react-router-dom";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
 
+import { GET_CHARACTERS } from "../constants";
 import { GetParams } from "../utils/Onboard.js";
 import {
   characterContractAddress,
@@ -47,7 +49,6 @@ export const GlobalContextProvider = ({ children }) => {
   const [battleName, setBattleName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [updateGameData, setUpdateGameData] = useState(0);
-  const [playerData, setPlayerData] = useState({});
   const [equippedSkills, setEquippedSkills] = useState([null, null, null]);
   const [equippedSkillLoading, setEquippedSkillLoading] = useState(false);
   const [localOwnedSkills, setLocalOwnedSkills] = useState([]);
@@ -63,18 +64,15 @@ export const GlobalContextProvider = ({ children }) => {
   const [localOwnedItems, setLocalOwnedItems] = useState([]);
   const [allOwnedItems, setAllOwnedItems] = useState([]);
 
-  const player1Ref = useRef();
-  const player2Ref = useRef();
-
-  const setPlayer1Ref = (ref) => {
-    player1Ref.current = ref;
-  };
-
-  const setPlayer2Ref = (ref) => {
-    player2Ref.current = ref;
-  };
+  const [shouldPoll, setShouldPoll] = useState(false);
+  const [shouldPollPlayerData, setShouldPollPlayerData] = useState(false);
 
   const navigate = useNavigate();
+
+  const intervalIdRef = useRef();
+
+  const [battleIsOver, setBattleIsOver] = useState(false);
+  const [damagedPlayers, setDamagedPlayers] = useState([]);
 
   //* Set battleground to local storage
   useEffect(() => {
@@ -159,103 +157,83 @@ export const GlobalContextProvider = ({ children }) => {
 
   // Define fetchGameData
   const fetchGameData = async () => {
-    console.log("fetchGameData is being called"); // Add this line
+    console.log("fetchGameData is being called");
+
     if (battleContract) {
-      const activeBattlesId = await battleContract.getActiveBattlesId();
-      const fetchedBattles = await Promise.all(
-        activeBattlesId.map((id) => battleContract.getBattle(id))
-      );
-      const pendingBattles = fetchedBattles.filter(
-        (battle) => battle.battleStatus === 0
-      );
-      let activeBattle = null;
-      fetchedBattles.forEach((battle) => {
+      try {
+        const activeBattlesId = await battleContract.getActiveBattlesId();
+        const fetchedBattles = await Promise.all(
+          activeBattlesId.map((id) => battleContract.getBattle(id))
+        );
+        const pendingBattles = fetchedBattles.filter(
+          (battle) => battle.battleStatus === 0
+        );
+        let activeBattle = null;
+        fetchedBattles.forEach((battle) => {
+          if (
+            battle.players.find(
+              (player) => player.toLowerCase() === walletAddress.toLowerCase()
+            )
+          ) {
+            if (battle.winner.startsWith("0x00") && battle.battleStatus !== 2) {
+              activeBattle = battle;
+            }
+          }
+        });
+
+        console.log("Fetched game data:", {
+          pendingBattles: pendingBattles,
+          activeBattle,
+        });
+
+        // Check if the game data has changed
         if (
-          battle.players.find(
-            (player) => player.toLowerCase() === walletAddress.toLowerCase()
-          )
+          JSON.stringify(gameData.pendingBattles) !==
+            JSON.stringify(pendingBattles) ||
+          JSON.stringify(gameData.activeBattle) !== JSON.stringify(activeBattle)
         ) {
-          if (battle.winner.startsWith("0x00") && battle.battleStatus !== 2) {
-            activeBattle = battle;
+          // If the game data has changed, stop polling
+          setShouldPoll(false);
+
+          // Clear the interval
+          if (intervalIdRef.current) {
+            clearInterval(intervalIdRef.current);
+            intervalIdRef.current = null;
           }
         }
-      });
 
-      console.log("Fetched game data:", {
-        pendingBattles: pendingBattles,
-        activeBattle,
-      }); // Add this line
-
-      setGameData({
-        pendingBattles: pendingBattles,
-        activeBattle,
-      });
+        setGameData({
+          pendingBattles: pendingBattles,
+          activeBattle,
+        });
+      } catch (error) {
+        console.error("Error fetching game data:", error);
+        // You can handle the error here, for example by showing an error message to the user
+      }
     }
   };
 
   // Use fetchGameData in useEffect
   useEffect(() => {
-    fetchGameData();
-  }, [battleContract, updateGameData, walletAddress]);
+    // Only call fetchGameData if battleContract is not null
+    if (battleContract) {
+      // Call fetchGameData once on mount or when shouldPoll changes
+      fetchGameData();
 
-  const fetchPlayerData = async () => {
-    if (gameData.activeBattle && battleContract) {
-      let player01Address = null;
-      let player02Address = null;
-      if (
-        gameData.activeBattle.players[0].toLowerCase() ===
-        walletAddress.toLowerCase()
-      ) {
-        player01Address = gameData.activeBattle.players[0];
-        player02Address = gameData.activeBattle.players[1];
-      } else {
-        player01Address = gameData.activeBattle.players[1];
-        player02Address = gameData.activeBattle.players[0];
+      if (shouldPoll) {
+        // Start polling
+        intervalIdRef.current = setInterval(fetchGameData, 5000);
       }
-
-      const [player1Data, player2Data] = await Promise.all([
-        battleContract.getCharacterProxy(
-          gameData.activeBattle.battleId,
-          player01Address
-        ),
-        battleContract.getCharacterProxy(
-          gameData.activeBattle.battleId,
-          player02Address
-        ),
-      ]);
-
-      const [player1Effects, player2Effects] = await Promise.all([
-        battleContract.getCharacterProxyActiveEffects(
-          gameData.activeBattle.battleId,
-          player01Address
-        ),
-        battleContract.getCharacterProxyActiveEffects(
-          gameData.activeBattle.battleId,
-          player02Address
-        ),
-      ]);
-
-      const playerDataWithEffects = {
-        player1Data: {
-          ...player1Data,
-          activeEffectIds: player1Effects[0],
-          activeEffectDurations: player1Effects[1],
-        },
-        player2Data: {
-          ...player2Data,
-          activeEffectIds: player2Effects[0],
-          activeEffectDurations: player2Effects[1],
-        },
-      };
-
-      setPlayerData(playerDataWithEffects);
     }
-  };
 
-  // Inside your component
-  useEffect(() => {
-    fetchPlayerData();
-  }, [battleContract, updateGameData, gameData.activeBattle, walletAddress]);
+    return () => {
+      // Stop polling
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
+    };
+  }, [shouldPoll, battleContract, updateGameData, walletAddress]); // Add dependencies
 
   //* Activate event listeners for the smart contract
   useEffect(() => {
@@ -267,11 +245,14 @@ export const GlobalContextProvider = ({ children }) => {
         provider,
         walletAddress,
         setShowAlert,
-        player1Ref,
-        player2Ref,
         setUpdateGameData,
         fetchGameData,
-        fetchPlayerData,
+        setShouldPoll,
+        setShouldPollPlayerData,
+        battleIsOver,
+        setBattleIsOver,
+        damagedPlayers,
+        setDamagedPlayers,
       });
     }
   }, [step, battleContract]);
@@ -303,10 +284,6 @@ export const GlobalContextProvider = ({ children }) => {
   return (
     <GlobalContext.Provider
       value={{
-        player1Ref,
-        player2Ref,
-        setPlayer1Ref,
-        setPlayer2Ref,
         battleGround,
         setBattleGround,
         characterContract,
@@ -322,7 +299,6 @@ export const GlobalContextProvider = ({ children }) => {
         setBattleName,
         errorMessage,
         setErrorMessage,
-        playerData,
         equippedSkills,
         setEquippedSkills,
         equippedSkillLoading,
@@ -340,7 +316,13 @@ export const GlobalContextProvider = ({ children }) => {
         allOwnedItems,
         setAllOwnedItems,
         fetchGameData,
-        fetchPlayerData,
+        battleIsOver,
+        setBattleIsOver,
+        damagedPlayers,
+        setDamagedPlayers,
+        shouldPollPlayerData,
+        setShouldPollPlayerData,
+        setShouldPoll,
       }}
     >
       {children}
