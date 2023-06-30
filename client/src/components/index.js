@@ -22,6 +22,7 @@ import SkillSlots from "./SkillSlots";
 import SkillSlot from "./SkillSlot";
 import StatusEffect from "./StatusEffect";
 import BattleLog from "./BattleLog";
+import BattleSummaryModal from "./BattleSummary";
 
 export {
   Card,
@@ -48,4 +49,5 @@ export {
   SkillSlots,
   StatusEffect,
   BattleLog,
+  BattleSummaryModal,
 };
