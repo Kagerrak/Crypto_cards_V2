@@ -86,6 +86,42 @@ library BattleResolutionLibrary {
                 proxyB
             );
         }
+        // Player 1 attacks, player 2 uses skill
+        else if (
+            moveA == uint256(StructsLibrary.Move.ATTACK) &&
+            moveB == uint256(StructsLibrary.Move.USE_SKILL)
+        ) {
+            (damageDealt, damagedPlayers) = handleAttackSkill(
+                battle,
+                proxyA,
+                proxyB
+            );
+        }
+        // Player 1 uses skill, player 2 attacks
+        else if (
+            moveA == uint256(StructsLibrary.Move.USE_SKILL) &&
+            moveB == uint256(StructsLibrary.Move.ATTACK)
+        ) {
+            (damageDealt, damagedPlayers) = handleSkillAttack(
+                battle,
+                proxyA,
+                proxyB
+            );
+        }
+        // Player 1 defends, player 2 uses skill
+        else if (
+            moveA == uint256(StructsLibrary.Move.DEFEND) &&
+            moveB == uint256(StructsLibrary.Move.USE_SKILL)
+        ) {
+            (damageDealt, damagedPlayers) = handleDefendSkill(proxyA);
+        }
+        // Player 1 uses skill, player 2 defends
+        else if (
+            moveA == uint256(StructsLibrary.Move.USE_SKILL) &&
+            moveB == uint256(StructsLibrary.Move.DEFEND)
+        ) {
+            (damageDealt, damagedPlayers) = handleSkillDefend(proxyB);
+        }
         return (damageDealt, damagedPlayers);
     }
 
@@ -215,6 +251,78 @@ library BattleResolutionLibrary {
         damagedPlayers[0] = battle.players[0];
         damageDealt[1] = damageB;
         proxyB.stats.mana -= 3;
+        return (damageDealt, damagedPlayers);
+    }
+
+    function handleAttackSkill(
+        StructsLibrary.BattleData storage battle,
+        StructsLibrary.CharacterProxy storage attacker,
+        StructsLibrary.CharacterProxy storage skillUser
+    )
+        internal
+        returns (
+            uint256[2] memory damageDealt,
+            address[2] memory damagedPlayers
+        )
+    {
+        uint256 damageA = (attacker.stats.attack * attacker.attackMultiplier) /
+            1000;
+        skillUser.stats.health = skillUser.stats.health > damageA
+            ? skillUser.stats.health - damageA
+            : 0;
+        damagedPlayers[0] = battle.players[1];
+        damageDealt[0] = damageA;
+        attacker.stats.mana -= 3;
+        return (damageDealt, damagedPlayers);
+    }
+
+    function handleSkillAttack(
+        StructsLibrary.BattleData storage battle,
+        StructsLibrary.CharacterProxy storage skillUser,
+        StructsLibrary.CharacterProxy storage attacker
+    )
+        internal
+        returns (
+            uint256[2] memory damageDealt,
+            address[2] memory damagedPlayers
+        )
+    {
+        uint256 damageB = (attacker.stats.attack * attacker.attackMultiplier) /
+            1000;
+        skillUser.stats.health = skillUser.stats.health > damageB
+            ? skillUser.stats.health - damageB
+            : 0;
+        damagedPlayers[0] = battle.players[0];
+        damageDealt[1] = damageB;
+        attacker.stats.mana -= 3;
+        return (damageDealt, damagedPlayers);
+    }
+
+    function handleDefendSkill(
+        StructsLibrary.CharacterProxy storage defender
+    )
+        internal
+        returns (
+            uint256[2] memory damageDealt,
+            address[2] memory damagedPlayers
+        )
+    {
+        damageDealt = [uint256(0), uint256(0)]; // Initialize to zeros
+        defender.stats.mana += 3;
+        return (damageDealt, damagedPlayers);
+    }
+
+    function handleSkillDefend(
+        StructsLibrary.CharacterProxy storage defender
+    )
+        internal
+        returns (
+            uint256[2] memory damageDealt,
+            address[2] memory damagedPlayers
+        )
+    {
+        damageDealt = [uint256(0), uint256(0)]; // Initialize to zeros
+        defender.stats.mana += 3;
         return (damageDealt, damagedPlayers);
     }
 }
