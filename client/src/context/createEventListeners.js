@@ -1,6 +1,11 @@
 import { ThirdwebSDK } from "@thirdweb-dev/sdk/evm";
+
+import { ApolloClient, InMemoryCache } from "@apollo/client";
+
+import { GET_CHARACTERS } from "../constants";
 import { playAudio, sparcle } from "../utils/animation.js";
 import { defenseSound } from "../assets";
+import { GET_MOVE } from "../constants/subgraphQueries";
 
 //* Get battle card coordinates
 const getCoords = (cardRef) => {
@@ -14,23 +19,54 @@ const getCoords = (cardRef) => {
 
 const emptyAccount = "0x0000000000000000000000000000000000000000";
 
+const client = new ApolloClient({
+  uri: "https://api.studio.thegraph.com/query/37725/wiwa/version/latest",
+  cache: new InMemoryCache(),
+});
+
+async function fetchData() {
+  try {
+    const { data } = await client.query({ query: GET_CHARACTERS });
+
+    console.log(data);
+  } catch (error) {
+    console.error("An error occurred while fetching the data:", error);
+  }
+}
+
+async function fetchMove() {
+  try {
+    const { data } = await client.query({ query: GET_MOVE });
+
+    console.log(data);
+  } catch (error) {
+    console.error("An error occurred while fetching the data:", error);
+  }
+}
+
 export const createEventListeners = async ({
   navigate,
   battleContractAddress,
   characterContractAddress,
   walletAddress,
   setShowAlert,
-  player1Ref,
-  player2Ref,
   setUpdateGameData,
   fetchGameData,
+  setShouldPoll,
+  setShouldPollPlayerData,
+  setBattleIsOver,
+  setDamagedPlayers,
 }) => {
   const sdk = new ThirdwebSDK("mumbai");
+  const provider = sdk.getProvider();
   const battleContract = await sdk.getContract(battleContractAddress);
   const characterContract = await sdk.getContract(characterContractAddress);
+
   // NewCharacter event listener
   characterContract.events.addEventListener("NewCharacter", (event) => {
     console.log("New player created!", event);
+
+    fetchData();
 
     if (walletAddress === event.data.owner) {
       setShowAlert({
@@ -85,60 +121,83 @@ export const createEventListeners = async ({
   // MoveSubmitted event listener
   battleContract.events.addEventListener("MoveSubmitted", (event) => {
     console.log("Battle move initiated!", event);
+    fetchMove();
   });
-
-  // Process a RoundEnded event
-  const processEvent = (event) => {
-    console.log("Round ended!", event, walletAddress);
-
-    for (let i = 0; i < event.data.damagedPlayers.length; i += 1) {
-      if (event.data.damagedPlayers[i] !== emptyAccount) {
-        if (event.data.damagedPlayers[i] === walletAddress) {
-          sparcle(getCoords(player1Ref));
-          console.log("sparcled", i, player1Ref);
-        } else if (event.data.damagedPlayers[i] !== walletAddress) {
-          sparcle(getCoords(player2Ref));
-          console.log("sparcled", i, player2Ref);
-        }
-      } else {
-        playAudio(defenseSound);
-      }
-    }
-
-    setUpdateGameData((prevUpdateGameData) => prevUpdateGameData + 1);
-  };
 
   // Listen for new RoundEnded events
   battleContract.events.addEventListener("RoundEnded", async (event) => {
-    // Get the battleId and round from the event
-    const { battleId, round } = event.data;
+    // Get the transaction hash from the event
+    const { transactionHash } = event.transaction;
 
-    // Fetch the event with the specific battleId and round
-    const events = await battleContract.events.getEvents("RoundEnded", {
-      filters: {
-        battleId: battleId,
-        round: round,
-      },
-    });
+    // Function to wait for the transaction to be mined
+    const waitForTransaction = async (hash) => {
+      const receipt = await provider.getTransactionReceipt(hash);
+      if (receipt === null) {
+        // Wait for 1 second before trying again
+        setTimeout(() => waitForTransaction(hash), 1000);
+      } else {
+        // Transaction has been mined, proceed with the rest of the code
+        // Get the battleId and round from the event
+        const { battleId, round } = event.data;
 
-    // Process each event (there should only be one)
-    events.forEach(processEvent);
+        // Fetch the event with the specific battleId and round
+        const events = await battleContract.events.getEvents("RoundEnded", {
+          fromBlock: event.transaction.blockNumber,
+          filters: {
+            battleId: battleId,
+            round: round,
+          },
+        });
+
+        // Process each event (there should only be one)
+        events.forEach((e) => {
+          setDamagedPlayers(e.data.damagedPlayers);
+        });
+
+        // Start polling for data
+        setShouldPoll(true);
+        setShouldPollPlayerData(true);
+      }
+    };
+
+    // Start waiting for the transaction
+    waitForTransaction(transactionHash);
   });
 
   // BattleEnded event listener
-  battleContract.events.addEventListener("BattleEnded", (event) => {
-    if (walletAddress.toLowerCase() === event.data.winner.toLowerCase()) {
-      setShowAlert({ status: true, type: "success", message: "You won!" });
-      console.log("You won!");
-    } else if (walletAddress.toLowerCase() === event.data.loser.toLowerCase()) {
-      setShowAlert({ status: true, type: "failure", message: "You lost!" });
-      console.log("You lost!");
-    }
+  // BattleEnded event listener
+  battleContract.events.addEventListener("BattleEnded", async (event) => {
+    console.log("BattleEnded event listener");
+    // Get the transaction hash from the event
+    const { transactionHash } = event.transaction;
 
-    // Update gameData state to indicate that the battle has ended
-    setUpdateGameData((prevUpdateGameData) => prevUpdateGameData + 1);
+    // Function to wait for the transaction to be mined
+    const waitForTransaction = async (hash) => {
+      const receipt = await provider.getTransactionReceipt(hash);
+      if (receipt === null) {
+        // Wait for 1 second before trying again
+        setTimeout(() => waitForTransaction(hash), 1000);
+      } else {
+        // Transaction has been mined, proceed with the rest of the code
+        if (walletAddress.toLowerCase() === event.data.winner.toLowerCase()) {
+          setShowAlert({ status: true, type: "success", message: "You won!" });
+          console.log("You won!");
+        } else if (
+          walletAddress.toLowerCase() === event.data.loser.toLowerCase()
+        ) {
+          setShowAlert({ status: true, type: "failure", message: "You lost!" });
+          console.log("You lost!");
+        }
 
-    console.log("Navigating to homepage from BattleEnded event listener");
-    navigate("/create-battle");
+        setBattleIsOver(true);
+        console.log("Polling set to false");
+
+        // console.log("Navigating to homepage from BattleEnded event listener");
+        // navigate("/create-battle");
+      }
+    };
+
+    // Start waiting for the transaction
+    waitForTransaction(transactionHash);
   });
 };
