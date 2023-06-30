@@ -1,4 +1,3 @@
-/* eslint-disable prefer-destructuring */
 import React, { useEffect, useState, useRef } from "react";
 import { useContract } from "@thirdweb-dev/react";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +30,16 @@ import { skills } from "../assets/skills";
 
 const emptyAccount = "0x0000000000000000000000000000000000000000";
 
+const Player = {
+  att: null,
+  def: null,
+  health: null,
+  mana: null,
+  equippedSkills: null,
+  activeEffectIds: null,
+  activeEffectDurations: null,
+};
+
 const Battle = () => {
   const {
     battleContract,
@@ -40,25 +49,38 @@ const Battle = () => {
     setErrorMessage,
     showAlert,
     setShowAlert,
-    playerData,
-    fetchPlayerData,
     battleIsOver,
     setBattleIsOver,
     damagedPlayers,
+    shouldPollPlayerData,
+    setShouldPollPlayerData,
   } = useGlobalContext();
 
   const player1Ref = useRef();
   const player2Ref = useRef();
+  const playerIntRef = useRef();
 
   const [state, setState] = useState({
-    player1: {},
-    player2: {},
+    player1: { ...Player },
+    player2: { ...Player },
     playersLoaded: false,
     character: null,
     p1InitHP: null,
     p2InitHP: null,
     battleId: null,
   });
+
+  const getCoords = (cardRef) => {
+    if (cardRef.current) {
+      const { left, top, width, height } =
+        cardRef.current.getBoundingClientRect();
+      return {
+        pageX: left + width / 2,
+        pageY: top + height / 2.25,
+      };
+    }
+    return null;
+  };
 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -67,22 +89,136 @@ const Battle = () => {
 
   const { contract: battleTWContract } = useContract(battleContractAddress);
 
-  useEffect(() => {
-    if (battleIsOver) {
-      // replace with actual condition
-      // Fetch battle summary from blockchain
-      const fetchSummary = async () => {
-        const summary = await battleTWContract.call("getBattleSummary", [
-          state.battleId,
-        ]);
-        setBattleSummary(summary);
-        setIsModalOpen(true);
-        setBattleIsOver(false);
+  const [playerData, setPlayerData] = useState({
+    player1Data: null,
+    player2Data: null,
+  });
+
+  const fetchPlayerDataAndEffects = async (battleId, playerAddress) => {
+    const playerDatas = await battleContract.getCharacterProxy(
+      battleId,
+      playerAddress
+    );
+    const playerEffects = await battleContract.getCharacterProxyActiveEffects(
+      battleId,
+      playerAddress
+    );
+
+    return {
+      ...playerDatas,
+      activeEffectIds: playerEffects[0],
+      activeEffectDurations: playerEffects[1],
+    };
+  };
+  const fetchSummary = async () => {
+    const summary = await battleTWContract.call("getBattleSummary", [
+      state.battleId,
+    ]);
+    setBattleSummary(summary);
+    setIsModalOpen(true);
+    setBattleIsOver(false);
+  };
+
+  const fetchPlayerData = async () => {
+    if (gameData.activeBattle && battleContract) {
+      let player01Address = null;
+      let player02Address = null;
+      if (
+        gameData.activeBattle.players[0].toLowerCase() ===
+        walletAddress.toLowerCase()
+      ) {
+        player01Address = gameData.activeBattle.players[0];
+        player02Address = gameData.activeBattle.players[1];
+      } else {
+        player01Address = gameData.activeBattle.players[1];
+        player02Address = gameData.activeBattle.players[0];
+      }
+
+      const [player1Data, player2Data] = await Promise.all([
+        fetchPlayerDataAndEffects(
+          gameData.activeBattle.battleId,
+          player01Address
+        ),
+        fetchPlayerDataAndEffects(
+          gameData.activeBattle.battleId,
+          player02Address
+        ),
+      ]);
+
+      const playerDataWithEffects = {
+        player1Data: player1Data,
+        player2Data: player2Data,
       };
 
-      fetchSummary();
+      // Check if the player data has changed
+      if (
+        JSON.stringify(playerData.player1Data) !==
+          JSON.stringify(playerDataWithEffects.player1Data) ||
+        JSON.stringify(playerData.player2Data) !==
+          JSON.stringify(playerDataWithEffects.player2Data)
+      ) {
+        // If the player data has changed, update the state
+        setShouldPollPlayerData(false);
+
+        // Clear the interval
+        if (playerIntRef.current) {
+          clearInterval(playerIntRef.current);
+          playerIntRef.current = null;
+        }
+
+        setPlayerData(playerDataWithEffects);
+
+        // Run the effect
+        if (damagedPlayers && damagedPlayers.length > 0) {
+          damagedPlayers.forEach((player, i) => {
+            if (player && player !== emptyAccount) {
+              if (player.toLowerCase() === walletAddress.toLowerCase()) {
+                const coords = getCoords(player1Ref);
+                if (coords) {
+                  sparcle(coords);
+                }
+              } else if (player.toLowerCase() !== walletAddress.toLowerCase()) {
+                const coords = getCoords(player2Ref);
+                if (coords) {
+                  sparcle(coords);
+                }
+              }
+            } else {
+              playAudio(defenseSound);
+            }
+          });
+        }
+        if (battleIsOver) {
+          fetchSummary();
+        }
+      }
     }
-  }, [battleIsOver]);
+  };
+
+  // Inside your component
+  useEffect(() => {
+    // Call fetchPlayerData once on mount or when shouldPollPlayerData or gameData changes
+    fetchPlayerData();
+
+    if (shouldPollPlayerData) {
+      // Start polling
+      playerIntRef.current = setInterval(fetchPlayerData, 5000);
+    }
+
+    return () => {
+      // Stop polling
+      if (playerIntRef.current) {
+        clearInterval(playerIntRef.current);
+        playerIntRef.current = null;
+      }
+    };
+  }, [
+    shouldPollPlayerData,
+    gameData, // Add gameData as a dependency
+    battleContract,
+    gameData.activeBattle,
+    walletAddress,
+  ]);
 
   useEffect(() => {
     if (playerData.player1Data && playerData.player2Data) {
@@ -101,6 +237,7 @@ const Battle = () => {
 
       const newState = {
         player1: {
+          ...Player,
           att: player01.attack.toNumber(),
           def: player01.defense.toNumber(),
           health: player01.health.toNumber(),
@@ -110,6 +247,7 @@ const Battle = () => {
           activeEffectDurations: player01.activeEffectDurations,
         },
         player2: {
+          ...Player,
           att: "X",
           def: "X",
           health: player02.health.toNumber(),
@@ -152,42 +290,6 @@ const Battle = () => {
     }
   }, [state]);
 
-  // useEffect(() => {
-  //   const timer = setTimeout(() => {
-  //     if (!gameData?.activeBattle) {
-  //       console.log("No active battle found");
-  //       navigate("/create-battle");
-  //     }
-  //   }, [20000]);
-
-  //   return () => clearTimeout(timer);
-  // }, [battleContract, gameData, gameData.activeBattle]);
-
-  //* Get battle card coordinates
-  const getCoords = (cardRef) => {
-    const { left, top, width, height } =
-      cardRef.current.getBoundingClientRect();
-
-    return {
-      pageX: left + width / 2,
-      pageY: top + height / 2.25,
-    };
-  };
-
-  useEffect(() => {
-    damagedPlayers.forEach((player, i) => {
-      if (player !== emptyAccount) {
-        if (player.toLowerCase() === walletAddress.toLowerCase()) {
-          sparcle(getCoords(player1Ref));
-        } else if (player.toLowerCase() !== walletAddress.toLowerCase()) {
-          sparcle(getCoords(player2Ref));
-        }
-      } else {
-        playAudio(defenseSound);
-      }
-    });
-  }, [damagedPlayers]);
-
   const makeAMove = async (choice, skillId) => {
     playAudio(choice === 0 ? attackSound : choice === 1 ? defenseSound : null);
 
@@ -199,7 +301,7 @@ const Battle = () => {
       );
 
       await moveTx.wait();
-      fetchPlayerData();
+      // fetchPlayerData();
 
       setShowAlert({
         status: true,
@@ -305,7 +407,6 @@ const Battle = () => {
           />
 
           <GameInfo id={state.battleId} />
-          {/* <BattleLog battleId={state.battleId.toNumber()} /> */}
         </>
       )}
       <BattleSummaryModal
