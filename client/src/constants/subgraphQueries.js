@@ -37,20 +37,41 @@ export const GET_PLAYERS = gql`
 
 export const GET_CHARACTERS = gql`
   query {
-    characters {
+    players(first: 10) {
       id
+    }
+    characters(first: 10) {
+      id
+      statPoints
+      stamina
+      strength
       totalDamageDealt
       totalDamageTaken
-      owner {
+      typeId
+      vitality
+      wins
+      maxMana
+      mana
+      losses
+      level
+      lastStaminaUpdateTime
+      lastManaUpdateTime
+      intelligence
+      health
+      experience
+      dexterity
+      defense
+      attack
+      accuracy
+    }
+  }
+`;
+
+export const GET_MOVE = gql`
+  query {
+    moves(first: 1) {
+      player {
         id
-      }
-      battles {
-        id
-        name
-        status
-        winner {
-          id
-        }
       }
     }
   }

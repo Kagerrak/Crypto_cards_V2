@@ -5,7 +5,6 @@ import {
   useContract,
   useContractRead,
 } from "@thirdweb-dev/react";
-import { useQuery } from "@apollo/client";
 
 import { characterContractAddress } from "../contract";
 import styles from "../styles";
@@ -18,7 +17,6 @@ import {
   Loader,
   NftItem,
 } from "../components";
-import { GET_BATTLES } from "../constants";
 
 const CreateBattle = () => {
   const {
@@ -35,13 +33,13 @@ const CreateBattle = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const { loading, error, data } = useQuery(GET_BATTLES);
+  // const { loading, error, data } = useQuery(GET_BATTLES);
 
-  useEffect(() => {
-    if (!loading && !error) {
-      console.log(data);
-    }
-  }, [data]);
+  // useEffect(() => {
+  //   if (!loading && !error) {
+  //     console.log(data);
+  //   }
+  // }, [data]);
 
   const { contract: charContract, isLoading: charLoad } = useContract(
     characterContractAddress
@@ -50,7 +48,7 @@ const CreateBattle = () => {
   const { data: ownedNfts } = useOwnedNFTs(charContract, walletAddress);
 
   useEffect(() => {
-    if (!walletAddress) navigate("/");
+    if (!walletAddress || !characterContract) navigate("/");
 
     const checkPlayer = async () => {
       const hasCharacter = await characterContract.balanceOf(walletAddress);
@@ -59,7 +57,9 @@ const CreateBattle = () => {
       }
     };
 
-    checkPlayer();
+    if (characterContract) {
+      checkPlayer();
+    }
 
     console.log(
       "gameData?.activeBattle?",
@@ -71,13 +71,26 @@ const CreateBattle = () => {
     } else if (gameData?.activeBattle?.battleStatus === 1) {
       navigate(`/battle/${gameData.activeBattle.name}`);
     }
-  }, [gameData, walletAddress]);
+  }, [gameData, walletAddress, characterContract]);
 
   useEffect(() => {
     if (Array.isArray(ownedNfts) && ownedNfts.length === 1) {
       setSelectedTokenID(ownedNfts[0].metadata.id);
     }
   }, [ownedNfts]);
+
+  useEffect(() => {
+    if (gameData) {
+      if (gameData.activeBattle && gameData.activeBattle.battleStatus === 1) {
+        console.log(
+          "Navigating to battle from Home:",
+          gameData.activeBattle.name
+        );
+        console.log("navigatinf to battle from useEffect CreateBattle");
+        navigate(`/battle/${gameData.activeBattle.name}`);
+      }
+    }
+  }, [gameData, navigate, battleContract]);
 
   let content;
   if (charLoad) {

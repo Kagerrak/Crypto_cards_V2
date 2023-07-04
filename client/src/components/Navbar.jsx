@@ -105,7 +105,7 @@ const Navbar = () => {
                     Colosseum (All Battles)
                   </a>
                 </li>
-                <li>
+                {/* <li>
                   <a
                     onClick={() => navigate("/battle-history")}
                     href={undefined}
@@ -117,7 +117,7 @@ const Navbar = () => {
                   >
                     Battle History
                   </a>
-                </li>
+                </li> */}
                 <li>
                   <a
                     onClick={() => navigate("/recruitment-guild")}

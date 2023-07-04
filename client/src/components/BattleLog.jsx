@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useContract } from "@thirdweb-dev/react";
+import { useContract, useContractEvents } from "@thirdweb-dev/react";
 import { battleContractAddress } from "../contract";
 import { useGlobalContext } from "../context";
 
@@ -9,9 +9,24 @@ const BattleLog = ({ battleId }) => {
   const { walletAddress } = useGlobalContext();
 
   const { contract: battleTWContract } = useContract(battleContractAddress);
+  const {
+    data: events,
+    isLoading,
+    error,
+  } = useContractEvents(battleTWContract, null, {
+    queryFilter: {
+      filters: {
+        battleId: ID,
+      },
+      fromBlock: 37205857,
+      order: "asc",
+    },
+    subscribe: true,
+  });
   const endOfLogRef = React.useRef(null);
 
   const formatEvent = (event) => {
+    console.log(event.data);
     const moveMap = {
       0: "attacking",
       1: "defending",
@@ -33,9 +48,10 @@ const BattleLog = ({ battleId }) => {
     let text = "";
     switch (event.eventName) {
       case "RoundEnded": {
+        console.log(event.data);
         const { damagedPlayers, damageDealt, round } = event.data;
-        const player1Damage = damageDealt[0];
-        const player2Damage = damageDealt[1];
+        const player1Damage = damageDealt[0].toNumber();
+        const player2Damage = damageDealt[1].toNumber();
         text = `Round ${round} ended. ${getPlayerNumber(
           damagedPlayers[0]
         )} dealt ${player1Damage} damage. ${getPlayerNumber(
@@ -106,92 +122,33 @@ const BattleLog = ({ battleId }) => {
   };
 
   useEffect(() => {
-    // Check if battleTWContract and battleTWContract.events are defined
-    if (!battleTWContract || !battleTWContract.events) {
+    console.log(events);
+  }, [events]);
+
+  useEffect(() => {
+    if (!events || isLoading || error) {
       return;
     }
 
-    const fetchEvents = async () => {
-      const moveSubmittedEvents = await battleTWContract.events.getEvents(
-        "MoveSubmitted",
-        {
-          filters: {
-            battleId: ID,
-          },
-        }
-      );
+    const allEvents = events.filter((event) => event.data.battleId.eq(ID));
 
-      const roundEndedEvents = await battleTWContract.events.getEvents(
-        "RoundEnded",
-        {
-          filters: {
-            battleId: ID,
-          },
-        }
-      );
+    // Sort the events
+    allEvents.sort((a, b) => {
+      // Sort by blockNumber first
+      const blockNumberDiff =
+        a.transaction.blockNumber - b.transaction.blockNumber;
+      if (blockNumberDiff !== 0) {
+        return blockNumberDiff;
+      }
 
-      const diceRolledEvents = await battleTWContract.events.getEvents(
-        "DiceRolled",
-        {
-          filters: {
-            battleId: ID,
-          },
-        }
-      );
-      const statusEffectAppliedEvents = await battleTWContract.events.getEvents(
-        "StatusEffectApplied",
-        {
-          filters: {
-            battleId: ID,
-          },
-        }
-      );
+      // If blockNumber is the same, sort by logIndex
+      return a.transaction.logIndex - b.transaction.logIndex;
+    });
 
-      const statusEffectResolvedEvents =
-        await battleTWContract.events.getEvents("StatusEffectResolved", {
-          filters: {
-            battleId: ID,
-          },
-        });
-
-      const skillExecutedEvents = await battleTWContract.events.getEvents(
-        "SkillExecuted",
-        {
-          filters: {
-            battleId: ID,
-          },
-        }
-      );
-
-      // Combine and sort the events
-      const allEvents = [
-        ...moveSubmittedEvents,
-        ...roundEndedEvents,
-        ...diceRolledEvents,
-        ...statusEffectAppliedEvents,
-        ...statusEffectResolvedEvents,
-        ...skillExecutedEvents,
-      ];
-
-      allEvents.sort((a, b) => {
-        // Sort by blockNumber first
-        const blockNumberDiff =
-          a.transaction.blockNumber - b.transaction.blockNumber;
-        if (blockNumberDiff !== 0) {
-          return blockNumberDiff;
-        }
-
-        // If blockNumber is the same, sort by logIndex
-        return a.transaction.logIndex - b.transaction.logIndex;
-      });
-
-      // Format the events and set the battleLog state
-      const formattedEvents = allEvents.map(formatEvent);
-      setBattleLog(formattedEvents);
-    };
-
-    fetchEvents();
-  }, [ID, battleTWContract, battleLog]);
+    // Format the events and set the battleLog state
+    const formattedEvents = allEvents.map(formatEvent);
+    setBattleLog(formattedEvents);
+  }, [ID, isLoading, error, events]);
 
   useEffect(() => {
     endOfLogRef.current?.scrollIntoView({ behavior: "smooth" });
