@@ -121,6 +121,25 @@ export const createEventListeners = async ({
   // MoveSubmitted event listener
   battleContract.events.addEventListener("MoveSubmitted", (event) => {
     console.log("Battle move initiated!", event);
+    const { move, player } = event.data;
+
+    let message;
+    if (player.toLowerCase() !== walletAddress.toLowerCase()) {
+      message = `Opponent initiating ${
+        move === 0 ? "attack" : move === 1 ? "defense" : "skill"
+      }`;
+    } else {
+      message = `Initiating ${
+        move === 0 ? "attack" : move === 1 ? "defense" : "skill"
+      }`;
+    }
+
+    setShowAlert({
+      status: true,
+      type: "info",
+      message,
+    });
+
     fetchMove();
   });
 

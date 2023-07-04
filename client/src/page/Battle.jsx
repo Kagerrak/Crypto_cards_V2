@@ -302,14 +302,6 @@ const Battle = () => {
 
       await moveTx.wait();
       // fetchPlayerData();
-
-      setShowAlert({
-        status: true,
-        type: "info",
-        message: `Initiating ${
-          choice === 0 ? "attack" : choice === 1 ? "defense" : "skill"
-        }`,
-      });
     } catch (error) {
       setErrorMessage(error);
     }
