@@ -1765,10 +1765,10 @@
   "resolved" "https://registry.npmjs.org/@thirdweb-dev/chains/-/chains-0.1.10.tgz"
   "version" "0.1.10"
 
-"@thirdweb-dev/chains@0.1.25":
-  "integrity" "sha512-srtH0L6FpwY44SclrUbRlkjiLfRBnVIvnAGA+/jh3rGzOjdXVpSftABd/ROxLGtEDvoTD4bhPKCWus9x8EzgIw=="
-  "resolved" "https://registry.npmjs.org/@thirdweb-dev/chains/-/chains-0.1.25.tgz"
-  "version" "0.1.25"
+"@thirdweb-dev/chains@0.1.26":
+  "integrity" "sha512-+PjKn5bmg8Ua8OR+RwqnrGrQrYDvshv85EKvttnTqJmCdsvWMsPY2XXuDSpqg5ovKqgSYXgdw+dMEpyZKiZrXw=="
+  "resolved" "https://registry.npmjs.org/@thirdweb-dev/chains/-/chains-0.1.26.tgz"
+  "version" "0.1.26"
 
 "@thirdweb-dev/contracts-js@1.3.2":
   "integrity" "sha512-IbT7Lk6qBFbdwLl2z5OYr6kcAHzqz4iSp4URUN8J9ap8eJZgWqPO6HuvNAmnAyfDOZYRY7WhvBK9Am3ii9DqzQ=="
@@ -1838,12 +1838,12 @@
     "react-qr-code" "^2.0.11"
     "tiny-invariant" "^1.2.0"
 
-"@thirdweb-dev/sdk@^3.10.26", "@thirdweb-dev/sdk@^3.10.7":
-  "integrity" "sha512-IAMBVQN07FqKPG9g1wWs2zG8wZVr7V8wDVUbtq6sJMIzz/KZB/tYFbWSRCmByw3liA5S+XPKAQWcwFoNJefyDA=="
-  "resolved" "https://registry.npmjs.org/@thirdweb-dev/sdk/-/sdk-3.10.26.tgz"
-  "version" "3.10.26"
+"@thirdweb-dev/sdk@^3.10.27", "@thirdweb-dev/sdk@^3.10.7":
+  "integrity" "sha512-VvB/fhwnjvQvcbnK8i/U1bHnNkksHUCFjfSZ9xumTzrjEcHPCrx25speCndTsnghoPHElwW1ldiAZoYCdEEKYw=="
+  "resolved" "https://registry.npmjs.org/@thirdweb-dev/sdk/-/sdk-3.10.27.tgz"
+  "version" "3.10.27"
   dependencies:
-    "@thirdweb-dev/chains" "0.1.25"
+    "@thirdweb-dev/chains" "0.1.26"
     "@thirdweb-dev/contracts-js" "1.3.7"
     "@thirdweb-dev/generated-abis" "0.0.1"
     "@thirdweb-dev/storage" "1.1.5"
