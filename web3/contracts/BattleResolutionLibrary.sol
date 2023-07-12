@@ -7,16 +7,18 @@ library BattleResolutionLibrary {
     using StructsLibrary for StructsLibrary.BattleData;
     using StructsLibrary for StructsLibrary.CharacterProxy;
 
-    function handleMoves(
+    function handleDefend(
         StructsLibrary.BattleData storage battle,
         StructsLibrary.CharacterProxy storage proxyA,
         StructsLibrary.CharacterProxy storage proxyB
     ) internal {
         if (battle.moves[0] == uint256(StructsLibrary.Move.DEFEND)) {
             proxyA.stats.mana += 3;
+            battle.battleStats.manaRegenerated[0] += 3;
         }
         if (battle.moves[1] == uint256(StructsLibrary.Move.DEFEND)) {
             proxyB.stats.mana += 3;
+            battle.battleStats.manaRegenerated[1] += 3;
         }
     }
 
@@ -108,20 +110,7 @@ library BattleResolutionLibrary {
                 proxyB
             );
         }
-        // Player 1 defends, player 2 uses skill
-        else if (
-            moveA == uint256(StructsLibrary.Move.DEFEND) &&
-            moveB == uint256(StructsLibrary.Move.USE_SKILL)
-        ) {
-            (damageDealt, damagedPlayers) = handleDefendSkill(proxyA);
-        }
-        // Player 1 uses skill, player 2 defends
-        else if (
-            moveA == uint256(StructsLibrary.Move.USE_SKILL) &&
-            moveB == uint256(StructsLibrary.Move.DEFEND)
-        ) {
-            (damageDealt, damagedPlayers) = handleSkillDefend(proxyB);
-        }
+
         return (damageDealt, damagedPlayers);
     }
 
@@ -153,6 +142,7 @@ library BattleResolutionLibrary {
         return (damageDealt, damagedPlayers);
     }
 
+    // Player 1 attacks, player 2 defends
     function handleAttackDefend(
         StructsLibrary.BattleData storage battle,
         StructsLibrary.CharacterProxy storage proxyA,
@@ -174,9 +164,9 @@ library BattleResolutionLibrary {
                 : 0;
             damagedPlayers[0] = battle.players[1];
             damageDealt[0] = damage;
+            battle.battleStats.damageReduced[1] += proxyB.stats.defense; // Update damageReduced for player 2
         }
         proxyA.stats.mana -= 3;
-        proxyB.stats.mana += 3;
         return (damageDealt, damagedPlayers);
     }
 
@@ -202,8 +192,8 @@ library BattleResolutionLibrary {
                 : 0;
             damagedPlayers[0] = battle.players[0];
             damageDealt[1] = damage;
+            battle.battleStats.damageReduced[0] += proxyA.stats.defense; // Update damageReduced for player 1
         }
-        proxyA.stats.mana += 3;
         proxyB.stats.mana -= 3;
         return (damageDealt, damagedPlayers);
     }
@@ -295,34 +285,6 @@ library BattleResolutionLibrary {
         damagedPlayers[0] = battle.players[0];
         damageDealt[1] = damageB;
         attacker.stats.mana -= 3;
-        return (damageDealt, damagedPlayers);
-    }
-
-    function handleDefendSkill(
-        StructsLibrary.CharacterProxy storage defender
-    )
-        internal
-        returns (
-            uint256[2] memory damageDealt,
-            address[2] memory damagedPlayers
-        )
-    {
-        damageDealt = [uint256(0), uint256(0)]; // Initialize to zeros
-        defender.stats.mana += 3;
-        return (damageDealt, damagedPlayers);
-    }
-
-    function handleSkillDefend(
-        StructsLibrary.CharacterProxy storage defender
-    )
-        internal
-        returns (
-            uint256[2] memory damageDealt,
-            address[2] memory damagedPlayers
-        )
-    {
-        damageDealt = [uint256(0), uint256(0)]; // Initialize to zeros
-        defender.stats.mana += 3;
         return (damageDealt, damagedPlayers);
     }
 }
