@@ -161,7 +161,22 @@ export const GlobalContextProvider = ({ children }) => {
 
     if (battleContract) {
       try {
-        const activeBattlesId = await battleContract.getActiveBattlesId();
+        let activeBattlesId;
+        let retries = 3;
+        while (retries) {
+          try {
+            activeBattlesId = await battleContract.getActiveBattlesId();
+            break;
+          } catch (e) {
+            if (retries === 1) throw e; // If it's the last retry, throw the error
+            retries--;
+            console.warn(
+              `Error fetching active battles id. Retries left: ${retries}`
+            );
+            await new Promise((r) => setTimeout(r, 2000)); // wait for 2 seconds before the next retry
+          }
+        }
+
         const fetchedBattles = await Promise.all(
           activeBattlesId.map((id) => battleContract.getBattle(id))
         );
@@ -208,7 +223,14 @@ export const GlobalContextProvider = ({ children }) => {
         });
       } catch (error) {
         console.error("Error fetching game data:", error);
-        // You can handle the error here, for example by showing an error message to the user
+        setErrorMessage(`Error fetching game data: ${error.message}`);
+
+        // Show an alert with the error message
+        setShowAlert({
+          status: true,
+          type: "failure",
+          message: `Error fetching game data: ${error.message}`,
+        });
       }
     }
   };
