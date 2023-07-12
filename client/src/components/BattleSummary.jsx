@@ -18,7 +18,12 @@ const BattleSummaryModal = ({ isOpen, onRequestClose, battleSummary }) => {
   }
 
   const isWinner =
-    battleSummary.winner.toLowerCase() === walletAddress.toLowerCase();
+    walletAddress.toLowerCase() === battleSummary.winner.toLowerCase();
+  const isLoser =
+    walletAddress.toLowerCase() === battleSummary.loser.toLowerCase();
+
+  const isPlayerOne =
+    walletAddress.toLowerCase() === battleSummary.players[0].toLowerCase();
 
   return (
     <Modal
@@ -36,26 +41,106 @@ const BattleSummaryModal = ({ isOpen, onRequestClose, battleSummary }) => {
           <table className="table-auto w-full text-center z-100 text-lg whitespace-no-wrap opacity-100">
             <thead>
               <tr>
-                <th className="px-4 py-2"></th>
-                <th className="px-4 py-2">Player 1</th>
-                <th className="px-4 py-2">Player 2</th>
+                <th className="px-4 py-2">Metric</th>
+                <th className="px-4 py-2">You</th>
+                <th className="px-4 py-2">Opponent</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>Damage Taken</td>
-                <td>{battleSummary.damageTaken[0].toNumber()}</td>
-                <td>{battleSummary.damageTaken[1].toNumber()}</td>
+                <td>Battle Ended @ Round</td>
+                <td colSpan={2}>{battleSummary.round}</td>
               </tr>
               <tr>
                 <td>Damage Dealt</td>
-                <td>{battleSummary.damageDealt[0].toNumber()}</td>
-                <td>{battleSummary.damageDealt[1].toNumber()}</td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.damageDealt[0]
+                    : battleSummary.damageDealt[1]}
+                </td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.damageDealt[1]
+                    : battleSummary.damageDealt[0]}
+                </td>
               </tr>
               <tr>
-                <td>Mana Consumed</td>
-                <td>{battleSummary.manaConsumed[0].toNumber()}</td>
-                <td>{battleSummary.manaConsumed[1].toNumber()}</td>
+                <td>Damage Taken</td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.damageTaken[0]
+                    : battleSummary.damageTaken[1]}
+                </td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.damageTaken[1]
+                    : battleSummary.damageTaken[0]}
+                </td>
+              </tr>
+              <tr>
+                <td>Damage Reduced</td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.damageReduced[0]
+                    : battleSummary.damageReduced[1]}
+                </td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.damageReduced[1]
+                    : battleSummary.damageReduced[0]}
+                </td>
+              </tr>
+              <tr>
+                <td>Health Regenerated</td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.healthRegenerated[0]
+                    : battleSummary.healthRegenerated[1]}
+                </td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.healthRegenerated[1]
+                    : battleSummary.healthRegenerated[0]}
+                </td>
+              </tr>
+              <tr>
+                <td>Mana Regenerated</td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.manaRegenerated[0]
+                    : battleSummary.manaRegenerated[1]}
+                </td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.manaRegenerated[1]
+                    : battleSummary.manaRegenerated[0]}
+                </td>
+              </tr>
+              <tr>
+                <td>EXP Received</td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.expReceived[0]
+                    : battleSummary.expReceived[1]}
+                </td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.expReceived[1]
+                    : battleSummary.expReceived[0]}
+                </td>
+              </tr>
+              <tr>
+                <td>League Battle Points Earned</td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.leaguePointsEarned[0]
+                    : battleSummary.leaguePointsEarned[1]}
+                </td>
+                <td>
+                  {isPlayerOne
+                    ? battleSummary.leaguePointsEarned[1]
+                    : battleSummary.leaguePointsEarned[0]}
+                </td>
               </tr>
               <tr>
                 <td className="border px-4 py-2">Result</td>
@@ -71,11 +156,12 @@ const BattleSummaryModal = ({ isOpen, onRequestClose, battleSummary }) => {
                     isWinner ? "text-red-500" : "text-green-500 font-bold"
                   }`}
                 >
-                  {isWinner ? "Loser" : "Winner"}
+                  {isLoser ? "Winner" : "Loser"}
                 </td>
               </tr>
             </tbody>
           </table>
+
           <button
             className={`text-white text-xl ${
               isWinner
