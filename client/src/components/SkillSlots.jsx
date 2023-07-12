@@ -89,18 +89,15 @@ const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
     <div className="mt-4">
       <p>Equipped Skills</p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-        {
-          (console.log(equippedSkills),
-          equippedSkills.map((skillId, index) => (
-            <SkillSlot
-              key={index}
-              index={index}
-              skillId={skillId}
-              contract={skillTWContract}
-              handleUnequip={handleUnequipSkill}
-            />
-          )))
-        }
+        {equippedSkills.map((skillId, index) => (
+          <SkillSlot
+            key={index}
+            index={index}
+            skillId={skillId}
+            contract={skillTWContract}
+            handleUnequip={handleUnequipSkill}
+          />
+        ))}
       </div>
     </div>
   );
