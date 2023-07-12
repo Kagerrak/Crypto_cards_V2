@@ -92,7 +92,7 @@ function exolpodeGroup(x, y, trans) {
   return $container;
 }
 
-export function sparcle(event) {
+export function sparcle(event, callback) {
   const explosions = [];
 
   explosions.push(
@@ -120,6 +120,10 @@ export function sparcle(event) {
     explosions.forEach((boum, i) => {
       setTimeout(() => {
         document.body.appendChild(boum);
+        if (i === explosions.length - 1) {
+          // Add the AnimationEnd event listener to the last explosion
+          prefixedEvent(boum, "AnimationEnd", callback);
+        }
       }, i * 100);
     });
   });
