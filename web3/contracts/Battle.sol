@@ -17,7 +17,7 @@ contract Battle is Ownable {
     AggregatorV3Interface internal priceFeed;
     uint256 public feeCollected; // variable to track fee
     uint256 public leagueRewards; // variable to track league rewards
-    uint256 public staminaCost = 25;
+    uint256 public staminaCost = 10;
 
     using BattleResolutionLibrary for StructsLibrary.BattleData;
     using BattleResolutionLibrary for StructsLibrary.CharacterProxy;
@@ -80,6 +80,13 @@ contract Battle is Ownable {
         StructsLibrary.Move move,
         uint256 round
     );
+    event HealthUpdated(
+        uint256 indexed battleId,
+        address indexed player1,
+        uint256 health1,
+        address indexed player2,
+        uint256 health2
+    );
     event DiceRolled(
         uint256 indexed battleId,
         address indexed player,
@@ -90,10 +97,10 @@ contract Battle is Ownable {
         uint256 indexed battleId,
         uint256 round,
         address indexed player,
-        uint256 skillId,
         string skillName,
         uint256 totalDamage
     );
+
     event StatusEffectApplied(
         uint256 indexed battleId,
         uint256 round,
@@ -217,7 +224,12 @@ contract Battle is Ownable {
                 initialHealth: [uint256(0), uint256(0)],
                 initialMana: [uint256(0), uint256(0)],
                 totalDamageDealt: [uint256(0), uint256(0)],
-                totalDamageTaken: [uint256(0), uint256(0)]
+                totalDamageTaken: [uint256(0), uint256(0)],
+                damageReduced: [uint256(0), uint256(0)], // New field
+                healthRegenerated: [uint256(0), uint256(0)], // New field
+                manaRegenerated: [uint256(0), uint256(0)], // New field
+                expReceived: [uint256(0), uint256(0)], // New field
+                leagueBattlePointsEarned: [uint256(0), uint256(0)] // New field
             }),
             moveSubmitted: [false, false],
             round: 1
@@ -438,12 +450,12 @@ contract Battle is Ownable {
         }
 
         // Handle moves
-        battle.handleMoves(proxyA, proxyB);
+        battle.handleDefend(proxyA, proxyB);
 
         // Handle ATTACK logic in a new separate function.
         if (
-            battle.moves[0] != uint256(StructsLibrary.Move.USE_SKILL) &&
-            battle.moves[1] != uint256(StructsLibrary.Move.USE_SKILL)
+            !(battle.moves[0] == uint256(StructsLibrary.Move.USE_SKILL) &&
+                battle.moves[1] == uint256(StructsLibrary.Move.USE_SKILL))
         ) {
             (damageDealt, damagedPlayers) = battle.handleAttackLogic(
                 proxyA,
@@ -550,6 +562,9 @@ contract Battle is Ownable {
             totalDamage = rawDamage > opponent.stats.defense
                 ? rawDamage - opponent.stats.defense
                 : 0;
+            battles[battleId].battleStats.damageReduced[
+                opponent.owner == battles[battleId].players[0] ? 0 : 1
+            ] += rawDamage - totalDamage; // Update damageReduced for the opponent
         }
 
         address damagedPlayer = address(0);
@@ -696,6 +711,10 @@ contract Battle is Ownable {
         if (battleFought) {
             characterContract.gainXP(battle.characterIds[winnerIndex], 100);
             characterContract.gainXP(battle.characterIds[loserIndex], 30);
+
+            // Update expReceived field
+            battle.battleStats.expReceived[winnerIndex] = 100;
+            battle.battleStats.expReceived[loserIndex] = 30;
         }
 
         // Emit the updated BattleEnded event
@@ -754,49 +773,6 @@ contract Battle is Ownable {
 
     function getActiveBattlesCount() external view returns (uint256) {
         return activeBattlesId.length;
-    }
-
-    function getBattleSummary(
-        uint256 _battleId
-    )
-        public
-        view
-        returns (
-            uint256 round,
-            uint256[2] memory damageTaken,
-            uint256[2] memory damageDealt,
-            uint256[2] memory manaConsumed,
-            address winner,
-            address loser
-        )
-    {
-        StructsLibrary.BattleData storage battle = battles[_battleId];
-
-        round = battle.round;
-        damageTaken = battle.battleStats.totalDamageTaken;
-        damageDealt = battle.battleStats.totalDamageDealt;
-
-        address player1 = battle.players[0];
-        address player2 = battle.players[1];
-
-        uint256 initialManaPlayer1 = battle.battleStats.initialMana[0];
-        uint256 initialManaPlayer2 = battle.battleStats.initialMana[1];
-
-        uint256 usedManaPlayer1 = initialManaPlayer1 -
-            characterProxies[keccak256(abi.encodePacked(_battleId, player1))][
-                player1
-            ].stats.mana;
-        uint256 usedManaPlayer2 = initialManaPlayer2 -
-            characterProxies[keccak256(abi.encodePacked(_battleId, player2))][
-                player2
-            ].stats.mana;
-
-        manaConsumed = [usedManaPlayer1, usedManaPlayer2];
-
-        winner = battle.winner;
-        loser = winner == player1 ? player2 : player1;
-
-        return (round, damageTaken, damageDealt, manaConsumed, winner, loser);
     }
 
     function getBattleParticipants(
