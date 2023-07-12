@@ -35,7 +35,12 @@ const client = new ApolloClient({
 ReactDOM.createRoot(document.getElementById("root")).render(
   <ErrorBoundary>
     <BrowserRouter>
-      <ThirdwebProvider activeChain="mumbai">
+      <ThirdwebProvider
+        activeChain="mumbai"
+        sdkOptions={{
+          gatewayUrls: ["https://w3s.link/ipfs/"],
+        }}
+      >
         <ApolloProvider client={client}>
           <GlobalContextProvider>
             <Navbar />
