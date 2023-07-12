@@ -48,6 +48,7 @@ import spell from "./spell.png";
 
 import Wizard from "./characters/Wizard.png";
 import Warrior from "./characters/Warrior.jpg";
+import Rogue from "./characters/Rogue.png";
 
 //
 import loader from "./loader.svg";
@@ -207,6 +208,26 @@ export const characters = [
     name: "WIZARD",
     characterType: 1,
     image: Wizard,
+    type: "Spells",
+    skillId: 1,
+    battle_icon: spell,
+    value: "Fireball",
+    icon: Fireball,
+    tooltip: "A starting level spell, but packs quite a punch.",
+    mana_cost: "+50 mana cost from regular attack.",
+    damage: 120,
+    effect: "Causes Burn for 1 turn",
+    attributes: {
+      health: 500,
+      mana: 200,
+      attack: 50,
+      defense: 50,
+    },
+  },
+  {
+    name: "ROGUE",
+    characterType: 2,
+    image: Rogue,
     type: "Spells",
     skillId: 1,
     battle_icon: spell,
