@@ -94,6 +94,8 @@ const Battle = () => {
     player2Data: null,
   });
 
+  const [isMoveSubmitted, setIsMoveSubmitted] = useState(false);
+
   const fetchPlayerDataAndEffects = async (battleId, playerAddress) => {
     const playerDatas = await battleContract.getCharacterProxy(
       battleId,
@@ -110,13 +112,71 @@ const Battle = () => {
       activeEffectDurations: playerEffects[1],
     };
   };
+
+  const animateAndSetData = async (
+    playerKey,
+    playerDataWithEffects,
+    ref,
+    delay
+  ) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const coords = getCoords(ref);
+        if (coords) {
+          sparcle(coords, () => {
+            // Here we update the specific player's data in the state
+            setPlayerData((prevState) => ({
+              ...prevState,
+              [playerKey]: playerDataWithEffects,
+            }));
+            console.log("Updated Player Data: ", playerData);
+            resolve();
+          });
+        } else {
+          resolve();
+        }
+      }, delay);
+    });
+  };
+
   const fetchSummary = async () => {
-    const summary = await battleTWContract.call("getBattleSummary", [
+    const rawSummary = await battleTWContract.call("getBattle", [
       state.battleId,
     ]);
-    setBattleSummary(summary);
-    setIsModalOpen(true);
-    setBattleIsOver(false);
+    console.log(rawSummary);
+
+    // Create a new object with only the properties you need
+    const summary = {
+      players: rawSummary.players,
+      round: rawSummary.round.toNumber(),
+      damageDealt: rawSummary.battleStats[2].map((x) => x.toNumber()),
+      damageTaken: rawSummary.battleStats[3].map((x) => x.toNumber()),
+      damageReduced: rawSummary.battleStats[4].map((x) => x.toNumber()),
+      healthRegenerated: rawSummary.battleStats[5].map((x) => x.toNumber()),
+      manaRegenerated: rawSummary.battleStats[6].map((x) => x.toNumber()),
+      expReceived: rawSummary.battleStats[7].map((x) => x.toNumber()),
+      leaguePointsEarned: rawSummary.battleStats[8].map((x) => x.toNumber()),
+      winner: rawSummary.winner,
+      loser:
+        rawSummary.players[0].toLowerCase() === rawSummary.winner.toLowerCase()
+          ? rawSummary.players[1]
+          : rawSummary.players[0],
+    };
+
+    if (walletAddress.toLowerCase() === summary.winner.toLowerCase()) {
+      setShowAlert({ status: true, type: "success", message: "You won!" });
+      console.log("You won!");
+    } else if (walletAddress.toLowerCase() === summary.loser.toLowerCase()) {
+      setShowAlert({ status: true, type: "failure", message: "You lost!" });
+      console.log("You lost!");
+    }
+
+    // Add a delay of 1 second before setting the battle summary
+    setTimeout(() => {
+      setBattleSummary(summary);
+      setIsModalOpen(true);
+      setBattleIsOver(false);
+    }, 1000);
   };
 
   const fetchPlayerData = async () => {
@@ -166,30 +226,62 @@ const Battle = () => {
           playerIntRef.current = null;
         }
 
-        setPlayerData(playerDataWithEffects);
-
-        // Run the effect
         if (damagedPlayers && damagedPlayers.length > 0) {
-          damagedPlayers.forEach((player, i) => {
-            if (player && player !== emptyAccount) {
-              if (player.toLowerCase() === walletAddress.toLowerCase()) {
-                const coords = getCoords(player1Ref);
-                if (coords) {
-                  sparcle(coords);
-                }
-              } else if (player.toLowerCase() !== walletAddress.toLowerCase()) {
-                const coords = getCoords(player2Ref);
-                if (coords) {
-                  sparcle(coords);
-                }
-              }
-            } else {
-              playAudio(defenseSound);
+          console.log(
+            "Condition Check: ",
+            damagedPlayers && damagedPlayers.length > 0
+          );
+
+          console.log("Damaged Players: ", damagedPlayers);
+
+          let delay = 0;
+          const delayIncrement = 1000;
+
+          // Animate and update the player 1 data
+          if (
+            damagedPlayers.includes(gameData.activeBattle.players[0]) &&
+            player1Data
+          ) {
+            await animateAndSetData(
+              "player1Data",
+              player1Data,
+              player1Ref,
+              delay
+            );
+            delay += delayIncrement;
+          }
+
+          // Animate and update the player 2 data
+          if (
+            damagedPlayers.includes(gameData.activeBattle.players[1]) &&
+            player2Data
+          ) {
+            await animateAndSetData(
+              "player2Data",
+              player2Data,
+              player2Ref,
+              delay
+            );
+            delay += delayIncrement;
+          }
+
+          if (isMoveSubmitted) {
+            setIsMoveSubmitted(false);
+          }
+
+          console.log("Before setPlayerData", playerData);
+          setPlayerData(playerDataWithEffects);
+          console.log("After setPlayerData", playerData);
+
+          setTimeout(() => {
+            // Add delay before fetching the summary
+            if (battleIsOver) {
+              fetchSummary();
             }
-          });
-        }
-        if (battleIsOver) {
-          fetchSummary();
+          }, 1000);
+        } else {
+          // If there are no damagedPlayers, set the player data immediately
+          setPlayerData(playerDataWithEffects);
         }
       }
     }
@@ -291,6 +383,7 @@ const Battle = () => {
   }, [state]);
 
   const makeAMove = async (choice, skillId) => {
+    setIsMoveSubmitted(true);
     playAudio(choice === 0 ? attackSound : choice === 1 ? defenseSound : null);
 
     try {
@@ -303,6 +396,7 @@ const Battle = () => {
       await moveTx.wait();
       // fetchPlayerData();
     } catch (error) {
+      setIsMoveSubmitted(false);
       setErrorMessage(error);
     }
   };
@@ -356,6 +450,7 @@ const Battle = () => {
                         imgUrl={skill.image}
                         handleClick={() => makeAMove(2, skillId)}
                         restStyles="ml-6 mt-6 hover:border-red-600"
+                        disabled={isMoveSubmitted}
                       />
                     );
                   })}
@@ -367,6 +462,7 @@ const Battle = () => {
                 imgUrl={attack}
                 handleClick={() => makeAMove(0, 999999)}
                 restStyles="mr-2 hover:border-yellow-400"
+                disabled={isMoveSubmitted}
               />
 
               <div className="relative">
@@ -388,6 +484,7 @@ const Battle = () => {
                 imgUrl={defense}
                 handleClick={() => makeAMove(1, 999999)}
                 restStyles="ml-6 hover:border-red-600"
+                disabled={isMoveSubmitted}
               />
             </div>
           </div>
