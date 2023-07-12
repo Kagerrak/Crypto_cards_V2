@@ -20,6 +20,11 @@ library StructsLibrary {
         uint256[2] initialMana; // Initial mana for each player's character
         uint256[2] totalDamageDealt;
         uint256[2] totalDamageTaken;
+        uint256[2] damageReduced; // New field
+        uint256[2] healthRegenerated; // New field
+        uint256[2] manaRegenerated; // New field
+        uint256[2] expReceived; // New field
+        uint256[2] leagueBattlePointsEarned; // New field
     }
 
     struct BattleData {
