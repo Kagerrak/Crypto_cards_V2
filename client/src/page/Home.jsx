@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { CustomButton, PageHOC, Loader } from "../components";
+import { characters } from "../assets";
 import { useGlobalContext } from "../context";
 
 const Home = () => {
@@ -13,6 +14,7 @@ const Home = () => {
     setErrorMessage,
   } = useGlobalContext();
   const [typeID, setTypeID] = useState(null);
+  const [charName, setCharName] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingGameData, setLoadingGameData] = useState(true);
 
@@ -30,7 +32,7 @@ const Home = () => {
       setShowAlert({
         status: true,
         type: "info",
-        message: `Character of type ${typeID} is being created!`,
+        message: `A ${charName} character is being created!`,
       });
 
       setTimeout(() => navigate("/create-battle"), 8000);
@@ -69,41 +71,44 @@ const Home = () => {
         {isLoading || loadingGameData ? (
           <Loader message="Creating Character... Please wait..." />
         ) : (
-          <div className="flex flex-col">
-            <div className="flex flex-col justify-between">
-              <label>
-                <input
-                  type="radio"
-                  name="characterType"
-                  value="0"
-                  onChange={(e) => setTypeID(parseInt(e.target.value))}
-                />
-                Warrior
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="characterType"
-                  value="1"
-                  onChange={(e) => setTypeID(parseInt(e.target.value))}
-                />
-                Mage
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="characterType"
-                  value="2"
-                  onChange={(e) => setTypeID(parseInt(e.target.value))}
-                />
-                Rogue
-              </label>
+          <div className="flex flex-col space-y-4">
+            <div className="flex space-x-4">
+              {characters.map((character) => (
+                <div
+                  key={character.characterType}
+                  className={`border-2 border-gray-400 rounded-lg overflow-hidden hover:border-blue-400 text-gray-300
+                    ${
+                      typeID === character.characterType
+                        ? "border-red-400 hover:border-red-400 animate-pulse "
+                        : ""
+                    }`}
+                  onClick={() => {
+                    setTypeID(
+                      typeID === character.characterType
+                        ? null
+                        : character.characterType
+                    );
+                    setCharName(
+                      charName === character.name ? null : character.name
+                    );
+                  }}
+                >
+                  <img
+                    src={character.image}
+                    alt={character.name}
+                    className="w-24 h-24 object-cover mx-auto"
+                  />
+                  <p className="p-4">{character.name}</p>
+                </div>
+              ))}
             </div>
-            <CustomButton
-              title="Create Character"
-              handleClick={handleClick}
-              restStyles="mt-6"
-            />
+            <div>
+              <CustomButton
+                title="Create Character"
+                handleClick={handleClick}
+                restStyles="mt-6"
+              />
+            </div>
           </div>
         )}
       </>
