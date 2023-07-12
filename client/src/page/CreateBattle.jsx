@@ -26,6 +26,7 @@ const CreateBattle = () => {
     setBattleName,
     setErrorMessage,
     walletAddress,
+    fetchGameData,
   } = useGlobalContext();
   const [waitBattle, setWaitBattle] = useState(false);
   const [battleTempName, setBattleTempName] = useState("");
@@ -110,7 +111,7 @@ const CreateBattle = () => {
     ));
   } else {
     content = (
-      <div className="text-center">
+      <div className="text-center text-gray-300">
         <p>You don't have a character!</p>
         <p>Create one and join the battle!</p>
       </div>
@@ -163,7 +164,13 @@ const CreateBattle = () => {
           restStyles="mt-6"
         />
       </div>
-      <p className={styles.infoText} onClick={() => navigate("/join-battle")}>
+      <p
+        className={styles.infoText}
+        onClick={() => {
+          fetchGameData();
+          navigate("/join-battle");
+        }}
+      >
         Or challenge another to join an already existing battle
       </p>
     </>
