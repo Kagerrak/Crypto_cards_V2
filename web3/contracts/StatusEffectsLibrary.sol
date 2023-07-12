@@ -76,11 +76,20 @@ library StatusEffectsLibrary {
         uint256 statusEffectId,
         uint256 duration
     ) internal {
+        // Check if the status effect is already active
+        for (uint256 i = 0; i < character.activeEffectIds.length; i++) {
+            if (character.activeEffectIds[i] == statusEffectId) {
+                // The status effect is already active, so we could either ignore the reapplication,
+                // replace the existing effect, or handle this situation differently according to your game logic
+
+                // Update the character's activeEffectDurations mapping with the new duration
+                character.activeEffectDurations[statusEffectId] = duration;
+                return;
+            }
+        }
+
         // Add the status effect to the character's activeEffectIds array
         character.activeEffectIds.push(statusEffectId);
-
-        // Update the character's activeEffectDurations mapping with the new duration
-        character.activeEffectDurations[statusEffectId] = duration;
     }
 
     function handleStatusEffectDamage(
