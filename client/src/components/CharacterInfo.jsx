@@ -70,7 +70,7 @@ const CharacterInfo = (props) => {
     <>
       {loading && <Loader message="Creating Character, Confirm transaction." />}
       <div
-        className={`${styles.characterInfoPopup} z-20 ${
+        className={`${styles.characterInfoPopup} z-10 ${
           props?.showInfo
             ? "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
             : "top-0 right-0 translate-x-full"
