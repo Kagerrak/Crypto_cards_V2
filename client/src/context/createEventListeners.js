@@ -7,18 +7,6 @@ import { playAudio, sparcle } from "../utils/animation.js";
 import { defenseSound } from "../assets";
 import { GET_MOVE } from "../constants/subgraphQueries";
 
-//* Get battle card coordinates
-const getCoords = (cardRef) => {
-  const { left, top, width, height } = cardRef.current.getBoundingClientRect();
-
-  return {
-    pageX: left + width / 2,
-    pageY: top + height / 2.25,
-  };
-};
-
-const emptyAccount = "0x0000000000000000000000000000000000000000";
-
 const client = new ApolloClient({
   uri: "https://api.studio.thegraph.com/query/37725/wiwa/version/latest",
   cache: new InMemoryCache(),
