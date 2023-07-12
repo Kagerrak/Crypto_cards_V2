@@ -92,29 +92,36 @@ export const createEventListeners = async ({
   });
 
   // NewBattle event listener
-  battleContract.events.addEventListener("NewBattle", (event) => {
+  battleContract.events.addEventListener("NewBattle", async (event) => {
     console.log("New battle started!", event, walletAddress);
 
     if (walletAddress.toLowerCase() === event.data.player1.toLowerCase()) {
-      console.log("About to call fetchGameData"); // Add this line
+      console.log("About to call fetchGameData");
 
-      let countdown = 5;
-      const countdownInterval = setInterval(() => {
-        console.log(`Fetching game data in ${countdown} seconds...`);
-        countdown -= 1;
-      }, 1000);
+      // Get the transaction hash from the event
+      const { transactionHash } = event.transaction;
 
-      // Add a delay before fetching game data
-      setTimeout(async () => {
-        clearInterval(countdownInterval);
-        await fetchGameData();
+      // Function to wait for the transaction to be mined
+      const waitForTransaction = async (hash) => {
+        const receipt = await provider.getTransactionReceipt(hash);
+        if (receipt === null) {
+          // Transaction is not yet mined, try again later
+          setTimeout(() => waitForTransaction(hash), 1000);
+        } else {
+          // Transaction has been mined, proceed with the rest of the code
 
-        console.log(
-          "Navigating to battle from NewBattle event listener:",
-          event.data.battleName
-        );
-        navigate(`/battle/${event.data.battleName}`);
-      }, 5000); // Adjust the delay as needed
+          await fetchGameData();
+
+          console.log(
+            "Navigating to battle from NewBattle event listener:",
+            event.data.battleName
+          );
+          navigate(`/battle/${event.data.battleName}`);
+        }
+      };
+
+      // Start waiting for the transaction
+      waitForTransaction(transactionHash);
     }
   });
 
@@ -198,16 +205,6 @@ export const createEventListeners = async ({
         setTimeout(() => waitForTransaction(hash), 1000);
       } else {
         // Transaction has been mined, proceed with the rest of the code
-        if (walletAddress.toLowerCase() === event.data.winner.toLowerCase()) {
-          setShowAlert({ status: true, type: "success", message: "You won!" });
-          console.log("You won!");
-        } else if (
-          walletAddress.toLowerCase() === event.data.loser.toLowerCase()
-        ) {
-          setShowAlert({ status: true, type: "failure", message: "You lost!" });
-          console.log("You lost!");
-        }
-
         setBattleIsOver(true);
         console.log("Polling set to false");
 
