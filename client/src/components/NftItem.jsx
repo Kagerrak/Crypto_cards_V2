@@ -103,10 +103,10 @@ const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
           width={200}
           className="drop-shadow-lg mt-4"
         />
-        <div className="bottom-0 left-0 mb-2 flex flex-col space-y-1 w-full px-2">
+        <div className="bottom-0 left-0 mb-2 flex flex-col space-y-1 w-full px-2 text-gray-300">
           {charMana !== null && (
             <>
-              <div className="text-[12px]">Mana</div>
+              <div className="text-[12px] text-gray-300">Mana</div>
               <ProgressBar
                 value={charMana}
                 max={charMaxMana}
@@ -116,7 +116,7 @@ const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
           )}
           {charStamina !== null && (
             <>
-              <div className="text-[12px]">Stamina</div>
+              <div className="text-[12px] text-gray-300">Stamina</div>
               <ProgressBar value={charStamina} max={100} color="bg-green-700" />
             </>
           )}
@@ -124,7 +124,7 @@ const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
             charLevel !== null &&
             maxExperience !== null && (
               <>
-                <div className="text-[12px]">Experience</div>
+                <div className="text-[12px] text-gray-300">Experience</div>
                 <ProgressBar
                   value={charExperience}
                   max={maxExperience}
