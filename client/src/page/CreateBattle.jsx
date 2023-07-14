@@ -27,6 +27,7 @@ const CreateBattle = () => {
     setErrorMessage,
     walletAddress,
     fetchGameData,
+    setBattleIsOver,
   } = useGlobalContext();
   const [waitBattle, setWaitBattle] = useState(false);
   const [battleTempName, setBattleTempName] = useState("");
@@ -131,6 +132,7 @@ const CreateBattle = () => {
       await tx.wait(1);
 
       setBattleName(battleTempName);
+      setBattleIsOver(false);
       setIsLoading(false);
       setWaitBattle(true);
     } catch (error) {
