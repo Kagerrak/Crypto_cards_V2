@@ -166,6 +166,7 @@ library BattleResolutionLibrary {
             damageDealt[0] = damage;
             battle.battleStats.damageReduced[1] += proxyB.stats.defense; // Update damageReduced for player 2
         }
+        battle.battleStats.damageReduced[1] += damageA;
         proxyA.stats.mana -= 3;
         return (damageDealt, damagedPlayers);
     }
@@ -194,6 +195,7 @@ library BattleResolutionLibrary {
             damageDealt[1] = damage;
             battle.battleStats.damageReduced[0] += proxyA.stats.defense; // Update damageReduced for player 1
         }
+        battle.battleStats.damageReduced[0] += damageB;
         proxyB.stats.mana -= 3;
         return (damageDealt, damagedPlayers);
     }
