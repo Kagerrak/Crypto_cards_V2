@@ -12,6 +12,7 @@ const BattleSummaryModal = ({ isOpen, onRequestClose, battleSummary }) => {
     setShouldPoll,
     setShouldPollPlayerData,
     fetchGameData,
+    setDamagedPlayers,
   } = useGlobalContext();
   if (!battleSummary) {
     return null;
@@ -172,6 +173,7 @@ const BattleSummaryModal = ({ isOpen, onRequestClose, battleSummary }) => {
               onRequestClose();
               setShouldPoll(false);
               setShouldPollPlayerData(false);
+              setDamagedPlayers([]);
               await fetchGameData();
               navigate("/create-battle");
             }}
