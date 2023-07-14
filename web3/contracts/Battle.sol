@@ -97,6 +97,7 @@ contract Battle is Ownable {
         uint256 indexed battleId,
         uint256 round,
         address indexed player,
+        uint256 skillId,
         string skillName,
         uint256 totalDamage
     );
@@ -739,25 +740,26 @@ contract Battle is Ownable {
         uint256 loserIndex
     ) internal {
         // Calculate used mana for each player's character
-        address player1 = battle.players[0];
-        address player2 = battle.players[1];
-        uint256 usedManaPlayer1 = battle.battleStats.initialMana[0] -
-            characterProxies[keccak256(abi.encodePacked(_battleId, player1))][
-                player1
+        address winner = battle.players[winnerIndex];
+        address loser = battle.players[loserIndex];
+
+        uint256 usedManaWinner = battle.battleStats.initialMana[winnerIndex] -
+            characterProxies[keccak256(abi.encodePacked(_battleId, winner))][
+                winner
             ].stats.mana;
-        uint256 usedManaPlayer2 = battle.battleStats.initialMana[1] -
-            characterProxies[keccak256(abi.encodePacked(_battleId, player2))][
-                player2
+        uint256 usedManaLoser = battle.battleStats.initialMana[loserIndex] -
+            characterProxies[keccak256(abi.encodePacked(_battleId, loser))][
+                loser
             ].stats.mana;
 
         // Consume used mana for each player's character
         characterContract.consumeMana(
             battle.characterIds[winnerIndex],
-            usedManaPlayer1
+            usedManaWinner
         );
         characterContract.consumeMana(
             battle.characterIds[loserIndex],
-            usedManaPlayer2
+            usedManaLoser
         );
     }
 
