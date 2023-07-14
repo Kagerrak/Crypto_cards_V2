@@ -7,8 +7,13 @@ import { alertIcon, gameRules } from "../assets";
 import styles from "../styles";
 
 const GameInfo = ({ id }) => {
-  const { battleContract, gameData, setErrorMessage, setShowAlert } =
-    useGlobalContext();
+  const {
+    battleContract,
+    gameData,
+    setErrorMessage,
+    setShowAlert,
+    fetchGameData,
+  } = useGlobalContext();
   const [toggleSidebar, setToggleSidebar] = useState(false);
   const navigate = useNavigate();
 
@@ -24,6 +29,8 @@ const GameInfo = ({ id }) => {
       });
 
       await quitTx.wait();
+
+      await fetchGameData();
       navigate("/create-battle");
     } catch (error) {
       setErrorMessage(error);
