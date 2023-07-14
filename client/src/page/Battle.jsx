@@ -52,8 +52,10 @@ const Battle = () => {
     battleIsOver,
     setBattleIsOver,
     damagedPlayers,
+    setDamagedPlayers,
     shouldPollPlayerData,
     setShouldPollPlayerData,
+    fetchGameData,
   } = useGlobalContext();
 
   const player1Ref = useRef();
@@ -226,7 +228,10 @@ const Battle = () => {
           playerIntRef.current = null;
         }
 
-        if (damagedPlayers && damagedPlayers.length > 0) {
+        if (
+          damagedPlayers.length > 0 &&
+          damagedPlayers.every((address) => address !== emptyAccount)
+        ) {
           console.log(
             "Condition Check: ",
             damagedPlayers && damagedPlayers.length > 0
@@ -269,9 +274,9 @@ const Battle = () => {
             setIsMoveSubmitted(false);
           }
 
-          console.log("Before setPlayerData", playerData);
-          setPlayerData(playerDataWithEffects);
-          console.log("After setPlayerData", playerData);
+          // console.log("Before setPlayerData", playerData);
+          // setPlayerData(playerDataWithEffects);
+          // console.log("After setPlayerData", playerData);
 
           setTimeout(() => {
             // Add delay before fetching the summary
@@ -281,8 +286,22 @@ const Battle = () => {
           }, 1000);
         } else {
           // If there are no damagedPlayers, set the player data immediately
+          console.log("no damaged players, data set");
           setPlayerData(playerDataWithEffects);
+          if (isMoveSubmitted) {
+            setIsMoveSubmitted(false);
+          }
+          setTimeout(() => {
+            // Add delay before fetching the summary
+            if (battleIsOver) {
+              fetchSummary();
+            }
+          }, 1000);
         }
+      } else if (state.player1.mana === 0 || state.player2.mana === 0) {
+        console.log("fetched", playerData);
+        await fetchGameData();
+        setPlayerData(playerDataWithEffects);
       }
     }
   };
@@ -378,13 +397,27 @@ const Battle = () => {
       state.battleId !== null &&
       state.character
     ) {
-      setLoading(false);
+      if (state.player1.mana === 0 || state.player2.mana === 0) {
+        // If mana of either player is zero, start polling
+        const intervalId = setInterval(() => {
+          console.log("initial player fetch");
+          fetchPlayerData();
+        }, 5000); // Fetch data every 5 seconds
+
+        // Clear interval when component is unmounted or player mana is not 0
+        return () => clearInterval(intervalId);
+      } else {
+        // If mana of both players is not zero, stop loading
+        setLoading(false);
+      }
     }
   }, [state]);
 
   const makeAMove = async (choice, skillId) => {
     setIsMoveSubmitted(true);
-    playAudio(choice === 0 ? attackSound : choice === 1 ? defenseSound : null);
+    playAudio(
+      choice === 0 ? attackSound : choice === 1 ? defenseSound : defenseSound
+    );
 
     try {
       const moveTx = await battleContract.submitMove(
