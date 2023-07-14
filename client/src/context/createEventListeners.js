@@ -1,36 +1,36 @@
 import { ThirdwebSDK } from "@thirdweb-dev/sdk/evm";
 
-import { ApolloClient, InMemoryCache } from "@apollo/client";
+// import { ApolloClient, InMemoryCache } from "@apollo/client";
 
-import { GET_CHARACTERS } from "../constants";
-import { playAudio, sparcle } from "../utils/animation.js";
-import { defenseSound } from "../assets";
-import { GET_MOVE } from "../constants/subgraphQueries";
+// import { GET_CHARACTERS } from "../constants";
+// import { playAudio, sparcle } from "../utils/animation.js";
+// import { defenseSound } from "../assets";
+// import { GET_MOVE } from "../constants/subgraphQueries";
 
-const client = new ApolloClient({
-  uri: "https://api.studio.thegraph.com/query/37725/wiwa/version/latest",
-  cache: new InMemoryCache(),
-});
+// const client = new ApolloClient({
+//   uri: "https://api.studio.thegraph.com/query/37725/wiwa/version/latest",
+//   cache: new InMemoryCache(),
+// });
 
-async function fetchData() {
-  try {
-    const { data } = await client.query({ query: GET_CHARACTERS });
+// async function fetchData() {
+//   try {
+//     const { data } = await client.query({ query: GET_CHARACTERS });
 
-    console.log(data);
-  } catch (error) {
-    console.error("An error occurred while fetching the data:", error);
-  }
-}
+//     console.log(data);
+//   } catch (error) {
+//     console.error("An error occurred while fetching the data:", error);
+//   }
+// }
 
-async function fetchMove() {
-  try {
-    const { data } = await client.query({ query: GET_MOVE });
+// async function fetchMove() {
+//   try {
+//     const { data } = await client.query({ query: GET_MOVE });
 
-    console.log(data);
-  } catch (error) {
-    console.error("An error occurred while fetching the data:", error);
-  }
-}
+//     console.log(data);
+//   } catch (error) {
+//     console.error("An error occurred while fetching the data:", error);
+//   }
+// }
 
 export const createEventListeners = async ({
   navigate,
@@ -54,7 +54,7 @@ export const createEventListeners = async ({
   characterContract.events.addEventListener("NewCharacter", (event) => {
     console.log("New player created!", event);
 
-    fetchData();
+    // fetchData();
 
     if (walletAddress === event.data.owner) {
       setShowAlert({
@@ -86,6 +86,8 @@ export const createEventListeners = async ({
     if (walletAddress.toLowerCase() === event.data.player1.toLowerCase()) {
       console.log("About to call fetchGameData");
 
+      setBattleIsOver(false);
+
       // Get the transaction hash from the event
       const { transactionHash } = event.transaction;
 
@@ -105,6 +107,40 @@ export const createEventListeners = async ({
             event.data.battleName
           );
           navigate(`/battle/${event.data.battleName}`);
+        }
+      };
+
+      // Start waiting for the transaction
+      waitForTransaction(transactionHash);
+    }
+  });
+
+  // QuitBattle event listener
+  battleContract.events.addEventListener("BattleQuit", async (event) => {
+    console.log("Battle quit!", event, walletAddress);
+
+    if (walletAddress.toLowerCase() === event.data.quitter.toLowerCase()) {
+      console.log("About to call fetchGameData");
+
+      // Get the transaction hash from the event
+      const { transactionHash } = event.transaction;
+
+      // Function to wait for the transaction to be mined
+      const waitForTransaction = async (hash) => {
+        const receipt = await provider.getTransactionReceipt(hash);
+        if (receipt === null) {
+          // Transaction is not yet mined, try again later
+          setTimeout(() => waitForTransaction(hash), 1000);
+        } else {
+          // Transaction has been mined, proceed with the rest of the code
+
+          await fetchGameData();
+
+          console.log(
+            "Navigating to create battle from QuitBattle event listener:",
+            event.data.battleName
+          );
+          navigate("/create-battle");
         }
       };
 
@@ -135,7 +171,7 @@ export const createEventListeners = async ({
       message,
     });
 
-    fetchMove();
+    // fetchMove();
   });
 
   // Listen for new RoundEnded events
@@ -169,7 +205,7 @@ export const createEventListeners = async ({
         });
 
         // Start polling for data
-        setShouldPoll(true);
+        // setShouldPoll(true);
         setShouldPollPlayerData(true);
       }
     };
@@ -193,6 +229,7 @@ export const createEventListeners = async ({
         setTimeout(() => waitForTransaction(hash), 1000);
       } else {
         // Transaction has been mined, proceed with the rest of the code
+
         setBattleIsOver(true);
         console.log("Polling set to false");
 
