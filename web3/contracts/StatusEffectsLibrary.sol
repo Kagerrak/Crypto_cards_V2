@@ -90,6 +90,9 @@ library StatusEffectsLibrary {
 
         // Add the status effect to the character's activeEffectIds array
         character.activeEffectIds.push(statusEffectId);
+
+        // Update the character's activeEffectDurations mapping with the new duration
+        character.activeEffectDurations[statusEffectId] = duration;
     }
 
     function handleStatusEffectDamage(
