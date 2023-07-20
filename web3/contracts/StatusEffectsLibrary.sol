@@ -3,6 +3,8 @@ pragma solidity ^0.8.17;
 
 import "./StructsLibrary.sol";
 import "./BattleSkills.sol";
+import "./BattleEffects.sol";
+import "hardhat/console.sol";
 
 library StatusEffectsLibrary {
     using StructsLibrary for StructsLibrary.CharacterProxy;
@@ -66,9 +68,13 @@ library StatusEffectsLibrary {
         StructsLibrary.CharacterProxy storage character,
         uint256 value
     ) internal {
+        console.log(character.stats.health);
+        console.log("damage over time", value);
         character.stats.health = character.stats.health > value
             ? character.stats.health - value
             : 0;
+
+        console.log(character.stats.health);
     }
 
     function applyStatusEffect(
@@ -99,19 +105,17 @@ library StatusEffectsLibrary {
         uint256[2] memory statusEffectDamage,
         StructsLibrary.CharacterProxy storage proxyA,
         StructsLibrary.CharacterProxy storage proxyB,
-        uint256[2] memory damageDealt
+        uint256[2] memory damageDealt,
+        address[2] memory damagedPlayers
     ) internal {
-        // Apply status effects damage to health
-        if (proxyA.stats.health > statusEffectDamage[0]) {
-            proxyA.stats.health -= statusEffectDamage[0];
-        } else {
-            proxyA.stats.health = 0;
+        // If there's status effect damage for proxyA, add player to damagedPlayers array
+        if (statusEffectDamage[0] > 0) {
+            damagedPlayers[0] = proxyA.owner;
         }
 
-        if (proxyB.stats.health > statusEffectDamage[1]) {
-            proxyB.stats.health -= statusEffectDamage[1];
-        } else {
-            proxyB.stats.health = 0;
+        // If there's status effect damage for proxyB, add player to damagedPlayers array
+        if (statusEffectDamage[1] > 0) {
+            damagedPlayers[1] = proxyB.owner;
         }
 
         // Add the statusEffectDamage to damageDealt
@@ -121,7 +125,7 @@ library StatusEffectsLibrary {
 
     function resolveStatusEffects(
         StructsLibrary.CharacterProxy storage character,
-        BattleSkills battleSkillsContract,
+        BattleEffects battleEffectsContract,
         uint256 round
     )
         internal
@@ -149,8 +153,10 @@ library StatusEffectsLibrary {
 
         for (uint256 i = 0; i < character.activeEffectIds.length; i++) {
             uint256 effectId = character.activeEffectIds[i];
-            BattleSkills.StatusEffect memory statusEffect = battleSkillsContract
-                .getStatusEffect(effectId);
+            BattleEffects.StatusEffect
+                memory statusEffect = battleEffectsContract.getStatusEffect(
+                    effectId
+                );
 
             if (
                 statusEffect.isStun &&

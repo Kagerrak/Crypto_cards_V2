@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.0;
 
 import "@thirdweb-dev/contracts/base/ERC1155Base.sol";
 
@@ -7,7 +7,6 @@ import "./BattleSkills.sol";
 import "./BattleItems.sol";
 import "./BattleEffects.sol"; // assuming BattleEffects is your ERC1155 contract for effects
 import "@thirdweb-dev/contracts/openzeppelin-presets/utils/ERC1155/ERC1155Holder.sol";
-import "hardhat/console.sol";
 
 contract CompositeTokens is ERC1155Base, ERC1155Holder {
     uint256 private _compositeCount = 10001;
@@ -27,13 +26,26 @@ contract CompositeTokens is ERC1155Base, ERC1155Holder {
             ERC1155Receiver.supportsInterface(interfaceId);
     }
 
+    enum TokenType {
+        Skill,
+        Item,
+        Effect
+    }
+    enum ItemType {
+        Weapon,
+        Headgear,
+        BodyArmor,
+        Pants,
+        Footwear
+    }
+
     struct CompositeTokenDetails {
         uint256 tokenId; // the ID of the composite token
         bytes32 compositeHash; // the compositeHash of the composite token
         uint256[] componentTokenIds; // the IDs of the tokens that compose the composite token
         address[] componentContracts; // the contracts of the tokens that compose the composite token
-        string primaryType; // the type of the primary token
-        uint256 primarySubType; // the subtype of the primary token
+        TokenType tokenType; // the type of the primary token
+        ItemType itemType; // the subtype of the primary token
     }
 
     BattleSkills public battleSkills;
@@ -56,8 +68,8 @@ contract CompositeTokens is ERC1155Base, ERC1155Holder {
         uint256[] memory tokenIds,
         address[] memory contracts,
         string memory _tokenURI,
-        string memory primaryType,
-        uint256 primarySubType
+        TokenType _tokenType,
+        ItemType _itemType
     ) public {
         require(
             tokenIds.length == contracts.length,
@@ -112,11 +124,9 @@ contract CompositeTokens is ERC1155Base, ERC1155Holder {
             compositeHash: compositeHash,
             componentTokenIds: tokenIds,
             componentContracts: contracts,
-            primaryType: primaryType,
-            primarySubType: primarySubType
+            tokenType: _tokenType,
+            itemType: _itemType
         });
-
-        console.log(details);
 
         _compositeTokenDetails[tokenId] = details;
 
@@ -125,10 +135,29 @@ contract CompositeTokens is ERC1155Base, ERC1155Holder {
         _compositeCount++;
     }
 
+    function getTokenType(uint256 tokenId) public view returns (TokenType) {
+        CompositeTokenDetails memory details = getCompositeTokenDetails(
+            tokenId
+        );
+        return details.tokenType;
+    }
+
     function getCompositeTokenDetails(
         uint256 tokenId
     ) public view returns (CompositeTokenDetails memory) {
         return _compositeTokenDetails[tokenId];
+    }
+
+    function getComponentTokenIds(
+        uint256 tokenId
+    ) public view returns (uint256[] memory) {
+        return _compositeTokenDetails[tokenId].componentTokenIds;
+    }
+
+    function getComponentContracts(
+        uint256 tokenId
+    ) public view returns (address[] memory) {
+        return _compositeTokenDetails[tokenId].componentContracts;
     }
 
     function getCompositeTokenCount() public view returns (uint256) {

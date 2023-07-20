@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
 import "./IBattleItems.sol";
 
@@ -30,7 +30,7 @@ library CharData {
 
     struct CharacterEquips {
         uint256[] equippedSkills;
-        mapping(IBattleItems.ItemType => uint256) equippedItems;
+        mapping(ItemType => uint256) equippedItems;
         uint256 equippedClass;
     }
 
@@ -40,10 +40,28 @@ library CharData {
         string uri;
     }
 
+    struct CharBattleData {
+        uint256 health;
+        uint256 attack;
+        uint256 defense;
+        uint256 mana;
+        uint256 typeId;
+        uint256[] equippedSkills;
+    }
+
     enum TokenType {
         Item,
         Skill,
+        Effect,
         CompositeItem,
         CompositeSkill
+    }
+
+    enum ItemType {
+        Weapon,
+        Headgear,
+        BodyArmor,
+        Pants,
+        Footwear
     }
 }

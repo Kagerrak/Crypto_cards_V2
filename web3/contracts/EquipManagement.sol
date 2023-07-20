@@ -5,16 +5,19 @@ import "./ICompositeToken.sol";
 import "./IBattleItems.sol";
 import "./IBattleSkills.sol";
 import "./CharData.sol";
+import "./ICharacter.sol";
 
 contract EquipManagement {
-    using CharData for CharData.CharacterEquips;
+    address private _owner;
 
-    enum TokenType {
-        Item,
-        Skill,
-        CompositeItem,
-        CompositeSkill
+    modifier isOwner() {
+        if (msg.sender != _owner) {
+            revert("Not authorized");
+        }
+        _;
     }
+
+    using CharData for CharData.CharacterEquips;
 
     event ItemEquipped(
         uint256 indexed characterTokenId,
@@ -36,45 +39,68 @@ contract EquipManagement {
         uint256 indexed skillId
     );
 
-    IBattleItems public battleItems;
-    IBattleSkills public battleSkills;
-    ICompositeTokens public compositeTokens;
+    IBattleItems private battleItems;
+    IBattleSkills private battleSkills;
+    ICompositeTokens private compositeTokens;
+    ICharacter private characterContract;
 
-    function equipInternal(
-        CharData.CharacterEquips storage character,
+    constructor(
+        address _battleItemsAddress,
+        address _battleSkillsAddress,
+        address _compositeTokensAddress
+    ) {
+        _owner = msg.sender;
+        battleItems = IBattleItems(_battleItemsAddress);
+        battleSkills = IBattleSkills(_battleSkillsAddress);
+        compositeTokens = ICompositeTokens(_compositeTokensAddress);
+    }
+
+    function setCharacterContract(
+        address _characterContractAddress
+    ) external isOwner {
+        require(
+            address(characterContract) == address(0),
+            "Character contract address is already set"
+        );
+        characterContract = ICharacter(_characterContractAddress);
+    }
+
+    function equip(
         uint256 characterTokenId,
         uint256 tokenId,
-        TokenType tokenType
-    ) internal {
+        CharData.TokenType tokenType
+    ) external {
+        require(
+            characterContract.ownerOf(characterTokenId) == msg.sender,
+            "Not Owner!"
+        );
         if (tokenId > 10000) {
             require(
-                tokenType == TokenType.CompositeItem ||
-                    tokenType == TokenType.CompositeSkill,
+                tokenType == CharData.TokenType.CompositeItem ||
+                    tokenType == CharData.TokenType.CompositeSkill,
                 "Invalid composite token type"
             );
             _equipCompositeToken(
-                character,
+                characterTokenId,
                 msg.sender,
                 address(this),
                 tokenId,
                 compositeTokens
             );
         } else {
-            if (tokenType == TokenType.Item) {
+            if (tokenType == CharData.TokenType.Item) {
                 _equipItem(
-                    character,
+                    characterTokenId,
                     msg.sender,
-                    address(this),
-                    tokenId,
-                    battleItems
+                    address(characterContract),
+                    tokenId
                 );
-            } else if (tokenType == TokenType.Skill) {
+            } else if (tokenType == CharData.TokenType.Skill) {
                 _equipSkill(
-                    character,
+                    characterTokenId,
                     msg.sender,
-                    address(this),
-                    tokenId,
-                    battleSkills
+                    address(characterContract),
+                    tokenId
                 );
             } else {
                 revert("Invalid token type");
@@ -82,73 +108,92 @@ contract EquipManagement {
         }
 
         // Emit the appropriate event
-        if (tokenType == TokenType.Skill) {
+        if (tokenType == CharData.TokenType.Skill) {
             emit SkillEquipped(characterTokenId, tokenId);
         } else if (
-            tokenType == TokenType.Item || tokenType == TokenType.CompositeItem
+            tokenType == CharData.TokenType.Item ||
+            tokenType == CharData.TokenType.CompositeItem
         ) {
             emit ItemEquipped(characterTokenId, tokenId);
         }
     }
 
     function _equipSkill(
-        CharData.CharacterEquips storage character,
+        uint256 characterTokenId,
         address owner,
         address contractAddress,
-        uint256 skillId,
-        IBattleSkills _battleSkills
+        uint256 skillId
     ) internal {
         // Check if the skill exists
-        require(_battleSkills.doesSkillExist(skillId), "Invalid skill ID");
+        require(battleSkills.doesSkillExist(skillId), "Invalid skill ID");
 
         // Check if the skill is owned by the caller
         require(
-            _battleSkills.balanceOf(owner, skillId) > 0,
+            battleSkills.balanceOf(owner, skillId) > 0,
             "Not the owner of the skill"
         );
 
+        uint256[] memory equippedSkills = characterContract
+            .getCharacterEquippedSkills(characterTokenId);
+
         // Check if the skill is not already equipped
-        for (uint256 i = 0; i < character.equippedSkills.length; i++) {
-            require(
-                character.equippedSkills[i] != skillId,
-                "Skill already equipped"
-            );
+        for (uint256 i = 0; i < equippedSkills.length; i++) {
+            require(equippedSkills[i] != skillId, "Skill already equipped");
         }
 
         // Transfer the skill to the contract and add it to the equippedSkills array
-        _battleSkills.safeTransferFrom(owner, contractAddress, skillId, 1, "");
-        character.equippedSkills.push(skillId);
+        battleSkills.safeTransferFrom(owner, contractAddress, skillId, 1, "");
+        characterContract.equipSkill(characterTokenId, skillId);
     }
 
     function _equipItem(
-        CharData.CharacterEquips storage character,
+        uint256 characterTokenId,
         address owner,
         address contractAddress,
-        uint256 itemTokenId,
-        IBattleItems _battleItems
+        uint256 itemTokenId
     ) internal {
         // Check if the item tokenId is valid and the caller is the owner of the item
         require(
-            _battleItems.totalSupply(itemTokenId) > 0,
+            battleItems.totalSupply(itemTokenId) > 0,
             "Invalid item token ID"
         );
         require(
-            _battleItems.balanceOf(owner, itemTokenId) > 0,
+            battleItems.balanceOf(owner, itemTokenId) > 0,
             "Not the owner of the item"
         );
 
         // Get the ItemType of the item
-        IBattleItems.ItemType itemType = _battleItems.getItemType(itemTokenId);
+        CharData.ItemType itemType = battleItems.getItemType(itemTokenId);
 
-        // Check if the item is not already equipped in the specified slot
-        require(
-            character.equippedItems[itemType] != itemTokenId,
-            "Item already equipped"
+        uint256 equippedItem = characterContract.getCharacterEquippedItem(
+            characterTokenId,
+            itemType
         );
 
+        // Check if the item is not already equipped in the specified slot
+        if (equippedItem != 999999) {
+            require(equippedItem != itemTokenId, "Item already equipped");
+
+            if (equippedItem > 10000) {
+                _unequipCompositeItem(
+                    characterTokenId,
+                    owner,
+                    contractAddress,
+                    equippedItem
+                );
+            } else {
+                _unequipItem(
+                    characterTokenId,
+                    owner,
+                    contractAddress,
+                    equippedItem
+                );
+            }
+        }
+
         // Equip the item
-        character.equippedItems[itemType] = itemTokenId;
-        _battleItems.safeTransferFrom(
+        characterContract.equipItem(characterTokenId, itemTokenId, itemType);
+        battleItems.safeTransferFrom(
             owner,
             contractAddress,
             itemTokenId,
@@ -158,7 +203,7 @@ contract EquipManagement {
     }
 
     function _equipCompositeToken(
-        CharData.CharacterEquips storage character,
+        uint256 characterTokenId,
         address owner,
         address contractAddress,
         uint256 compositeTokenId,
@@ -175,66 +220,89 @@ contract EquipManagement {
         );
 
         // Get the TokenType of the composite token
-        TokenType tokenType = convertTokenType(
-            _compositeTokens.getTokenType(compositeTokenId)
+        CharData.TokenType tokenType = _compositeTokens.getTokenType(
+            compositeTokenId
         );
 
         // Ensure the composite token type is appropriate
         require(
-            tokenType == TokenType.Item || tokenType == TokenType.Skill,
+            tokenType == CharData.TokenType.Item ||
+                tokenType == CharData.TokenType.Skill,
             "Invalid composite token type"
         );
 
-        if (tokenType == TokenType.Item) {
+        if (tokenType == CharData.TokenType.Item) {
             _equipCompositeItem(
-                character,
+                characterTokenId,
                 owner,
                 contractAddress,
-                compositeTokenId,
-                _compositeTokens
+                compositeTokenId
             );
-        } else if (tokenType == TokenType.Skill) {
+        } else if (tokenType == CharData.TokenType.Skill) {
             _equipCompositeSkill(
-                character,
+                characterTokenId,
                 owner,
                 contractAddress,
-                compositeTokenId,
-                _compositeTokens
+                compositeTokenId
             );
         }
     }
 
     function _equipCompositeItem(
-        CharData.CharacterEquips storage character,
+        uint256 characterTokenId,
         address owner,
         address contractAddress,
-        uint256 compositeTokenId,
-        ICompositeTokens _compositeTokens
+        uint256 compositeTokenId
     ) internal {
         // Check if the composite token is valid and the caller is the owner of the token
         require(
-            _compositeTokens.totalSupply(compositeTokenId) > 0,
+            compositeTokens.totalSupply(compositeTokenId) > 0,
             "Invalid composite token ID"
         );
         require(
-            _compositeTokens.balanceOf(owner, compositeTokenId) > 0,
+            compositeTokens.balanceOf(owner, compositeTokenId) > 0,
             "Not the owner of the composite token"
         );
 
         // Get the ItemType of the composite token
-        IBattleItems.ItemType itemType = convertItemType(
-            _compositeTokens.getCompositeTokenDetails(compositeTokenId).itemType
+        CharData.ItemType itemType = compositeTokens
+            .getCompositeTokenDetails(compositeTokenId)
+            .itemType;
+
+        uint256 equippedItem = characterContract.getCharacterEquippedItem(
+            characterTokenId,
+            itemType
         );
 
         // Check if the composite token is not already equipped
-        require(
-            character.equippedItems[itemType] != compositeTokenId,
-            "Composite token already equipped"
-        );
+        // Check if the item is not already equipped in the specified slot
+        if (equippedItem != 999999) {
+            require(equippedItem != compositeTokenId, "Item already equipped");
+
+            if (equippedItem > 10000) {
+                _unequipCompositeItem(
+                    characterTokenId,
+                    owner,
+                    contractAddress,
+                    equippedItem
+                );
+            } else {
+                _unequipItem(
+                    characterTokenId,
+                    owner,
+                    contractAddress,
+                    equippedItem
+                );
+            }
+        }
 
         // Equip the composite token
-        character.equippedItems[itemType] = compositeTokenId;
-        _compositeTokens.safeTransferFrom(
+        characterContract.equipItem(
+            characterTokenId,
+            compositeTokenId,
+            itemType
+        );
+        compositeTokens.safeTransferFrom(
             owner,
             contractAddress,
             compositeTokenId,
@@ -244,33 +312,35 @@ contract EquipManagement {
     }
 
     function _equipCompositeSkill(
-        CharData.CharacterEquips storage character,
+        uint256 characterTokenId,
         address owner,
         address contractAddress,
-        uint256 compositeTokenId,
-        ICompositeTokens _compositeTokens
+        uint256 compositeTokenId
     ) internal {
         // Check if the composite token is valid and the caller is the owner of the token
         require(
-            _compositeTokens.totalSupply(compositeTokenId) > 0,
+            compositeTokens.totalSupply(compositeTokenId) > 0,
             "Invalid composite token ID"
         );
         require(
-            _compositeTokens.balanceOf(owner, compositeTokenId) > 0,
+            compositeTokens.balanceOf(owner, compositeTokenId) > 0,
             "Not the owner of the composite token"
         );
 
+        uint256[] memory equippedSkills = characterContract
+            .getCharacterEquippedSkills(characterTokenId);
+
         // Check if the composite token is not already equipped
-        for (uint256 i = 0; i < character.equippedSkills.length; i++) {
+        for (uint256 i = 0; i < equippedSkills.length; i++) {
             require(
-                character.equippedSkills[i] != compositeTokenId,
+                equippedSkills[i] != compositeTokenId,
                 "Composite skill token already equipped"
             );
         }
 
         // Equip the composite skill token
-        character.equippedSkills.push(compositeTokenId);
-        _compositeTokens.safeTransferFrom(
+        characterContract.equipSkill(characterTokenId, compositeTokenId);
+        compositeTokens.safeTransferFrom(
             owner,
             contractAddress,
             compositeTokenId,
@@ -279,41 +349,41 @@ contract EquipManagement {
         );
     }
 
-    function unequipInternal(
-        CharData.CharacterEquips storage character,
+    function unequip(
         uint256 characterTokenId,
         uint256 tokenId,
-        TokenType tokenType
-    ) internal {
+        CharData.TokenType tokenType
+    ) external {
+        require(
+            characterContract.ownerOf(characterTokenId) == msg.sender,
+            "Not Owner!"
+        );
         if (tokenId > 10000) {
             require(
-                tokenType == TokenType.CompositeItem ||
-                    tokenType == TokenType.CompositeSkill,
+                tokenType == CharData.TokenType.CompositeItem ||
+                    tokenType == CharData.TokenType.CompositeSkill,
                 "Invalid composite token type"
             );
             _unequipCompositeToken(
-                character,
+                characterTokenId,
                 msg.sender,
-                address(this),
-                tokenId,
-                compositeTokens
+                address(characterContract),
+                tokenId
             );
         } else {
-            if (tokenType == TokenType.Item) {
+            if (tokenType == CharData.TokenType.Item) {
                 _unequipItem(
-                    character,
+                    characterTokenId,
                     msg.sender,
-                    address(this),
-                    tokenId,
-                    battleItems
+                    address(characterContract),
+                    tokenId
                 );
-            } else if (tokenType == TokenType.Skill) {
+            } else if (tokenType == CharData.TokenType.Skill) {
                 _unequipSkill(
-                    character,
+                    characterTokenId,
                     msg.sender,
-                    address(this),
-                    tokenId,
-                    battleSkills
+                    address(characterContract),
+                    tokenId
                 );
             } else {
                 revert("Invalid token type");
@@ -321,28 +391,28 @@ contract EquipManagement {
         }
 
         // Emit the appropriate event
-        if (tokenType == TokenType.Skill) {
+        if (tokenType == CharData.TokenType.Skill) {
             emit SkillUnequipped(characterTokenId, tokenId);
         } else if (
-            tokenType == TokenType.Item || tokenType == TokenType.CompositeItem
+            tokenType == CharData.TokenType.Item ||
+            tokenType == CharData.TokenType.CompositeItem
         ) {
             emit ItemUnequipped(characterTokenId, tokenId);
         }
     }
 
     function _unequipSkill(
-        CharData.CharacterEquips storage character,
+        uint256 characterTokenId,
         address owner,
         address contractAddress,
-        uint256 skillId,
-        IBattleSkills _battleSkills
+        uint256 skillId
     ) internal {
-        uint256[] storage equippedSkills = character.equippedSkills;
+        uint256[] memory equippedSkills = characterContract
+            .getCharacterEquippedSkills(characterTokenId);
         for (uint256 i = 0; i < equippedSkills.length; i++) {
             if (equippedSkills[i] == skillId) {
-                equippedSkills[i] = equippedSkills[equippedSkills.length - 1];
-                equippedSkills.pop();
-                _battleSkills.safeTransferFrom(
+                characterContract.unequipSkill(characterTokenId, skillId);
+                battleSkills.safeTransferFrom(
                     contractAddress,
                     owner,
                     skillId,
@@ -352,24 +422,39 @@ contract EquipManagement {
                 return;
             }
         }
-
         revert("Skill not equipped");
     }
 
     function _unequipItem(
-        CharData.CharacterEquips storage character,
+        uint256 characterTokenId,
         address owner,
         address contractAddress,
-        uint256 itemTokenId,
-        IBattleItems _battleItems
+        uint256 itemTokenId
     ) internal {
-        IBattleItems.ItemType itemType = _battleItems.getItemType(itemTokenId);
+        // Check if the item tokenId is valid and the caller is the owner of the item
         require(
-            character.equippedItems[itemType] == itemTokenId,
-            "Item not equipped"
+            battleItems.totalSupply(itemTokenId) > 0,
+            "Invalid item token ID"
         );
-        character.equippedItems[itemType] = 0;
-        _battleItems.safeTransferFrom(
+        require(
+            battleItems.balanceOf(owner, itemTokenId) > 0,
+            "Not the owner of the item"
+        );
+
+        // Get the ItemType of the item
+        CharData.ItemType itemType = battleItems.getItemType(itemTokenId);
+
+        uint256 equippedItem = characterContract.getCharacterEquippedItem(
+            characterTokenId,
+            itemType
+        );
+
+        // Check if the item is equipped in the specified slot
+        require(equippedItem == itemTokenId, "Item not equipped");
+
+        // Unequip the item
+        characterContract.unequipItem(characterTokenId, itemType);
+        battleItems.safeTransferFrom(
             contractAddress,
             owner,
             itemTokenId,
@@ -379,30 +464,27 @@ contract EquipManagement {
     }
 
     function _unequipCompositeToken(
-        CharData.CharacterEquips storage character,
+        uint256 characterTokenId,
         address owner,
         address contractAddress,
-        uint256 compositeTokenId,
-        ICompositeTokens _compositeTokens
+        uint256 compositeTokenId
     ) internal {
-        TokenType tokenType = convertTokenType(
-            _compositeTokens.getTokenType(compositeTokenId)
+        CharData.TokenType tokenType = compositeTokens.getTokenType(
+            compositeTokenId
         );
-        if (tokenType == TokenType.Item) {
+        if (tokenType == CharData.TokenType.Item) {
             _unequipCompositeItem(
-                character,
+                characterTokenId,
                 owner,
                 contractAddress,
-                compositeTokenId,
-                _compositeTokens
+                compositeTokenId
             );
-        } else if (tokenType == TokenType.Skill) {
+        } else if (tokenType == CharData.TokenType.Skill) {
             _unequipCompositeSkill(
-                character,
+                characterTokenId,
                 owner,
                 contractAddress,
-                compositeTokenId,
-                _compositeTokens
+                compositeTokenId
             );
         } else {
             revert("Invalid composite token type");
@@ -410,21 +492,38 @@ contract EquipManagement {
     }
 
     function _unequipCompositeItem(
-        CharData.CharacterEquips storage character,
+        uint256 characterTokenId,
         address owner,
         address contractAddress,
-        uint256 compositeTokenId,
-        ICompositeTokens _compositeTokens
+        uint256 compositeTokenId
     ) internal {
-        IBattleItems.ItemType itemType = convertItemType(
-            _compositeTokens.getCompositeTokenDetails(compositeTokenId).itemType
+        // Check if the composite token is valid and the caller is the owner of the token
+        require(
+            compositeTokens.totalSupply(compositeTokenId) > 0,
+            "Invalid composite token ID"
         );
         require(
-            character.equippedItems[itemType] == compositeTokenId,
-            "Composite item not equipped"
+            compositeTokens.balanceOf(owner, compositeTokenId) > 0,
+            "Not the owner of the composite token"
         );
-        character.equippedItems[itemType] = 0;
-        _compositeTokens.safeTransferFrom(
+
+        // Get the ItemType of the composite token
+        CharData.ItemType itemType = compositeTokens
+            .getCompositeTokenDetails(compositeTokenId)
+            .itemType;
+
+        // Check if the composite token is equipped
+        require(
+            characterContract.getCharacterEquippedItem(
+                characterTokenId,
+                itemType
+            ) == compositeTokenId,
+            "Composite token not equipped"
+        );
+
+        // Unequip the composite item
+        characterContract.unequipItem(characterTokenId, itemType);
+        compositeTokens.safeTransferFrom(
             contractAddress,
             owner,
             compositeTokenId,
@@ -434,18 +533,20 @@ contract EquipManagement {
     }
 
     function _unequipCompositeSkill(
-        CharData.CharacterEquips storage character,
+        uint256 characterTokenId,
         address owner,
         address contractAddress,
-        uint256 compositeTokenId,
-        ICompositeTokens _compositeTokens
+        uint256 compositeTokenId
     ) internal {
-        uint256[] storage equippedSkills = character.equippedSkills;
+        uint256[] memory equippedSkills = characterContract
+            .getCharacterEquippedSkills(characterTokenId);
         for (uint256 i = 0; i < equippedSkills.length; i++) {
             if (equippedSkills[i] == compositeTokenId) {
-                equippedSkills[i] = equippedSkills[equippedSkills.length - 1];
-                equippedSkills.pop();
-                _compositeTokens.safeTransferFrom(
+                characterContract.unequipSkill(
+                    characterTokenId,
+                    compositeTokenId
+                );
+                compositeTokens.safeTransferFrom(
                     contractAddress,
                     owner,
                     compositeTokenId,
@@ -455,37 +556,6 @@ contract EquipManagement {
                 return;
             }
         }
-
-        revert("Composite skill not equipped");
-    }
-
-    function convertTokenType(
-        ICompositeTokens.TokenType tokenType
-    ) private pure returns (TokenType) {
-        if (tokenType == ICompositeTokens.TokenType.Item) {
-            return TokenType.Item;
-        } else if (tokenType == ICompositeTokens.TokenType.Skill) {
-            return TokenType.Skill;
-        } else {
-            revert("Invalid composite token type");
-        }
-    }
-
-    function convertItemType(
-        ICompositeTokens.ItemType compositeItemType
-    ) private pure returns (IBattleItems.ItemType) {
-        if (compositeItemType == ICompositeTokens.ItemType.Weapon) {
-            return IBattleItems.ItemType.Weapon;
-        } else if (compositeItemType == ICompositeTokens.ItemType.Headgear) {
-            return IBattleItems.ItemType.Headgear;
-        } else if (compositeItemType == ICompositeTokens.ItemType.BodyArmor) {
-            return IBattleItems.ItemType.BodyArmor;
-        } else if (compositeItemType == ICompositeTokens.ItemType.Pants) {
-            return IBattleItems.ItemType.Pants;
-        } else if (compositeItemType == ICompositeTokens.ItemType.Footwear) {
-            return IBattleItems.ItemType.Footwear;
-        } else {
-            revert("Invalid composite item type");
-        }
+        revert("Skill not equipped");
     }
 }

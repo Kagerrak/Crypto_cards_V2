@@ -10,6 +10,7 @@ contract CharacterManagement {
     using CharData for CharData.CharacterStats;
     using CharData for CharData.RecoveryStats;
     using CharData for CharData.CharacterType;
+    using CharData for CharData.CharBattleData;
     using CMLib for CharData.CharacterStats;
     using CMLib for CharData.RecoveryStats;
 
@@ -378,27 +379,17 @@ contract CharacterManagement {
         return characterStats[_tokenId];
     }
 
+    // Your function
     function getCharacterInfo(
         uint256 tokenId
-    )
-        public
-        view
-        returns (
-            uint256 health,
-            uint256 attack,
-            uint256 defense,
-            uint256 mana,
-            uint256 typeId,
-            uint256[] memory equippedSkills
-        )
-    {
+    ) public view returns (CharData.CharBattleData memory battleData) {
         CharData.CharacterStats storage hero = characterStats[tokenId];
-        health = hero.health;
-        attack = hero.attack;
-        defense = hero.defense;
-        mana = hero.getMana(tokenId);
-        typeId = hero.typeId;
-        equippedSkills = characterEquips[tokenId].equippedSkills;
+        battleData.health = hero.health;
+        battleData.attack = hero.attack;
+        battleData.defense = hero.defense;
+        battleData.mana = CharacterManagement.getMana(tokenId);
+        battleData.typeId = hero.typeId;
+        battleData.equippedSkills = characterEquips[tokenId].equippedSkills;
     }
 
     function getRecoveryStats(

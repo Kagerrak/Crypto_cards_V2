@@ -62,4 +62,6 @@ interface IBattleSkills {
     function getRandomSkill(
         uint256 _enemyLevel
     ) external view returns (uint256);
+
+    function doesSkillExist(uint256 skillId) external view returns (bool);
 }

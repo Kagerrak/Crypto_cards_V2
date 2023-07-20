@@ -8,6 +8,8 @@ import "@thirdweb-dev/contracts/extension/Ownable.sol";
 import "./StructsLibrary.sol";
 import "./BattleResolutionLibrary.sol";
 import "./StatusEffectsLibrary.sol";
+import "./BattleEffects.sol";
+import "./ICompositeToken.sol";
 
 contract Battle is Ownable {
     function _canSetOwner() internal view virtual override returns (bool) {
@@ -142,13 +144,19 @@ contract Battle is Ownable {
 
     Character private characterContract;
     BattleSkills private battleSkillsContract;
+    BattleEffects private battleEffectsContract;
+    ICompositeTokens private compositeContract;
 
     constructor(
         address _characterContractAddress,
-        address _battleSkillsContractAddress
+        address _battleSkillsContractAddress,
+        address _battleEffectsContractAddress,
+        address _compositeTokensContractAddress
     ) {
         characterContract = Character(_characterContractAddress);
         battleSkillsContract = BattleSkills(_battleSkillsContractAddress);
+        battleEffectsContract = BattleEffects(_battleEffectsContractAddress);
+        compositeContract = ICompositeTokens(_compositeTokensContractAddress);
     }
 
     function createCharacterProxies(
@@ -157,18 +165,19 @@ contract Battle is Ownable {
         uint256 battleId
     ) private {
         bytes32 battleKey = keccak256(abi.encodePacked(battleId, player));
-
+        CharData.CharBattleData memory battleData = characterContract
+            .getCharacterInfo(tokenId);
         StructsLibrary.CharacterProxy storage p = characterProxies[battleKey][
             player
         ];
         p.id = tokenId;
         p.owner = player;
-        p.stats.health = characterContract.getCharacterHealth(tokenId);
-        p.stats.attack = characterContract.getCharacterAttack(tokenId);
-        p.stats.defense = characterContract.getCharacterDefense(tokenId);
-        p.stats.mana = characterContract.getMana(tokenId);
-        p.stats.typeId = characterContract.getCharacterType(tokenId);
-        p.equippedSkills = characterContract.getEquippedSkills(tokenId);
+        p.stats.health = battleData.health;
+        p.stats.attack = battleData.attack;
+        p.stats.defense = battleData.defense;
+        p.stats.mana = battleData.mana;
+        p.stats.typeId = battleData.typeId;
+        p.equippedSkills = battleData.equippedSkills;
 
         console.log("Character proxy created for player", player);
         console.log("Health:", p.stats.health);
@@ -492,7 +501,8 @@ contract Battle is Ownable {
             statusEffectDamage,
             proxyA,
             proxyB,
-            damageDealt
+            damageDealt,
+            damagedPlayers
         );
 
         // Reset multiplier
@@ -545,81 +555,85 @@ contract Battle is Ownable {
         return 1000 + randomNumber * 100;
     }
 
+    function _handleStatusEffect(
+        uint256 battleId,
+        uint256 round,
+        StructsLibrary.CharacterProxy storage affectedPlayer,
+        uint256 statusEffectId
+    ) private {
+        BattleEffects.StatusEffect memory statusEffect = battleEffectsContract
+            .getStatusEffect(statusEffectId);
+
+        affectedPlayer.applyStatusEffect(
+            statusEffect.effectId,
+            statusEffect.duration
+        );
+
+        emit StatusEffectApplied(
+            battleId,
+            round,
+            affectedPlayer.owner,
+            statusEffect.name,
+            statusEffect.duration
+        );
+    }
+
     function _executeSkill(
         uint256 battleId,
         uint256 round,
         StructsLibrary.CharacterProxy storage player,
-        uint256 skillId,
+        uint256 tokenId,
         StructsLibrary.CharacterProxy storage opponent,
         uint256 opponentMove
     ) private returns (address, uint256) {
+        ICompositeTokens.CompositeTokenDetails
+            memory compositeTokenDetails = compositeContract
+                .getCompositeTokenDetails(tokenId);
         BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
-            skillId
+            compositeTokenDetails.componentTokenIds[0]
         );
         uint256 rawDamage = (player.attackMultiplier * skill.damage) / 1000;
-        uint256 totalDamage = rawDamage;
 
         if (opponentMove == uint256(StructsLibrary.Move.DEFEND)) {
-            totalDamage = rawDamage > opponent.stats.defense
+            rawDamage = rawDamage > opponent.stats.defense
                 ? rawDamage - opponent.stats.defense
                 : 0;
-            battles[battleId].battleStats.damageReduced[
-                opponent.owner == battles[battleId].players[0] ? 0 : 1
-            ] += rawDamage - totalDamage; // Update damageReduced for the opponent
         }
 
-        address damagedPlayer = address(0);
-
-        if (totalDamage > 0) {
-            opponent.stats.health = opponent.stats.health > totalDamage
-                ? opponent.stats.health - totalDamage
-                : 0;
-            damagedPlayer = opponent.owner;
+        if (rawDamage > 0 && opponent.stats.health > rawDamage) {
+            opponent.stats.health -= rawDamage;
+        } else {
+            opponent.stats.health = 0;
         }
 
         emit SkillExecuted(
             battleId,
             round,
             player.owner,
-            skillId,
+            compositeTokenDetails.componentTokenIds[0],
             skill.name,
-            totalDamage
+            rawDamage
         );
-
-        BattleSkills.StatusEffect memory statusEffect = battleSkillsContract
-            .getStatusEffect(skill.statusEffectId);
-
-        if (statusEffect.isPositive) {
-            player.applyStatusEffect(
-                skill.statusEffectId,
-                statusEffect.duration
-            );
-            // Emit the StatusEffectApplied event
-            emit StatusEffectApplied(
-                battleId,
-                round,
-                opponent.owner,
-                statusEffect.name,
-                statusEffect.duration
-            );
-        } else {
-            opponent.applyStatusEffect(
-                skill.statusEffectId,
-                statusEffect.duration
-            );
-            // Emit the StatusEffectApplied event
-            emit StatusEffectApplied(
-                battleId,
-                round,
-                opponent.owner,
-                statusEffect.name,
-                statusEffect.duration
-            );
-        }
 
         player.stats.mana -= skill.manaCost;
 
-        return (damagedPlayer, totalDamage);
+        if (
+            tokenId >= 10001 &&
+            compositeTokenDetails.componentTokenIds.length > 1
+        ) {
+            _handleStatusEffect(
+                battleId,
+                round,
+                battleEffectsContract
+                    .getStatusEffect(compositeTokenDetails.componentTokenIds[1])
+                    .isPositive
+                    ? player
+                    : opponent,
+                compositeTokenDetails.componentTokenIds[1]
+            );
+        }
+
+        return (opponent.owner, rawDamage);
     }
 
     function _resolveStatusEffects(
@@ -636,7 +650,7 @@ contract Battle is Ownable {
             uint256[] memory effectValues,
             uint256[] memory effectRounds,
             uint256[] memory effectDurations
-        ) = character.resolveStatusEffects(battleSkillsContract, round);
+        ) = character.resolveStatusEffects(battleEffectsContract, round);
 
         for (uint256 i = 0; i < effectIds.length; i++) {
             if (
