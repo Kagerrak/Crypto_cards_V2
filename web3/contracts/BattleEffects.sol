@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.11;
 
 import "@thirdweb-dev/contracts/base/ERC1155Base.sol";
 
@@ -21,7 +21,9 @@ contract BattleEffects is ERC1155Base {
     mapping(uint256 => StatusEffect) public statusEffects;
     uint256 public numStatusEffects;
 
-    constructor() ERC1155Base("StatusEffectNFT", "SE", address(0), 0) {}
+    constructor() ERC1155Base("StatusEffectNFT", "SE", address(0), 0) {
+        nextTokenIdToMint_ = 1;
+    }
 
     function createStatusEffect(
         string memory _name,
@@ -37,7 +39,7 @@ contract BattleEffects is ERC1155Base {
         string memory _tokenURI
     ) public {
         uint256 tokenId = type(uint256).max; // pass type(uint256).max as the tokenId argument
-        mintTo(msg.sender, tokenId, _tokenURI, 1);
+        numStatusEffects++;
         statusEffects[numStatusEffects] = StatusEffect(
             numStatusEffects,
             _name,
@@ -51,7 +53,16 @@ contract BattleEffects is ERC1155Base {
             _damagePerTurn,
             _isStun
         );
-        numStatusEffects++;
+        mintTo(msg.sender, tokenId, _tokenURI, 1);
+    }
+
+    function mintStatusEffect(uint256 _effectId, address _caller) public {
+        require(
+            _effectId <= numStatusEffects && _effectId != 0,
+            "Invalid effect ID"
+        );
+        uint256 tokenId = _effectId;
+        _mint(_caller, tokenId, 1, "");
     }
 
     function getStatusEffect(
