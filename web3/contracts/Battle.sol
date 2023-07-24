@@ -590,7 +590,7 @@ contract Battle is Ownable {
             memory compositeTokenDetails = compositeContract
                 .getCompositeTokenDetails(tokenId);
         BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
-            compositeTokenDetails.componentTokenIds[0]
+            compositeTokenDetails.battleSkillId
         );
         uint256 rawDamage = (player.attackMultiplier * skill.damage) / 1000;
 
@@ -610,26 +610,23 @@ contract Battle is Ownable {
             battleId,
             round,
             player.owner,
-            compositeTokenDetails.componentTokenIds[0],
+            compositeTokenDetails.battleSkillId,
             skill.name,
             rawDamage
         );
 
         player.stats.mana -= skill.manaCost;
 
-        if (
-            tokenId >= 10001 &&
-            compositeTokenDetails.componentTokenIds.length > 1
-        ) {
+        if (compositeTokenDetails.skillEffectId != 0) {
             _handleStatusEffect(
                 battleId,
                 round,
                 battleEffectsContract
-                    .getStatusEffect(compositeTokenDetails.componentTokenIds[1])
+                    .getStatusEffect(compositeTokenDetails.skillEffectId)
                     .isPositive
                     ? player
                     : opponent,
-                compositeTokenDetails.componentTokenIds[1]
+                compositeTokenDetails.skillEffectId
             );
         }
 
