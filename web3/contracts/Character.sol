@@ -5,19 +5,15 @@ import "@thirdweb-dev/contracts/base/ERC721Base.sol";
 
 import "./ICompositeToken.sol";
 import "hardhat/console.sol";
-import "./EquipManagement.sol";
+import "./IEquipManagement.sol";
 import "./CharacterManagement.sol";
 import "./Class.sol";
+import "./CharData.sol";
 
 import "@thirdweb-dev/contracts/openzeppelin-presets/utils/ERC1155/ERC1155Holder.sol";
 import "@thirdweb-dev/contracts/lib/TWStrings.sol";
 
-contract Character is
-    ERC721Base,
-    ERC1155Holder,
-    EquipManagement,
-    CharacterManagement
-{
+contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override(ERC721Base, ERC1155Receiver) returns (bool) {
@@ -48,6 +44,10 @@ contract Character is
 
     mapping(uint256 => string) private fullURI;
     CharacterClass public characterClasses;
+    IBattleItems public battleItems;
+    IBattleSkills public battleSkills;
+    ICompositeTokens public compositeTokens;
+    IEquipManagement public equipManagement;
 
     function setBattleSkills(address _address) public onlyOwner {
         battleSkills = IBattleSkills(_address);
@@ -63,6 +63,27 @@ contract Character is
 
     function setCompositeTokens(address _address) public onlyOwner {
         compositeTokens = ICompositeTokens(_address);
+    }
+
+    function setEquipManagementContract(
+        address _equipManagementAddress
+    ) external onlyOwner {
+        require(
+            address(equipManagement) == address(0),
+            "EquipManagement contract address is already set"
+        );
+
+        equipManagement = IEquipManagement(_equipManagementAddress);
+
+        // Approve the EquipManagement contract to manage all Equip tokens of this contract
+        battleSkills.setApprovalForAll(_equipManagementAddress, true);
+        battleItems.setApprovalForAll(_equipManagementAddress, true);
+        compositeTokens.setApprovalForAll(_equipManagementAddress, true);
+    }
+
+    modifier onlyEquipManagement() {
+        require(msg.sender == address(equipManagement), "Not authorized");
+        _;
     }
 
     constructor()
@@ -112,41 +133,90 @@ contract Character is
 
         // Initialize the character stats and equipment
         _initializeCharacterStats(_typeId);
-        _initializeCharacterEquips();
         _initializeCharacterRecoveryStats(_typeId);
 
         // Increment the token ID counter for the next mint
         numCharacters++;
     }
 
-    function equip(
+    function equipSkill(
         uint256 characterTokenId,
-        uint256 tokenId,
-        TokenType tokenType
-    ) public {
-        equipInternal(
-            characterEquips[characterTokenId],
-            characterTokenId,
-            tokenId,
-            tokenType
-        );
+        uint256 skillId
+    ) external onlyEquipManagement {
+        CharData.CharacterEquips storage character = characterEquips[
+            characterTokenId
+        ];
+        character.equippedSkills.push(skillId);
     }
 
-    function unequip(
+    function unequipSkill(
         uint256 characterTokenId,
-        uint256 tokenId,
-        TokenType tokenType
-    ) public {
+        uint256 skillId
+    ) external onlyEquipManagement {
+        CharData.CharacterEquips storage character = characterEquips[
+            characterTokenId
+        ];
+        uint256 skillIndex = character.equippedSkills.length;
+        for (uint256 i = 0; i < character.equippedSkills.length; i++) {
+            if (character.equippedSkills[i] == skillId) {
+                skillIndex = i;
+                break;
+            }
+        }
         require(
-            ownerOf(characterTokenId) == msg.sender,
-            "Not the owner of the character"
+            skillIndex < character.equippedSkills.length,
+            "Skill not equipped"
         );
-        unequipInternal(
-            characterEquips[characterTokenId],
-            characterTokenId,
-            tokenId,
-            tokenType
-        );
+        character.equippedSkills[skillIndex] = character.equippedSkills[
+            character.equippedSkills.length - 1
+        ];
+        character.equippedSkills.pop();
+    }
+
+    function equipItem(
+        uint256 characterTokenId,
+        uint256 itemId,
+        CharData.ItemType itemType
+    ) external onlyEquipManagement {
+        CharData.CharacterEquips storage character = characterEquips[
+            characterTokenId
+        ];
+        CharData.CharacterStats storage characterStats = characterStats[
+            characterTokenId
+        ];
+
+        IBattleItems.Item memory item = battleItems.getItem(itemId);
+
+        characterStats.attack += item.attack;
+        characterStats.defense += item.defense;
+        characterStats.health += item.health;
+        characterStats.mana += item.mana;
+
+        // Equip the new item
+        character.equippedItems[itemType] = itemId;
+    }
+
+    function unequipItem(
+        uint256 characterTokenId,
+        CharData.ItemType itemType
+    ) external onlyEquipManagement {
+        CharData.CharacterEquips storage character = characterEquips[
+            characterTokenId
+        ];
+        CharData.CharacterStats storage characterStats = characterStats[
+            characterTokenId
+        ];
+
+        uint256 itemId = character.equippedItems[itemType];
+        IBattleItems.Item memory item = battleItems.getItem(itemId);
+
+        characterStats.attack -= item.attack;
+        characterStats.defense -= item.defense;
+        characterStats.health -= item.health;
+        characterStats.mana -= item.mana;
+
+        // Unequip the item
+        character.equippedItems[itemType] = 0;
     }
 
     function equipClass(uint256 characterTokenId, uint256 classId) public {
@@ -229,17 +299,21 @@ contract Character is
         return characterEquips[characterTokenId].equippedClass;
     }
 
-    function mintNewCharacterWithItemAndEquip(
-        uint256 _typeId,
-        uint256 _skillTokenId
-    ) external {
-        // Mint a new character
-        newCharacter(_typeId);
+    // function mintNewCharacterWithItemAndEquip(
+    //     uint256 _typeId,
+    //     uint256 _skillTokenId
+    // ) external {
+    //     // Mint a new character
+    //     newCharacter(_typeId);
 
-        // Mint a new item
-        battleSkills.mintSkill(_skillTokenId, msg.sender);
+    //     // Mint a new item
+    //     battleSkills.mintSkill(_skillTokenId, msg.sender);
 
-        // Equip the item to the new character
-        equip(numCharacters - 1, _skillTokenId, TokenType.Skill);
-    }
+    //     // Equip the item to the new character
+    //     equipManagement.equip(
+    //         numCharacters - 1,
+    //         _skillTokenId,
+    //         CharData.TokenType.Skill
+    //     );
+    // }
 }
