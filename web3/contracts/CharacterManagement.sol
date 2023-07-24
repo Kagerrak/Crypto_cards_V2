@@ -207,24 +207,6 @@ contract CharacterManagement {
         );
     }
 
-    function _initializeCharacterEquips() internal {
-        characterEquips[numCharacters].equippedItems[
-            IBattleItems.ItemType.Headgear
-        ] = 999999;
-        characterEquips[numCharacters].equippedItems[
-            IBattleItems.ItemType.Weapon
-        ] = 999999;
-        characterEquips[numCharacters].equippedItems[
-            IBattleItems.ItemType.BodyArmor
-        ] = 999999;
-        characterEquips[numCharacters].equippedItems[
-            IBattleItems.ItemType.Pants
-        ] = 999999;
-        characterEquips[numCharacters].equippedItems[
-            IBattleItems.ItemType.Footwear
-        ] = 999999;
-    }
-
     function _initializeCharacterRecoveryStats(uint256 _typeId) internal {
         // Initialize the recovery stats for the new character
         CharData.RecoveryStats memory _recoveryStats = CharData.RecoveryStats(
@@ -402,9 +384,15 @@ contract CharacterManagement {
         return characterRecoveryStats[tokenId];
     }
 
+    function getCharacterEquippedSkills(
+        uint256 characterTokenId
+    ) public view returns (uint256[] memory) {
+        return characterEquips[characterTokenId].equippedSkills;
+    }
+
     function getEquippedItem(
         uint256 characterTokenId,
-        IBattleItems.ItemType itemType
+        CharData.ItemType itemType
     ) external view returns (uint256) {
         return characterEquips[characterTokenId].equippedItems[itemType];
     }
