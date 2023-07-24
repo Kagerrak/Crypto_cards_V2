@@ -1,28 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
 
+import "./CharData.sol";
+
 interface ICompositeTokens {
-    enum TokenType {
-        Item,
-        Skill,
-        CompositeItem,
-        CompositeSkill
-    }
-    enum ItemType {
-        Weapon,
-        Headgear,
-        BodyArmor,
-        Pants,
-        Footwear
+    enum CompositeType {
+        SkillWithEffect,
+        ItemWithSkill,
+        ItemWithEffect,
+        ItemWithEffectAndSkill,
+        ItemWithEffectAndSkillWithEffect
     }
 
     struct CompositeTokenDetails {
-        uint256 tokenId; // the ID of the composite token
-        bytes32 compositeHash; // the compositeHash of the composite token
-        uint256[] componentTokenIds; // the IDs of the tokens that compose the composite token
-        address[] componentContracts; // the contracts of the tokens that compose the composite token
-        TokenType tokenType; // the type of the primary token
-        ItemType itemType; // the subtype of the primary token
+        uint256 tokenId;
+        bytes32 compositeHash;
+        CompositeType compositeType;
+        CharData.TokenType tokenType;
+        uint256 itemId;
+        uint256 itemEffectId;
+        uint256 battleSkillId;
+        uint256 skillEffectId;
+        uint256 compositeItemId;
+        uint256 compositeSkillId;
     }
 
     function getCompositeTokenDetails(
@@ -44,7 +44,9 @@ interface ICompositeTokens {
         uint256 tokenId
     ) external view returns (uint256);
 
-    function getTokenType(uint256 tokenId) external view returns (TokenType);
+    function getTokenType(
+        uint256 tokenId
+    ) external view returns (CharData.TokenType);
 
     function safeTransferFrom(
         address from,
@@ -53,5 +55,7 @@ interface ICompositeTokens {
         uint256 amount,
         bytes calldata data
     ) external;
+
+    function setApprovalForAll(address operator, bool approved) external;
     // Add other function signatures as required
 }

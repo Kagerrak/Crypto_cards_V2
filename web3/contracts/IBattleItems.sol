@@ -1,23 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-interface IBattleItems {
-    enum ItemType {
-        Weapon,
-        Headgear,
-        BodyArmor,
-        Pants,
-        Footwear
-    }
+import "./CharData.sol";
 
+interface IBattleItems {
     struct Item {
         string name;
         uint256 attack;
         uint256 defense;
         uint256 health;
         uint256 mana;
-        uint256 skill;
-        ItemType itemType;
+        CharData.ItemType itemType;
     }
 
     function getItem(uint256 _itemId) external view returns (Item memory);
@@ -28,8 +21,7 @@ interface IBattleItems {
         uint256 _defense,
         uint256 _health,
         uint256 _mana,
-        uint256 _skill,
-        ItemType _itemType,
+        CharData.ItemType _itemType,
         string memory _tokenURI
     ) external;
 
@@ -41,11 +33,12 @@ interface IBattleItems {
         uint256 _attack,
         uint256 _defense,
         uint256 _health,
-        uint256 _mana,
-        uint256 _skill
+        uint256 _mana
     ) external;
 
-    function getItemType(uint256 tokenId) external view returns (ItemType);
+    function getItemType(
+        uint256 tokenId
+    ) external view returns (CharData.ItemType);
 
     function getRandomItem() external view returns (uint256);
 
@@ -63,4 +56,6 @@ interface IBattleItems {
         uint256 amount,
         bytes calldata data
     ) external;
+
+    function setApprovalForAll(address operator, bool approved) external;
 }

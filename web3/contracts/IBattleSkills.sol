@@ -2,6 +2,33 @@
 pragma solidity ^0.8.17;
 
 interface IBattleSkills {
+    struct Skill {
+        uint256 skillId;
+        string name;
+        uint256 damage;
+        uint256 manaCost;
+    }
+
+    function createSkill(
+        string memory _name,
+        uint256 _damage,
+        uint256 _manaCost,
+        string memory _tokenURI
+    ) external;
+
+    function getSkill(uint256 _skillId) external view returns (Skill memory);
+
+    function mintSkill(uint256 _skillId, address _caller) external;
+
+    function updateSkill(
+        uint256 _skillId,
+        string memory _name,
+        uint256 _damage,
+        uint256 _manaCost
+    ) external;
+
+    function doesSkillExist(uint256 skillId) external view returns (bool);
+
     function totalSupply(uint256 _tokenId) external view returns (uint256);
 
     function balanceOf(
@@ -17,51 +44,5 @@ interface IBattleSkills {
         bytes calldata _data
     ) external;
 
-    function mintSkill(uint256 _skillTokenId, address _to) external;
-
-    function getSkill(
-        uint256 _skillId
-    )
-        external
-        view
-        returns (
-            uint256 skillId,
-            string memory name,
-            uint256 damage,
-            uint256 manaCost,
-            uint256 statusEffectId
-        );
-
-    function getStatusEffect(
-        uint256 _effectId
-    )
-        external
-        view
-        returns (
-            uint256 effectId,
-            string memory name,
-            bool isPositive,
-            uint256 duration,
-            uint256 attackBoost,
-            uint256 attackReduction,
-            uint256 defenseBoost,
-            uint256 defenseReduction,
-            uint256 healPerTurn,
-            uint256 damagePerTurn,
-            bool isStun
-        );
-
-    function updateSkill(
-        uint256 _skillId,
-        string memory _name,
-        uint256 _damage,
-        uint256 _manaCost,
-        uint256 _statusEffectId
-    ) external;
-
-    function getRandomSkill(
-        uint256 _enemyLevel
-    ) external view returns (uint256);
-
-    function doesSkillExist(uint256 skillId) external view returns (bool);
+    function setApprovalForAll(address operator, bool approved) external;
 }
