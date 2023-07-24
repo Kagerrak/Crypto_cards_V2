@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 import "./ICompositeToken.sol";
 import "./IBattleItems.sol";
@@ -171,7 +171,7 @@ contract EquipManagement {
         );
 
         // Check if the item is not already equipped in the specified slot
-        if (equippedItem != 999999) {
+        if (equippedItem != 0) {
             require(equippedItem != itemTokenId, "Item already equipped");
 
             if (equippedItem > 10000) {
@@ -264,10 +264,16 @@ contract EquipManagement {
             "Not the owner of the composite token"
         );
 
-        // Get the ItemType of the composite token
-        CharData.ItemType itemType = compositeTokens
-            .getCompositeTokenDetails(compositeTokenId)
-            .itemType;
+        // Get the details of the composite token
+        ICompositeTokens.CompositeTokenDetails
+            memory compositeTokenDetails = compositeTokens
+                .getCompositeTokenDetails(compositeTokenId);
+
+        // Get the itemType using the itemId from the composite token
+        IBattleItems.Item memory itemDetails = battleItems.getItem(
+            compositeTokenDetails.itemId
+        );
+        CharData.ItemType itemType = itemDetails.itemType;
 
         uint256 equippedItem = characterContract.getCharacterEquippedItem(
             characterTokenId,
@@ -276,7 +282,7 @@ contract EquipManagement {
 
         // Check if the composite token is not already equipped
         // Check if the item is not already equipped in the specified slot
-        if (equippedItem != 999999) {
+        if (equippedItem != 0) {
             require(equippedItem != compositeTokenId, "Item already equipped");
 
             if (equippedItem > 10000) {
@@ -507,10 +513,16 @@ contract EquipManagement {
             "Not the owner of the composite token"
         );
 
-        // Get the ItemType of the composite token
-        CharData.ItemType itemType = compositeTokens
-            .getCompositeTokenDetails(compositeTokenId)
-            .itemType;
+        // Get the details of the composite token
+        ICompositeTokens.CompositeTokenDetails
+            memory compositeTokenDetails = compositeTokens
+                .getCompositeTokenDetails(compositeTokenId);
+
+        // Get the itemType using the itemId from the composite token
+        IBattleItems.Item memory itemDetails = battleItems.getItem(
+            compositeTokenDetails.itemId
+        );
+        CharData.ItemType itemType = itemDetails.itemType;
 
         // Check if the composite token is equipped
         require(
