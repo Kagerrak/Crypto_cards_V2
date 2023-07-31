@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 import "@thirdweb-dev/contracts/base/ERC721Base.sol";
 
@@ -189,7 +189,19 @@ contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
             characterTokenId
         ];
 
-        IBattleItems.Item memory item = battleItems.getItem(itemId);
+        IBattleItems.Item memory item;
+
+        if (itemId > 10000) {
+            // If the item ID is composite, query the compositeTokenDetails
+            ICompositeTokens.CompositeTokenDetails
+                memory compositeDetails = compositeTokens
+                    .getCompositeTokenDetails(itemId);
+            uint256 pureItemId = compositeDetails.itemId;
+            item = battleItems.getItem(pureItemId);
+        } else {
+            // If the item ID is not composite, simply query the battleItems
+            item = battleItems.getItem(itemId);
+        }
 
         characterStats.attack += item.attack;
         characterStats.defense += item.defense;
@@ -212,7 +224,19 @@ contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
         ];
 
         uint256 itemId = character.equippedItems[itemType];
-        IBattleItems.Item memory item = battleItems.getItem(itemId);
+        IBattleItems.Item memory item;
+
+        if (itemId > 10000) {
+            // If the item ID is composite, query the compositeTokenDetails
+            ICompositeTokens.CompositeTokenDetails
+                memory compositeDetails = compositeTokens
+                    .getCompositeTokenDetails(itemId);
+            uint256 pureItemId = compositeDetails.itemId;
+            item = battleItems.getItem(pureItemId);
+        } else {
+            // If the item ID is not composite, simply query the battleItems
+            item = battleItems.getItem(itemId);
+        }
 
         characterStats.attack -= item.attack;
         characterStats.defense -= item.defense;
@@ -317,7 +341,8 @@ contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
         equipManagement.equip(
             numCharacters - 1,
             _skillTokenId,
-            CharData.TokenType.Skill
+            CharData.TokenType.Skill,
+            msg.sender
         );
     }
 }

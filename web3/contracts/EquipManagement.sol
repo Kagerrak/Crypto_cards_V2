@@ -69,10 +69,11 @@ contract EquipManagement {
     function equip(
         uint256 characterTokenId,
         uint256 tokenId,
-        CharData.TokenType tokenType
+        CharData.TokenType tokenType,
+        address _caller
     ) external {
         require(
-            characterContract.ownerOf(characterTokenId) == msg.sender,
+            characterContract.ownerOf(characterTokenId) == _caller,
             "Not Owner!"
         );
         if (tokenId > 10000) {
@@ -83,7 +84,7 @@ contract EquipManagement {
             );
             _equipCompositeToken(
                 characterTokenId,
-                msg.sender,
+                _caller,
                 address(characterContract),
                 tokenId
             );
@@ -91,14 +92,14 @@ contract EquipManagement {
             if (tokenType == CharData.TokenType.Item) {
                 _equipItem(
                     characterTokenId,
-                    msg.sender,
+                    _caller,
                     address(characterContract),
                     tokenId
                 );
             } else if (tokenType == CharData.TokenType.Skill) {
                 _equipSkill(
                     characterTokenId,
-                    msg.sender,
+                    _caller,
                     address(characterContract),
                     tokenId
                 );

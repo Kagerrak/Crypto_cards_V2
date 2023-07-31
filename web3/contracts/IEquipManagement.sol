@@ -13,7 +13,8 @@ interface IEquipManagement {
     function equip(
         uint256 characterTokenId,
         uint256 tokenId,
-        CharData.TokenType tokenType
+        CharData.TokenType tokenType,
+        address _caller
     ) external;
 
     function unequip(
