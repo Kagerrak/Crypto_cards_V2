@@ -41,7 +41,7 @@ const styles = {
     "sm:w-[320px] w-full text-center p-2 glass-morphism m-4 rounded-lg cursor-pointer battle-card items-center",
   recruitmentCardImg: "w-full h-full rounded-md",
   recruitmentCardText: "font-rajdhani font-semibold text-xl text-white",
-  characterInfoPopup: "absolute p-3 z-50 rounded-md flex-col",
+  characterInfoPopup: "absolute p-3 z-20 rounded-md flex-col",
   characterInfoClosePopup: "flex justify-end",
   characterAttributeBox:
     " text-white p-1 text-center rounded-[5px] cursor-pointer border-[2px] justify-center",
