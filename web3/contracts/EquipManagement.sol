@@ -441,10 +441,6 @@ contract EquipManagement {
             battleItems.totalSupply(itemTokenId) > 0,
             "Invalid item token ID"
         );
-        require(
-            battleItems.balanceOf(owner, itemTokenId) > 0,
-            "Not the owner of the item"
-        );
 
         // Get the ItemType of the item
         CharData.ItemType itemType = battleItems.getItemType(itemTokenId);
@@ -506,10 +502,6 @@ contract EquipManagement {
         require(
             compositeTokens.totalSupply(compositeTokenId) > 0,
             "Invalid composite token ID"
-        );
-        require(
-            compositeTokens.balanceOf(owner, compositeTokenId) > 0,
-            "Not the owner of the composite token"
         );
 
         // Get the details of the composite token
