@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.17;
 
-import "./ICompositeToken.sol";
+import "./ICompositeTokens.sol";
 import "./IBattleItems.sol";
 import "./IBattleSkills.sol";
 import "./CharData.sol";
 import "./ICharacter.sol";
+import "hardhat/console.sol";
 
 contract EquipManagement {
     address private _owner;
@@ -42,7 +43,7 @@ contract EquipManagement {
     IBattleItems private battleItems;
     IBattleSkills private battleSkills;
     ICompositeTokens private compositeTokens;
-    ICharacter private characterContract;
+    ICharacter public characterContract;
 
     constructor(
         address _battleItemsAddress,
@@ -83,9 +84,8 @@ contract EquipManagement {
             _equipCompositeToken(
                 characterTokenId,
                 msg.sender,
-                address(this),
-                tokenId,
-                compositeTokens
+                address(characterContract),
+                tokenId
             );
         } else {
             if (tokenType == CharData.TokenType.Item) {
@@ -206,39 +206,38 @@ contract EquipManagement {
         uint256 characterTokenId,
         address owner,
         address contractAddress,
-        uint256 compositeTokenId,
-        ICompositeTokens _compositeTokens
+        uint256 compositeTokenId
     ) internal {
         // Check if the composite token exists and the caller is the owner of the composite token
         require(
-            _compositeTokens.totalSupply(compositeTokenId) > 0,
+            compositeTokens.totalSupply(compositeTokenId) > 0,
             "Invalid composite token ID"
         );
         require(
-            _compositeTokens.balanceOf(owner, compositeTokenId) > 0,
+            compositeTokens.balanceOf(owner, compositeTokenId) > 0,
             "Not the owner of the composite token"
         );
 
         // Get the TokenType of the composite token
-        CharData.TokenType tokenType = _compositeTokens.getTokenType(
+        CharData.TokenType tokenType = compositeTokens.getTokenType(
             compositeTokenId
         );
 
         // Ensure the composite token type is appropriate
         require(
-            tokenType == CharData.TokenType.Item ||
-                tokenType == CharData.TokenType.Skill,
+            tokenType == CharData.TokenType.CompositeItem ||
+                tokenType == CharData.TokenType.CompositeSkill,
             "Invalid composite token type"
         );
 
-        if (tokenType == CharData.TokenType.Item) {
+        if (tokenType == CharData.TokenType.CompositeItem) {
             _equipCompositeItem(
                 characterTokenId,
                 owner,
                 contractAddress,
                 compositeTokenId
             );
-        } else if (tokenType == CharData.TokenType.Skill) {
+        } else if (tokenType == CharData.TokenType.CompositeSkill) {
             _equipCompositeSkill(
                 characterTokenId,
                 owner,
@@ -478,14 +477,14 @@ contract EquipManagement {
         CharData.TokenType tokenType = compositeTokens.getTokenType(
             compositeTokenId
         );
-        if (tokenType == CharData.TokenType.Item) {
+        if (tokenType == CharData.TokenType.CompositeItem) {
             _unequipCompositeItem(
                 characterTokenId,
                 owner,
                 contractAddress,
                 compositeTokenId
             );
-        } else if (tokenType == CharData.TokenType.Skill) {
+        } else if (tokenType == CharData.TokenType.CompositeSkill) {
             _unequipCompositeSkill(
                 characterTokenId,
                 owner,

@@ -64,10 +64,6 @@ contract CharacterManagement {
 
     address internal battleContractAddress;
 
-    function setBattleContract(address _address) internal virtual {
-        battleContractAddress = _address;
-    }
-
     modifier onlyBattleContract() {
         require(
             msg.sender == battleContractAddress,
@@ -390,7 +386,7 @@ contract CharacterManagement {
         return characterEquips[characterTokenId].equippedSkills;
     }
 
-    function getEquippedItem(
+    function getCharacterEquippedItem(
         uint256 characterTokenId,
         CharData.ItemType itemType
     ) external view returns (uint256) {

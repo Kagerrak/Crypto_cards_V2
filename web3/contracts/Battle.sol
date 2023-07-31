@@ -9,7 +9,7 @@ import "./StructsLibrary.sol";
 import "./BattleResolutionLibrary.sol";
 import "./StatusEffectsLibrary.sol";
 import "./BattleEffects.sol";
-import "./ICompositeToken.sol";
+import "./ICompositeTokens.sol";
 
 contract Battle is Ownable {
     function _canSetOwner() internal view virtual override returns (bool) {

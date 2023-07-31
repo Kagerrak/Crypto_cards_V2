@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.17;
 
-import "./ICompositeToken.sol";
+import "./ICompositeTokens.sol";
 import "./IBattleItems.sol";
 import "./IBattleSkills.sol";
 import "./CharData.sol";

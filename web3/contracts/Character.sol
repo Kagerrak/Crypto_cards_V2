@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@thirdweb-dev/contracts/base/ERC721Base.sol";
 
-import "./ICompositeToken.sol";
+import "./ICompositeTokens.sol";
 import "hardhat/console.sol";
 import "./IEquipManagement.sol";
 import "./CharacterManagement.sol";
@@ -63,6 +63,10 @@ contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
 
     function setCompositeTokens(address _address) public onlyOwner {
         compositeTokens = ICompositeTokens(_address);
+    }
+
+    function setBattleContract(address _address) public onlyOwner {
+        battleContractAddress = _address;
     }
 
     function setEquipManagementContract(
@@ -299,21 +303,21 @@ contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
         return characterEquips[characterTokenId].equippedClass;
     }
 
-    // function mintNewCharacterWithItemAndEquip(
-    //     uint256 _typeId,
-    //     uint256 _skillTokenId
-    // ) external {
-    //     // Mint a new character
-    //     newCharacter(_typeId);
+    function mintNewCharacterWithItemAndEquip(
+        uint256 _typeId,
+        uint256 _skillTokenId
+    ) external {
+        // Mint a new character
+        newCharacter(_typeId);
 
-    //     // Mint a new item
-    //     battleSkills.mintSkill(_skillTokenId, msg.sender);
+        // Mint a new item
+        battleSkills.mintSkill(_skillTokenId, msg.sender);
 
-    //     // Equip the item to the new character
-    //     equipManagement.equip(
-    //         numCharacters - 1,
-    //         _skillTokenId,
-    //         CharData.TokenType.Skill
-    //     );
-    // }
+        // Equip the item to the new character
+        equipManagement.equip(
+            numCharacters - 1,
+            _skillTokenId,
+            CharData.TokenType.Skill
+        );
+    }
 }

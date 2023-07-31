@@ -320,13 +320,18 @@ contract CompositeTokens is ERC1155Base, ERC1155Holder {
     }
 
     function getTokenType(
+        uint256 tokenId
+    ) external view returns (CharData.TokenType) {
+        CompositeTokenDetails
+            memory compositeTokenDetails = getCompositeTokenDetails(tokenId);
+        CompositeType _compositeType = compositeTokenDetails.compositeType;
+        return getTokenType(_compositeType); // Calls the internal function
+    }
+
+    function getTokenType(
         CompositeType _compositeType
     ) internal pure returns (CharData.TokenType) {
-        if (
-            _compositeType == CompositeType.SkillWithEffect ||
-            _compositeType == CompositeType.ItemWithEffectAndSkill ||
-            _compositeType == CompositeType.ItemWithEffectAndSkillWithEffect
-        ) {
+        if (_compositeType == CompositeType.SkillWithEffect) {
             return CharData.TokenType.CompositeSkill;
         } else {
             return CharData.TokenType.CompositeItem;
