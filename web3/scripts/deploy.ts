@@ -13,10 +13,10 @@ async function main() {
   console.log(`Deploying smart contracts...`);
 
   // Deploy StatCalculation library
-  const StatCalculation = await ethers.getContractFactory("StatCalculation");
-  const statCalculation = await StatCalculation.deploy();
-  await statCalculation.deployed();
-  console.log("StatCalculation deployed to:", statCalculation.address);
+  const CMLib = await ethers.getContractFactory("CMLib");
+  const cmLib = await CMLib.deploy();
+  await cmLib.deployed();
+  console.log("CMLib deployed to:", cmLib.address);
 
   // Deploy BattleSkills contract
   const BattleSkills = await ethers.getContractFactory("BattleSkills");
@@ -30,30 +30,95 @@ async function main() {
   await battleItems.deployed();
   console.log("BattleItems deployed to:", battleItems.address);
 
+  // Deploy BattleEffects contract
+  const BattleEffects = await ethers.getContractFactory("BattleEffects");
+  const battleEffects = await BattleEffects.deploy();
+  await battleEffects.deployed();
+  console.log("BattleEffects deployed to:", battleEffects.address);
+
+  // Deploy CompositeTokens contract
+  const CompositeTokens = await ethers.getContractFactory("CompositeTokens");
+  const compositeTokens = await CompositeTokens.deploy(
+    battleSkills.address,
+    battleItems.address,
+    battleEffects.address
+  );
+  await compositeTokens.deployed();
+  console.log("CompositeTokens deployed to:", compositeTokens.address);
+
   // Deploy Character contract with StatCalculation library address
   const Character = await ethers.getContractFactory("Character", {
     libraries: {
-      StatCalculation: statCalculation.address,
+      CMLib: cmLib.address,
     },
   });
   const character = await Character.deploy();
   await character.deployed();
   console.log("Character deployed to:", character.address);
 
-  // Deploy Battle contract with BattleResolutionLibrary and StatusEffectsLibrary addresses
+  // Deploy Battle contract
+  // Re-deploy Battle contract with new constructor arguments
   const Battle = await ethers.getContractFactory("Battle");
-  const battle = await Battle.deploy(character.address, battleSkills.address);
+  const battle = await Battle.deploy(
+    character.address,
+    battleSkills.address,
+    battleEffects.address,
+    compositeTokens.address
+  );
   await battle.deployed();
   console.log("Battle deployed to:", battle.address);
 
+  // Deploy EquipManagement contract
+  const EquipManagement = await ethers.getContractFactory("EquipManagement");
+  const equipManagement = await EquipManagement.deploy(
+    battleItems.address,
+    battleSkills.address,
+    compositeTokens.address
+  );
+  await equipManagement.deployed();
+  console.log("EquipManagement deployed to:", equipManagement.address);
+
+  // Set the Character contract address in the EquipManagement contract
+  await equipManagement.setCharacterContract(character.address);
+  console.log(
+    "Character contract address set in EquipManagement contract:",
+    character.address
+  );
+
   // Set the BattleSkills contract address in the Character contract
   await character.setBattleSkills(battleSkills.address);
+  console.log(
+    "BattleSkills contract address set in Character contract:",
+    battleSkills.address
+  );
 
   // Set the BattleItems contract address in the Character contract
   await character.setBattleItems(battleItems.address);
+  console.log(
+    "BattleItems contract address set in Character contract:",
+    battleItems.address
+  );
+
+  // Set the CompositeTokens contract address in the Character contract
+  await character.setCompositeTokens(compositeTokens.address);
+  console.log(
+    "CompositeTokens contract address set in Character contract:",
+    battleItems.address
+  );
 
   // Set the Battle contract address in the Character contract
   await character.setBattleContract(battle.address);
+  console.log(
+    "Battle contract address set in Character contract:",
+    battle.address
+  );
+
+  // Set the EquipManagement contract address in the Character contract
+  await character.setEquipManagementContract(equipManagement.address);
+  console.log(
+    "EquipManagement contract address set in Character contract:",
+    equipManagement.address
+  );
 
   // Set approval for the character contract address for two accounts
   const accounts = await ethers.getSigners();
@@ -86,13 +151,32 @@ async function main() {
     battle.address,
     character.address,
     battleSkills.address,
-    battleItems.address
+    battleItems.address,
+    battleEffects.address,
+    compositeTokens.address,
+    equipManagement.address
   );
 
   await verify(character.address, []);
   await verify(battleSkills.address, []);
   await verify(battleItems.address, []);
-  await verify(battle.address, [character.address, battleSkills.address]);
+  await verify(battleEffects.address, []);
+  await verify(compositeTokens.address, [
+    battleSkills.address,
+    battleItems.address,
+    battleEffects.address,
+  ]);
+  await verify(battle.address, [
+    character.address,
+    battleSkills.address,
+    battleEffects.address,
+    compositeTokens.address,
+  ]);
+  await verify(equipManagement.address, [
+    battleItems.address,
+    battleSkills.address,
+    compositeTokens.address,
+  ]);
 }
 
 main()
