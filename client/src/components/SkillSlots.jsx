@@ -2,7 +2,12 @@ import React, { useEffect } from "react";
 import SkillSlot from "./SkillSlot";
 import { useGlobalContext } from "../context";
 
-const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
+const SkillSlots = ({
+  charTWContract,
+  skillTWContract,
+  compositeTWContract,
+  tokenId,
+}) => {
   const {
     characterContract,
     equippedSkills,
@@ -12,24 +17,23 @@ const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
     allOwnedSkills,
     localOwnedSkills,
     setLocalOwnedSkills,
+    equipManagementContract,
   } = useGlobalContext();
 
   const handleUnequipSkill = async (_skillTokenId) => {
     setEquippedSkillLoading(true);
     try {
-      const unEquiptx = await characterContract.unequipSkill(
+      const unequipTx = await equipManagementContract.unequip(
         tokenId,
-        _skillTokenId
+        _skillTokenId,
+        _skillTokenId > 10000 ? 4 : 1
       );
-      await unEquiptx.wait();
+      await unequipTx.wait();
 
       setEquippedSkills((prevSkills) => {
-        // Step 1: Replace the unequipped skill with null
         const newSkills = prevSkills.map((skillId) =>
           skillId === _skillTokenId ? null : skillId
         );
-
-        // Step 2: Rearrange the array to move null values to the end
         const skillsWithValues = newSkills.filter(
           (skillId) => skillId !== null
         );
@@ -37,7 +41,6 @@ const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
         return [...skillsWithValues, ...nullSkills];
       });
 
-      // Step 3: Add the unequipped skill to the localOwnedSkills
       const unequippedSkill = allOwnedSkills.find(
         (skill) => skill.metadata.id === _skillTokenId
       );
@@ -53,9 +56,10 @@ const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
 
   useEffect(() => {
     const fetchEquippedSkills = async () => {
-      const fetchedSkills = await charTWContract.call("getEquippedSkills", [
-        tokenId,
-      ]);
+      const fetchedSkills = await charTWContract.call(
+        "getCharacterEquippedSkills",
+        [tokenId]
+      );
 
       if (fetchedSkills) {
         const skillsArray = new Array(3).fill(null);
@@ -95,6 +99,7 @@ const SkillSlots = ({ charTWContract, skillTWContract, tokenId }) => {
             index={index}
             skillId={skillId}
             contract={skillTWContract}
+            compositeTWContract={compositeTWContract}
             handleUnequip={handleUnequipSkill}
           />
         ))}
