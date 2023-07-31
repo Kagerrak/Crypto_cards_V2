@@ -6,7 +6,7 @@ import { loader } from "../assets";
 const Loader = ({ backgroundColor, loaderSize, textSize, message }) => {
   return (
     <div
-      className="fixed inset-0 z-30 h-screen flex items-center justify-center flex-col"
+      className="fixed inset-0 z-50 h-screen flex items-center justify-center flex-col"
       style={{ backgroundColor: backgroundColor }}
     >
       <img
