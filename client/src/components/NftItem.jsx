@@ -38,9 +38,7 @@ const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
         const character = await contract.call("getCharacter", [metadata.id]);
         const experience = character.experience;
         const level = character.level;
-        const maxExp = await contract.call("calculateExperienceRequired", [
-          level,
-        ]);
+        const maxExp = level * baseXP;
 
         const totalExpUpToLevel = ((_level, _baseXP) => {
           let totalXP = 0;
@@ -51,7 +49,7 @@ const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
         })(level, baseXP);
 
         const currentLevelExp = experience.toNumber() - totalExpUpToLevel;
-        const currentMaxExp = maxExp.toNumber();
+        const currentMaxExp = maxExp;
 
         setCharMana(mana.toNumber());
         setCharMaxMana(maxMana.maxMana.toNumber());
