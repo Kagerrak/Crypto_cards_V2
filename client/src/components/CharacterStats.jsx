@@ -14,6 +14,8 @@ import {
   battleItemsAddress,
   battleSkillsAddress,
   characterContractAddress,
+  compositeTokensAddress,
+  equipManagementAddress,
 } from "../contract";
 import {
   ItemSlots,
@@ -41,6 +43,9 @@ const CharacterStats = (props) => {
     characterContract,
     battleSkillsContract,
     battleItemsContract,
+    battleEffectsContract,
+    compositeContract,
+    equipManagementContract,
     setErrorMessage,
     setShowAlert,
     walletAddress,
@@ -60,13 +65,18 @@ const CharacterStats = (props) => {
   const { contract: charTWContract } = useContract(characterContractAddress);
   const { contract: skillTWContract } = useContract(battleSkillsAddress);
   const { contract: itemTWContract } = useContract(battleItemsAddress);
+  const { contract: compositeTWContract } = useContract(compositeTokensAddress);
 
   const { data: ownedSkills } = useOwnedNFTs(skillTWContract, walletAddress);
   const { data: ownedItems } = useOwnedNFTs(itemTWContract, walletAddress);
+  const { data: ownedCompositeTokens } = useOwnedNFTs(
+    compositeTWContract,
+    walletAddress
+  );
 
   const { data: equippedSkills, isLoading: skillLoading } = useContractRead(
     charTWContract,
-    "getEquippedSkills",
+    "getCharacterEquippedSkills",
     [tokenId]
   );
 
@@ -83,6 +93,28 @@ const CharacterStats = (props) => {
       setAllOwnedItems(ownedItems);
     }
   }, [ownedItems, setLocalOwnedItems]);
+
+  useEffect(() => {
+    if (ownedCompositeTokens) {
+      ownedCompositeTokens.forEach(async (token) => {
+        const compositeType = await compositeTWContract.call(
+          "getCompositeType",
+          [token.metadata.id]
+        );
+        if (compositeType === 0) {
+          // SkillWithEffect
+          setLocalOwnedSkills((prevSkills) => [token, ...prevSkills]);
+        } else if (
+          compositeType === 1 || // ItemWithSkill
+          compositeType === 2 || // ItemWithEffect
+          compositeType === 3 || // ItemWithEffectAndSkill
+          compositeType === 4 // ItemWithEffectAndSkillWithEffect
+        ) {
+          setLocalOwnedItems((prevItems) => [token, ...prevItems]);
+        }
+      });
+    }
+  }, [ownedCompositeTokens]);
 
   const { data: nftChar, isLoading } = useNFT(charTWContract, tokenId);
   const { data: getChar, isLoading: getCharLoad } = useContractRead(
@@ -171,24 +203,35 @@ const CharacterStats = (props) => {
   const handleEquipSkill = async (_skillId) => {
     setEquippedSkillLoading(true);
     try {
-      const isApproved = await battleSkillsContract.isApprovedForAll(
+      // Determine which contract to use based on the token ID
+      const contractToUse =
+        _skillId > 10000 ? compositeContract : battleSkillsContract;
+
+      const tokenType = _skillId > 10000 ? 4 : 1;
+
+      const isApproved = await contractToUse.isApprovedForAll(
         walletAddress,
-        characterContractAddress
+        equipManagementAddress
       );
       if (!isApproved) {
-        const approvalTx = await battleSkillsContract.setApprovalForAll(
-          characterContractAddress,
+        const approvalTx = await contractToUse.setApprovalForAll(
+          equipManagementAddress,
           true
         );
         await approvalTx.wait(); // wait for the approval transaction to be mined
       }
 
-      const equipTx = await characterContract.equipSkill(tokenId, _skillId);
+      // Use the equip management contract to equip the skill
+      const equipTx = await equipManagementContract.equip(
+        tokenId,
+        _skillId,
+        tokenType
+      );
       console.log("Waiting for equip transaction to confirm...");
       await equipTx.wait(); // wait for the equip transaction to be mined
       setEquippedSkillLoading(false);
 
-      console.info("contract call successs");
+      console.info("contract call success");
 
       const newOwnedSkills = localOwnedSkills.filter(
         (skill) => skill.metadata.id !== _skillId
@@ -221,23 +264,32 @@ const CharacterStats = (props) => {
     ];
     setEquippedItemLoading(true);
     try {
-      const isApproved = await battleItemsContract.isApprovedForAll(
+      // Determine which contract to use based on the token ID
+      const contractToUse =
+        _itemTokenId > 10000 ? compositeContract : battleItemsContract;
+
+      const isApproved = await contractToUse.isApprovedForAll(
         walletAddress,
-        characterContractAddress
+        equipManagementAddress
       );
       if (!isApproved) {
-        const approvalTx = await battleItemsContract.setApprovalForAll(
-          characterContractAddress,
+        const approvalTx = await contractToUse.setApprovalForAll(
+          equipManagementAddress,
           true
         );
         await approvalTx.wait(); // wait for the approval transaction to be mined
       }
 
-      const equipTx = await characterContract.equipItem(tokenId, _itemTokenId);
+      // Use the equip management contract to equip the item
+      const equipTx = await equipManagementContract.equip(
+        tokenId,
+        _itemTokenId,
+        _itemTokenId > 10000 ? 3 : 0
+      );
       console.log("Waiting for equip transaction to confirm...");
       await equipTx.wait(); // wait for the equip transaction to be mined
 
-      console.info("contract call successs");
+      console.info("contract call success");
 
       const newOwnedItems = localOwnedItems.filter(
         (item) => item.metadata.id !== _itemTokenId
@@ -294,11 +346,12 @@ const CharacterStats = (props) => {
       <div
         className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
       >
-        {equippedSkills === 9999 ? (
-          <p>No skills available!</p>
-        ) : (
-          <p>Skill equipped!</p>
-        )}
+        {equippedSkills &&
+          (equippedSkills.length > 0 ? (
+            <p>Skill equipped!</p>
+          ) : (
+            <p>No skills available!</p>
+          ))}
       </div>
     );
   }
@@ -309,7 +362,7 @@ const CharacterStats = (props) => {
       <div
         key={c.metadata.id}
         onClick={() => {
-          handleEquipItem(c.metadata.id, c.metadata.attributes[5].value);
+          handleEquipItem(c.metadata.id, c.metadata.attributes[4].value);
         }}
         className={`${styles.flexCenter} ${styles.RecruitmentSkillItemCard}`}
       >
@@ -323,7 +376,7 @@ const CharacterStats = (props) => {
           <CustomButton
             title="Equip"
             handleclick={() => {
-              handleEquipItem(c.metadata.id, c.metadata.attributes[5].value);
+              handleEquipItem(c.metadata.id, c.metadata.attributes[4].value);
             }}
             restStyles="mt-6 mb-6"
           />
@@ -392,6 +445,7 @@ const CharacterStats = (props) => {
               <SkillSlots
                 charTWContract={charTWContract}
                 skillTWContract={skillTWContract}
+                compositeTWContract={compositeTWContract}
                 tokenId={tokenId}
               />
             )}
@@ -400,6 +454,7 @@ const CharacterStats = (props) => {
               <ItemSlots
                 charTWContract={charTWContract}
                 itemTWContract={itemTWContract}
+                compositeTWContract={compositeTWContract}
                 tokenId={tokenId}
               />
             )}
