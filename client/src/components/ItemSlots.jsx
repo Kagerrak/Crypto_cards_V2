@@ -5,7 +5,7 @@ import { useGlobalContext } from "../context";
 const ItemSlots = ({
   charTWContract,
   itemTWContract,
-  compositTWContract,
+  compositeTWContract,
   tokenId,
 }) => {
   const {
@@ -61,6 +61,7 @@ const ItemSlots = ({
   };
 
   useEffect(() => {
+    console.log("running");
     const fetchEquippedItems = async () => {
       if (
         !equippedItemLoading &&
@@ -70,10 +71,10 @@ const ItemSlots = ({
 
         const fetchedItems = await Promise.all(
           itemTypes.map(async ({ type, name }) => {
-            const fetchedItemId = await charTWContract.call("getEquippedItem", [
-              tokenId,
-              type,
-            ]);
+            const fetchedItemId = await charTWContract.call(
+              "getCharacterEquippedItem",
+              [tokenId, type]
+            );
 
             if (fetchedItemId !== null && fetchedItemId !== undefined) {
               return { itemType: name, itemId: fetchedItemId.toNumber() };
@@ -82,6 +83,7 @@ const ItemSlots = ({
             return { itemType: name, itemId: null };
           })
         );
+        console.log(fetchedItems);
 
         const items = fetchedItems.reduce((acc, { itemType, itemId }) => {
           return { ...acc, [itemType]: itemId };
@@ -106,7 +108,7 @@ const ItemSlots = ({
             type={name}
             itemId={equippedItems[name]}
             contract={itemTWContract}
-            compositTWContract={compositTWContract}
+            compositeTWContract={compositeTWContract}
             handleUnequip={handleUnequipItem}
           />
         ))}
