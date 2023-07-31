@@ -2,9 +2,15 @@ import React, { useEffect } from "react";
 import ItemSlot from "./ItemSlot";
 import { useGlobalContext } from "../context";
 
-const ItemSlots = ({ charTWContract, itemTWContract, tokenId }) => {
+const ItemSlots = ({
+  charTWContract,
+  itemTWContract,
+  compositTWContract,
+  tokenId,
+}) => {
   const {
     characterContract,
+    equipManagementContract,
     equippedItems,
     setEquippedItems,
     equippedItemLoading,
@@ -24,24 +30,23 @@ const ItemSlots = ({ charTWContract, itemTWContract, tokenId }) => {
   const handleUnequipItem = async (_itemTokenId) => {
     setEquippedItemLoading(true);
     try {
-      const unequipTx = await characterContract.unequipItem(
+      const unequipTx = await equipManagementContract.unequip(
         tokenId,
-        _itemTokenId
+        _itemTokenId,
+        _itemTokenId > 10000 ? 3 : 0
       );
       await unequipTx.wait();
 
       setEquippedItems((prevItems) => {
-        // Step 1: Replace the unequipped item with 999999 (as per your previous logic)
         const newItems = { ...prevItems };
         for (let itemType in newItems) {
           if (newItems[itemType] === _itemTokenId) {
-            newItems[itemType] = 999999;
+            newItems[itemType] = 0;
           }
         }
         return newItems;
       });
 
-      // Step 2: Add the unequipped item to the localOwnedItems
       const unequippedItem = allOwnedItems.find(
         (item) => item.metadata.id === _itemTokenId
       );
@@ -101,6 +106,7 @@ const ItemSlots = ({ charTWContract, itemTWContract, tokenId }) => {
             type={name}
             itemId={equippedItems[name]}
             contract={itemTWContract}
+            compositTWContract={compositTWContract}
             handleUnequip={handleUnequipItem}
           />
         ))}
