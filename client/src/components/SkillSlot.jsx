@@ -6,7 +6,7 @@ const SkillSlot = ({
   index,
   skillId,
   contract,
-  compositeTWContract,
+  contractComposite,
   handleUnequip,
 }) => {
   const { setAllOwnedSkills } = useGlobalContext();
@@ -19,7 +19,7 @@ const SkillSlot = ({
     );
   }
 
-  const contractToUse = skillId > 10000 ? compositeTWContract : contract;
+  const contractToUse = skillId > 10000 ? contractComposite : contract;
 
   const { data: nftSkill, isLoading: skillNFTLoading } = useNFT(
     contractToUse,

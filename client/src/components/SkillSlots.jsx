@@ -99,7 +99,7 @@ const SkillSlots = ({
             index={index}
             skillId={skillId}
             contract={skillTWContract}
-            compositeTWContract={compositeTWContract}
+            contractComposite={compositeTWContract}
             handleUnequip={handleUnequipSkill}
           />
         ))}
