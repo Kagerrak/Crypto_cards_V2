@@ -6,7 +6,11 @@ import "react-tooltip/dist/react-tooltip.css";
 import CustomButton from "./CustomButton";
 import { useGlobalContext } from "../context";
 import { alertIcon, gameRules, characters } from "../assets";
-import { battleSkillsAddress, characterContractAddress } from "../contract";
+import {
+  battleSkillsAddress,
+  characterContractAddress,
+  equipManagementAddress,
+} from "../contract";
 import { Loader } from "../components";
 
 import styles from "../styles";
@@ -32,12 +36,12 @@ const CharacterInfo = (props) => {
     try {
       const isApproved = await battleSkillsContract.isApprovedForAll(
         walletAddress,
-        characterContractAddress
+        equipManagementAddress
       );
 
       if (!isApproved) {
         const approvalTx = await battleSkillsContract.setApprovalForAll(
-          characterContractAddress,
+          equipManagementAddress,
           true
         );
 
@@ -70,7 +74,7 @@ const CharacterInfo = (props) => {
     <>
       {loading && <Loader message="Creating Character, Confirm transaction." />}
       <div
-        className={`${styles.characterInfoPopup} z-10 ${
+        className={`${styles.characterInfoPopup} ${
           props?.showInfo
             ? "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
             : "top-0 right-0 translate-x-full"
