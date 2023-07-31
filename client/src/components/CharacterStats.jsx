@@ -103,14 +103,34 @@ const CharacterStats = (props) => {
         );
         if (compositeType === 0) {
           // SkillWithEffect
-          setLocalOwnedSkills((prevSkills) => [token, ...prevSkills]);
+          setLocalOwnedSkills((prevSkills) => {
+            if (
+              !prevSkills.some(
+                (existingToken) =>
+                  existingToken.metadata.id === token.metadata.id
+              )
+            ) {
+              return [token, ...prevSkills];
+            }
+            return prevSkills; // Return previous skills if token is already present
+          });
         } else if (
           compositeType === 1 || // ItemWithSkill
           compositeType === 2 || // ItemWithEffect
           compositeType === 3 || // ItemWithEffectAndSkill
           compositeType === 4 // ItemWithEffectAndSkillWithEffect
         ) {
-          setLocalOwnedItems((prevItems) => [token, ...prevItems]);
+          setLocalOwnedItems((prevItems) => {
+            if (
+              !prevItems.some(
+                (existingToken) =>
+                  existingToken.metadata.id === token.metadata.id
+              )
+            ) {
+              return [token, ...prevItems];
+            }
+            return prevItems; // Return previous items if token is already present
+          });
         }
       });
     }
@@ -225,7 +245,8 @@ const CharacterStats = (props) => {
       const equipTx = await equipManagementContract.equip(
         tokenId,
         _skillId,
-        tokenType
+        tokenType,
+        walletAddress
       );
       console.log("Waiting for equip transaction to confirm...");
       await equipTx.wait(); // wait for the equip transaction to be mined
@@ -284,7 +305,8 @@ const CharacterStats = (props) => {
       const equipTx = await equipManagementContract.equip(
         tokenId,
         _itemTokenId,
-        _itemTokenId > 10000 ? 3 : 0
+        _itemTokenId > 10000 ? 3 : 0,
+        walletAddress
       );
       console.log("Waiting for equip transaction to confirm...");
       await equipTx.wait(); // wait for the equip transaction to be mined
@@ -450,7 +472,7 @@ const CharacterStats = (props) => {
               />
             )}
 
-            {charTWContract && itemTWContract && (
+            {charTWContract && itemTWContract && compositeTWContract && (
               <ItemSlots
                 charTWContract={charTWContract}
                 itemTWContract={itemTWContract}
