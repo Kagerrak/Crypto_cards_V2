@@ -21,6 +21,12 @@ import {
   battleItemsABI,
   battleContractAddress,
   battleContractABI,
+  battleEffectsAddress,
+  battleEffectsABI,
+  compositeTokensAddress,
+  compositeTokensABI,
+  equipManagementAddress,
+  equipManagementABI,
 } from "../contract";
 
 import { createEventListeners } from "./createEventListeners";
@@ -33,6 +39,9 @@ export const GlobalContextProvider = ({ children }) => {
   const [characterContract, setCharacterContract] = useState(null);
   const [battleSkillsContract, setBattleSkillsContract] = useState(null);
   const [battleItemsContract, setBattleItemsContract] = useState(null);
+  const [battleEffectsContract, setBattleEffectsContract] = useState(null);
+  const [compositeContract, setCompositeContract] = useState(null);
+  const [equipManagementContract, setEquipManagementContract] = useState(null);
   const [battleContract, setBattleContract] = useState(null);
   const [provider, setProvider] = useState(null);
   const [step, setStep] = useState(1);
@@ -139,6 +148,21 @@ export const GlobalContextProvider = ({ children }) => {
         battleItemsABI,
         signer
       );
+      const newBattleEffectsContract = new ethers.Contract(
+        battleEffectsAddress,
+        battleEffectsABI,
+        signer
+      );
+      const newCompositeContract = new ethers.Contract(
+        compositeTokensAddress,
+        compositeTokensABI,
+        signer
+      );
+      const newEquipManagementContract = new ethers.Contract(
+        equipManagementAddress,
+        equipManagementABI,
+        signer
+      );
       const newBattleContract = new ethers.Contract(
         battleContractAddress,
         battleContractABI,
@@ -150,6 +174,9 @@ export const GlobalContextProvider = ({ children }) => {
       setBattleSkillsContract(newBattleSkillsContract);
       setBattleItemsContract(newBattleItemsContract);
       setBattleContract(newBattleContract);
+      setBattleEffectsContract(newBattleEffectsContract);
+      setCompositeContract(newCompositeContract);
+      setEquipManagementContract(newEquipManagementContract);
     };
 
     setSmartContractsAndProvider();
@@ -311,6 +338,9 @@ export const GlobalContextProvider = ({ children }) => {
         characterContract,
         battleSkillsContract,
         battleItemsContract,
+        battleEffectsContract,
+        compositeContract,
+        equipManagementContract,
         battleContract,
         gameData,
         walletAddress,
