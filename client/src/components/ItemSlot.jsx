@@ -20,6 +20,7 @@ const ItemSlot = ({
 
   useEffect(() => {
     if (nftItem) {
+      console.log(nftItem);
       setAllOwnedItems((prevItems) => {
         const itemExists = prevItems.some(
           (item) => item.metadata.id === nftItem.metadata.id
@@ -34,7 +35,7 @@ const ItemSlot = ({
 
   return (
     <div className="bg-gray-200 w-14 h-14 flex items-center justify-center text-center text-[15px] text-gray-700 font-bold rounded-md mb-2">
-      {itemNFTLoading || !nftItem || itemId === 0 ? (
+      {itemNFTLoading || !nftItem || itemId === 0 || itemId === null ? (
         type
       ) : (
         <div
