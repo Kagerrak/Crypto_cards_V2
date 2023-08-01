@@ -476,23 +476,25 @@ contract Battle is Ownable {
         // USE_SKILL logic here.
         if (battle.moves[0] == uint256(StructsLibrary.Move.USE_SKILL)) {
             (damagedPlayers[0], damageDealt[0]) = _executeSkill(
-                battle.battleId,
+                battle,
                 battle.round,
                 proxyA,
                 _skillId0,
                 proxyB,
-                battle.moves[1] // passing opponent's move here
+                battle.moves[1], // passing opponent's move here
+                1
             );
         }
 
         if (battle.moves[1] == uint256(StructsLibrary.Move.USE_SKILL)) {
             (damagedPlayers[1], damageDealt[1]) = _executeSkill(
-                battle.battleId,
+                battle,
                 battle.round,
                 proxyB,
                 _skillId1,
                 proxyA,
-                battle.moves[0] // passing opponent's move here
+                battle.moves[0], // passing opponent's move here
+                0
             );
         }
 
@@ -579,12 +581,13 @@ contract Battle is Ownable {
     }
 
     function _executeSkill(
-        uint256 battleId,
+        StructsLibrary.BattleData storage battle,
         uint256 round,
         StructsLibrary.CharacterProxy storage player,
         uint256 tokenId,
         StructsLibrary.CharacterProxy storage opponent,
-        uint256 opponentMove
+        uint256 opponentMove,
+        uint256 opponentIndex
     ) private returns (address, uint256) {
         ICompositeTokens.CompositeTokenDetails
             memory compositeTokenDetails = compositeContract
@@ -598,16 +601,23 @@ contract Battle is Ownable {
             rawDamage = rawDamage > opponent.stats.defense
                 ? rawDamage - opponent.stats.defense
                 : 0;
+            battle.battleStats.damageReduced[opponentIndex] += opponent
+                .stats
+                .health > rawDamage
+                ? rawDamage
+                : opponent.stats.defense;
         }
 
-        if (rawDamage > 0 && opponent.stats.health > rawDamage) {
-            opponent.stats.health -= rawDamage;
-        } else {
-            opponent.stats.health = 0;
+        if (rawDamage > 0) {
+            if (opponent.stats.health > rawDamage) {
+                opponent.stats.health -= rawDamage;
+            } else {
+                opponent.stats.health = 0;
+            }
         }
 
         emit SkillExecuted(
-            battleId,
+            battle.battleId,
             round,
             player.owner,
             compositeTokenDetails.battleSkillId,
@@ -619,7 +629,7 @@ contract Battle is Ownable {
 
         if (compositeTokenDetails.skillEffectId != 0) {
             _handleStatusEffect(
-                battleId,
+                battle.battleId,
                 round,
                 battleEffectsContract
                     .getStatusEffect(compositeTokenDetails.skillEffectId)
@@ -630,7 +640,7 @@ contract Battle is Ownable {
             );
         }
 
-        return (opponent.owner, rawDamage);
+        return (rawDamage > 0 ? opponent.owner : address(0), rawDamage);
     }
 
     function _resolveStatusEffects(
@@ -867,23 +877,6 @@ contract Battle is Ownable {
 
     function updateStaminaCost(uint256 newCost) external onlyOwner {
         staminaCost = newCost;
-    }
-
-    /**
-     * @notice Get fee for battle.
-     * @dev Battle Fee is calculated with the current value of Avax in USD given by ChainLink.
-     * @return price uint256 Fee value
-     */
-    function battleFee() public view returns (uint256) {
-        (, int256 answer, , , ) = priceFeed.latestRoundData();
-        uint256 price = uint256(answer * 10000000000); // convert int256 value to uint256
-        uint256 usdAmount = 0.05 * 10 ** 18; // convert 0.05 USD to wei
-        return uint256((usdAmount * (10 ** 18)) / price); // convert wei to ether
-    }
-
-    function storeStamina(uint256 _tokenId1, uint256 _tokenId2) public {
-        characterContract.restoreStaminaToFull(_tokenId1);
-        characterContract.restoreStaminaToFull(_tokenId2);
     }
 
     fallback() external payable {}
