@@ -56,6 +56,64 @@ async function main() {
   await character.deployed();
   console.log("Character deployed to:", character.address);
 
+  // Initialize 3 character stats
+  // await character.createCharacterStats(
+  //   1,
+  //   0,
+  //   100,
+  //   100,
+  //   10,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   5
+  // );
+  // await character.createCharacterStats(
+  //   1,
+  //   0,
+  //   100,
+  //   100,
+  //   10,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   5
+  // );
+  // await character.createCharacterStats(
+  //   1,
+  //   0,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   100,
+  //   5
+  // );
+
+  // // Initialize 3 character types
+  // await character.createCharacterType(
+  //   "Warrior",
+  //   "ipfs://QmZzBmjrjn742Dx8wPHheq8XbzkowWS6xqvLHURTSvLQCo"
+  // );
+  // await character.createCharacterType(
+  //   "Mage",
+  //   "ipfs://QmTYEiXiTzBhYuwuQ7bjS5aqChrefEJZ37as8BDrKYxk1j"
+  // );
+  // await character.createCharacterType(
+  //   "Rogue",
+  //   "ipfs://QmUyWmpry8Sri9BmsHSQMDBPtnPZkoX6GS7w8ZizpnFX7v"
+  // );
+
   // Deploy Battle contract
   // Re-deploy Battle contract with new constructor arguments
   const Battle = await ethers.getContractFactory("Battle");
