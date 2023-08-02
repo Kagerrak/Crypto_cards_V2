@@ -589,13 +589,29 @@ contract Battle is Ownable {
         uint256 opponentMove,
         uint256 opponentIndex
     ) private returns (address, uint256) {
-        ICompositeTokens.CompositeTokenDetails
-            memory compositeTokenDetails = compositeContract
-                .getCompositeTokenDetails(tokenId);
+        uint256 battleSkillId;
+        uint256 skillEffectId;
+
+        // Check the tokenId to determine how to get the battleSkillId
+        if (tokenId > 10000) {
+            ICompositeTokens.CompositeTokenDetails
+                memory compositeTokenDetails = compositeContract
+                    .getCompositeTokenDetails(tokenId);
+            battleSkillId = compositeTokenDetails.battleSkillId;
+            skillEffectId = compositeTokenDetails.skillEffectId; // Get the skill effect ID here
+        } else {
+            battleSkillId = tokenId;
+            skillEffectId = 0;
+        }
+
         BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
-            compositeTokenDetails.battleSkillId
+            battleSkillId
         );
+
         uint256 rawDamage = (player.attackMultiplier * skill.damage) / 1000;
+        console.log(player.attackMultiplier);
+        console.log(skill.damage);
+        console.log(rawDamage);
 
         if (opponentMove == uint256(StructsLibrary.Move.DEFEND)) {
             rawDamage = rawDamage > opponent.stats.defense
@@ -611,6 +627,7 @@ contract Battle is Ownable {
         if (rawDamage > 0) {
             if (opponent.stats.health > rawDamage) {
                 opponent.stats.health -= rawDamage;
+                console.log(opponent.stats.health);
             } else {
                 opponent.stats.health = 0;
             }
@@ -620,23 +637,21 @@ contract Battle is Ownable {
             battle.battleId,
             round,
             player.owner,
-            compositeTokenDetails.battleSkillId,
+            battleSkillId,
             skill.name,
             rawDamage
         );
 
         player.stats.mana -= skill.manaCost;
 
-        if (compositeTokenDetails.skillEffectId != 0) {
+        if (skillEffectId != 0) {
             _handleStatusEffect(
                 battle.battleId,
                 round,
-                battleEffectsContract
-                    .getStatusEffect(compositeTokenDetails.skillEffectId)
-                    .isPositive
+                battleEffectsContract.getStatusEffect(skillEffectId).isPositive
                     ? player
                     : opponent,
-                compositeTokenDetails.skillEffectId
+                skillEffectId
             );
         }
 

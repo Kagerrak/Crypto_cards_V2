@@ -284,7 +284,7 @@ library BattleResolutionLibrary {
         skillUser.stats.health = skillUser.stats.health > damageB
             ? skillUser.stats.health - damageB
             : 0;
-        damagedPlayers[0] = battle.players[0];
+        damagedPlayers[1] = battle.players[0];
         damageDealt[1] = damageB;
         attacker.stats.mana -= 3;
         return (damageDealt, damagedPlayers);
