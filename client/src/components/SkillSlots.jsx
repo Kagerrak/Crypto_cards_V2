@@ -56,26 +56,36 @@ const SkillSlots = ({
 
   useEffect(() => {
     const fetchEquippedSkills = async () => {
-      const fetchedSkills = await charTWContract.call(
-        "getCharacterEquippedSkills",
-        [tokenId]
-      );
+      if (!charTWContract || !tokenId) {
+        return;
+      }
 
-      if (fetchedSkills) {
-        const skillsArray = new Array(3).fill(null);
+      try {
+        const fetchedSkills = await charTWContract.call(
+          "getCharacterEquippedSkills",
+          [tokenId]
+        );
 
-        fetchedSkills.forEach((skillId, index) => {
-          skillsArray[index] =
-            skillId !== null && skillId !== undefined
-              ? skillId.toNumber()
-              : null;
-        });
+        if (fetchedSkills) {
+          const skillsArray = new Array(3).fill(null);
 
-        setEquippedSkills(skillsArray);
+          fetchedSkills.forEach((skillId, index) => {
+            skillsArray[index] =
+              skillId !== null && skillId !== undefined
+                ? skillId.toNumber()
+                : null;
+          });
+
+          setEquippedSkills(skillsArray);
+        }
+      } catch (error) {
+        console.error("Error fetching skills:", error);
       }
     };
 
     if (
+      charTWContract &&
+      tokenId &&
       !equippedSkillLoading &&
       equippedSkills.every((skillId) => skillId === null)
     ) {

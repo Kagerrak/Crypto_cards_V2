@@ -20,7 +20,6 @@ const ItemSlot = ({
 
   useEffect(() => {
     if (nftItem) {
-      console.log(nftItem);
       setAllOwnedItems((prevItems) => {
         const itemExists = prevItems.some(
           (item) => item.metadata.id === nftItem.metadata.id

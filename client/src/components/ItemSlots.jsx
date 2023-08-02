@@ -61,7 +61,6 @@ const ItemSlots = ({
   };
 
   useEffect(() => {
-    console.log("running");
     const fetchEquippedItems = async () => {
       if (
         !equippedItemLoading &&
@@ -71,19 +70,28 @@ const ItemSlots = ({
 
         const fetchedItems = await Promise.all(
           itemTypes.map(async ({ type, name }) => {
+            if (
+              !charTWContract ||
+              tokenId === undefined ||
+              type === undefined
+            ) {
+              return { itemType: name, itemId: null };
+            }
+
             const fetchedItemId = await charTWContract.call(
               "getCharacterEquippedItem",
               [tokenId, type]
             );
 
-            if (fetchedItemId !== null && fetchedItemId !== undefined) {
-              return { itemType: name, itemId: fetchedItemId.toNumber() };
-            }
-
-            return { itemType: name, itemId: null };
+            return {
+              itemType: name,
+              itemId:
+                fetchedItemId !== null && fetchedItemId !== undefined
+                  ? fetchedItemId.toNumber()
+                  : null,
+            };
           })
         );
-        console.log(fetchedItems);
 
         const items = fetchedItems.reduce((acc, { itemType, itemId }) => {
           return { ...acc, [itemType]: itemId };

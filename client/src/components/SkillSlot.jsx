@@ -10,15 +10,6 @@ const SkillSlot = ({
   handleUnequip,
 }) => {
   const { setAllOwnedSkills } = useGlobalContext();
-
-  if (skillId === null) {
-    return (
-      <div className="bg-gray-200 w-14 h-14 flex items-center justify-center text-center text-[15px] text-gray-700 font-bold rounded-md mb-2">
-        Skill {index + 1}
-      </div>
-    );
-  }
-
   const contractToUse = skillId > 10000 ? contractComposite : contract;
 
   const { data: nftSkill, isLoading: skillNFTLoading } = useNFT(
@@ -28,7 +19,6 @@ const SkillSlot = ({
 
   useEffect(() => {
     if (nftSkill) {
-      console.log("nftSkill", nftSkill);
       setAllOwnedSkills((prevSkills) => {
         const skillExists = prevSkills.some(
           (skill) => skill.metadata.id === nftSkill.metadata.id
@@ -40,6 +30,14 @@ const SkillSlot = ({
       });
     }
   }, [nftSkill, setAllOwnedSkills]);
+
+  if (skillId === null) {
+    return (
+      <div className="bg-gray-200 w-14 h-14 flex items-center justify-center text-center text-[15px] text-gray-700 font-bold rounded-md mb-2">
+        Skill {index + 1}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-200 w-14 h-14 flex items-center justify-center text-center text-[15px] text-gray-700 font-bold rounded-md mb-2">
