@@ -37,7 +37,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <ThirdwebProvider
         activeChain="mumbai"
-        clientId="ab87f3b4be1891736c59ded9276c10ea"
+        clientId="bff01b72dc0921cd7e72c3c69b40436e"
         sdkOptions={{
           gatewayUrls: ["https://w3s.link/ipfs/"],
         }}
