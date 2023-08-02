@@ -46,7 +46,7 @@ export const createEventListeners = async ({
   setDamagedPlayers,
 }) => {
   const sdk = new ThirdwebSDK("mumbai", {
-    clientId: "ab87f3b4be1891736c59ded9276c10ea",
+    clientId: "bff01b72dc0921cd7e72c3c69b40436e",
   });
   const provider = sdk.getProvider();
   const battleContract = await sdk.getContract(battleContractAddress);
