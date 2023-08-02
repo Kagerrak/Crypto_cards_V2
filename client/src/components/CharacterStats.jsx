@@ -74,11 +74,27 @@ const CharacterStats = (props) => {
     walletAddress
   );
 
-  const { data: equippedSkills, isLoading: skillLoading } = useContractRead(
+  const contractReadResult = useContractRead(
     charTWContract,
     "getCharacterEquippedSkills",
     [tokenId]
   );
+
+  const { data: equippedSkills, isLoading: skillLoading } = tokenId
+    ? contractReadResult
+    : { data: null, isLoading: false };
+
+  const contractReadCharacterResult = useContractRead(
+    charTWContract,
+    "getCharacter",
+    [tokenId]
+  );
+
+  const { data: getChar, isLoading: getCharLoad } = tokenId
+    ? contractReadCharacterResult
+    : { data: null, isLoading: false };
+
+  const { data: nftChar, isLoading } = useNFT(charTWContract, tokenId);
 
   useEffect(() => {
     if (ownedSkills) {
@@ -135,13 +151,6 @@ const CharacterStats = (props) => {
       });
     }
   }, [ownedCompositeTokens]);
-
-  const { data: nftChar, isLoading } = useNFT(charTWContract, tokenId);
-  const { data: getChar, isLoading: getCharLoad } = useContractRead(
-    charTWContract,
-    "getCharacter",
-    [tokenId]
-  );
 
   useEffect(() => {
     if (!getCharLoad && getChar) {
