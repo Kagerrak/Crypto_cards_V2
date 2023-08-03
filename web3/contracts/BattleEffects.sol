@@ -19,7 +19,7 @@ contract BattleEffects is ERC1155Base {
     }
 
     mapping(uint256 => StatusEffect) public statusEffects;
-    uint256 public numStatusEffects;
+    uint256 public numEffects;
 
     constructor() ERC1155Base("StatusEffectNFT", "SE", address(0), 0) {
         nextTokenIdToMint_ = 1;
@@ -39,9 +39,9 @@ contract BattleEffects is ERC1155Base {
         string memory _tokenURI
     ) public {
         uint256 tokenId = type(uint256).max; // pass type(uint256).max as the tokenId argument
-        numStatusEffects++;
-        statusEffects[numStatusEffects] = StatusEffect(
-            numStatusEffects,
+        numEffects++;
+        statusEffects[numEffects] = StatusEffect(
+            numEffects,
             _name,
             _isPositive,
             _duration,
@@ -56,13 +56,19 @@ contract BattleEffects is ERC1155Base {
         mintTo(msg.sender, tokenId, _tokenURI, 1);
     }
 
-    function mintStatusEffect(uint256 _effectId, address _caller) public {
-        require(
-            _effectId <= numStatusEffects && _effectId != 0,
-            "Invalid effect ID"
-        );
+    function mintEffect(uint256 _effectId, address _caller) public {
+        require(_effectId <= numEffects && _effectId != 0, "Invalid effect ID");
         uint256 tokenId = _effectId;
         _mint(_caller, tokenId, 1, "");
+    }
+
+    function burnEffect(uint256 _effectId, address _caller) public {
+        require(_effectId <= numEffects && _effectId != 0, "Invalid item ID");
+        require(
+            balanceOf[_caller][_effectId] > 0,
+            "Caller does not own this skill"
+        );
+        _burn(_caller, _effectId, 1);
     }
 
     function getStatusEffect(
