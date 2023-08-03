@@ -2,14 +2,12 @@
 pragma solidity ^0.8.17;
 
 import "@thirdweb-dev/contracts/base/ERC1155Base.sol";
-
 import "./BattleSkills.sol";
 import "./BattleItems.sol";
 import "./BattleEffects.sol";
 import "./CharData.sol";
-import "@thirdweb-dev/contracts/openzeppelin-presets/utils/ERC1155/ERC1155Holder.sol";
 
-contract CompositeTokens is ERC1155Base, ERC1155Holder {
+contract CompositeTokens is ERC1155Base {
     uint256 private _compositeCount = 10001;
     mapping(uint256 => CompositeTokenDetails) private _compositeTokenDetails;
     mapping(bytes32 => uint256) private _hashToTokenId;
@@ -50,20 +48,6 @@ contract CompositeTokens is ERC1155Base, ERC1155Holder {
         nextTokenIdToMint_ = 10001;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
-        public
-        view
-        virtual
-        override(ERC1155Base, ERC1155Receiver)
-        returns (bool)
-    {
-        return
-            ERC1155Base.supportsInterface(interfaceId) ||
-            ERC1155Receiver.supportsInterface(interfaceId);
-    }
-
     function mintCompositeToken(
         uint256 tokenId1,
         uint256 tokenId2,
@@ -74,24 +58,31 @@ contract CompositeTokens is ERC1155Base, ERC1155Holder {
             ERC1155(contract1).balanceOf(msg.sender, tokenId1) > 0,
             "Not the owner of the token1"
         );
-        ERC1155(contract1).safeTransferFrom(
-            msg.sender,
-            address(this),
-            tokenId1,
-            1,
-            ""
-        );
         require(
             ERC1155(contract2).balanceOf(msg.sender, tokenId2) > 0,
             "Not the owner of the token2"
         );
-        ERC1155(contract2).safeTransferFrom(
-            msg.sender,
-            address(this),
-            tokenId2,
-            1,
-            ""
-        );
+
+        // Burn the original tokens based on the composite type
+        if (_compositeType == CompositeType.SkillWithEffect) {
+            BattleSkills(contract1).burnSkill(tokenId1, msg.sender);
+            BattleEffects(contract2).burnEffect(tokenId2, msg.sender);
+        } else if (_compositeType == CompositeType.ItemWithSkill) {
+            BattleItems(contract1).burnItem(tokenId1, msg.sender);
+            BattleSkills(contract2).burnSkill(tokenId2, msg.sender);
+        } else if (_compositeType == CompositeType.ItemWithEffect) {
+            BattleItems(contract1).burnItem(tokenId1, msg.sender);
+            BattleEffects(contract2).burnEffect(tokenId2, msg.sender);
+        } else if (
+            _compositeType == CompositeType.ItemWithEffectAndSkill ||
+            _compositeType == CompositeType.ItemWithEffectAndSkillWithEffect
+        ) {
+            // Assuming CompositeTokens has a burn method
+            burnComposite(tokenId1, msg.sender);
+            burnComposite(tokenId1, msg.sender);
+        } else {
+            revert("Invalid composite type");
+        }
 
         bytes32 compositeHash = keccak256(
             abi.encodePacked(contract1, tokenId1, contract2, tokenId2)
@@ -122,6 +113,55 @@ contract CompositeTokens is ERC1155Base, ERC1155Holder {
 
         mintTo(msg.sender, tokenId, uri, 1);
         _compositeCount++;
+    }
+
+    function burnComposite(uint256 _compositeId, address _caller) internal {
+        require(
+            _compositeId <= _compositeCount && _compositeId != 0,
+            "Invalid skill ID"
+        );
+        require(
+            balanceOf[_caller][_compositeId] > 0,
+            "Caller does not own this skill"
+        );
+        _burn(_caller, _compositeId, 1);
+    }
+
+    function burnCompositeToken(uint256 tokenId) public {
+        uint256 balance = balanceOf[msg.sender][tokenId];
+        require(balance > 0, "You must own the token to burn it");
+
+        _burn(msg.sender, tokenId, 1);
+
+        CompositeTokenDetails memory details = getCompositeTokenDetails(
+            tokenId
+        );
+
+        // Mint the original tokens
+        if (details.itemId != 0) {
+            BattleItems(address(battleItems)).mintItem(
+                details.itemId,
+                msg.sender
+            );
+        }
+        if (details.battleSkillId != 0) {
+            BattleSkills(address(battleSkills)).mintSkill(
+                details.battleSkillId,
+                msg.sender
+            );
+        }
+        if (details.itemEffectId != 0) {
+            BattleEffects(address(battleEffects)).mintEffect(
+                details.itemEffectId,
+                msg.sender
+            );
+        }
+        if (details.skillEffectId != 0) {
+            BattleEffects(address(battleEffects)).mintEffect(
+                details.skillEffectId,
+                msg.sender
+            );
+        }
     }
 
     function getDetails(
@@ -232,71 +272,6 @@ contract CompositeTokens is ERC1155Base, ERC1155Holder {
                 });
         } else {
             revert("Invalid composite type");
-        }
-    }
-
-    function burnCompositeToken(uint256 tokenId) public {
-        uint256 balance = balanceOf[msg.sender][tokenId];
-        require(balance > 0, "You must own the token to burn it");
-
-        _burn(msg.sender, tokenId, 1);
-
-        CompositeTokenDetails memory details = getCompositeTokenDetails(
-            tokenId
-        );
-        if (details.compositeItemId != 0) {
-            ERC1155(address(this)).safeTransferFrom(
-                address(this),
-                msg.sender,
-                details.compositeItemId,
-                1,
-                ""
-            );
-        }
-        if (details.compositeSkillId != 0) {
-            ERC1155(address(this)).safeTransferFrom(
-                address(this),
-                msg.sender,
-                details.compositeSkillId,
-                1,
-                ""
-            );
-        }
-        if (details.itemId != 0 && details.compositeItemId == 0) {
-            ERC1155(address(battleItems)).safeTransferFrom(
-                address(this),
-                msg.sender,
-                details.itemId,
-                1,
-                ""
-            );
-        }
-        if (details.battleSkillId != 0 && details.compositeSkillId == 0) {
-            ERC1155(address(battleSkills)).safeTransferFrom(
-                address(this),
-                msg.sender,
-                details.battleSkillId,
-                1,
-                ""
-            );
-        }
-        if (details.itemEffectId != 0 && details.compositeItemId == 0) {
-            ERC1155(address(battleEffects)).safeTransferFrom(
-                address(this),
-                msg.sender,
-                details.itemEffectId,
-                1,
-                ""
-            );
-        }
-        if (details.skillEffectId != 0 && details.compositeSkillId == 0) {
-            ERC1155(address(battleEffects)).safeTransferFrom(
-                address(this),
-                msg.sender,
-                details.skillEffectId,
-                1,
-                ""
-            );
         }
     }
 
