@@ -27,6 +27,8 @@ interface IBattleItems {
 
     function mintItem(uint256 _itemId) external;
 
+    function burnItem(uint256 _itemId, address _caller) external;
+
     function updateItem(
         uint256 _itemId,
         string memory _name,
