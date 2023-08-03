@@ -20,6 +20,8 @@ interface IBattleSkills {
 
     function mintSkill(uint256 _skillId, address _caller) external;
 
+    function burnSkill(uint256 _skillId, address _caller) external;
+
     function updateSkill(
         uint256 _skillId,
         string memory _name,
