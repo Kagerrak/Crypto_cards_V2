@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import "@thirdweb-dev/contracts/base/ERC1155Base.sol";
 import "./CharData.sol";
@@ -73,10 +73,19 @@ contract BattleItems is ERC1155Base {
         );
     }
 
-    function mintItem(uint256 _itemId) public {
+    function mintItem(uint256 _itemId, address _caller) public {
         require(_itemId <= numItems && _itemId != 0, "Item does not exist");
         uint256 tokenId = _itemId;
-        _mint(msg.sender, tokenId, 1, "");
+        _mint(_caller, tokenId, 1, "");
+    }
+
+    function burnItem(uint256 _itemId, address _caller) public {
+        require(_itemId <= numItems && _itemId != 0, "Invalid item ID");
+        require(
+            balanceOf[_caller][_itemId] > 0,
+            "Caller does not own this skill"
+        );
+        _burn(_caller, _itemId, 1);
     }
 
     function getItem(uint256 _itemId) public view returns (Item memory) {
