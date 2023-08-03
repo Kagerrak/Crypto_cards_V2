@@ -131,7 +131,6 @@ const Battle = () => {
               ...prevState,
               [playerKey]: playerDataWithEffects,
             }));
-            console.log("Updated Player Data: ", playerData);
             resolve();
           });
         } else {
@@ -232,11 +231,6 @@ const Battle = () => {
           damagedPlayers.length > 0 &&
           damagedPlayers.every((address) => address !== emptyAccount)
         ) {
-          console.log(
-            "Condition Check: ",
-            damagedPlayers && damagedPlayers.length > 0
-          );
-
           console.log("Damaged Players: ", damagedPlayers);
 
           let delay = 0;
@@ -286,7 +280,7 @@ const Battle = () => {
           }, 1000);
         } else {
           // If there are no damagedPlayers, set the player data immediately
-          console.log("no damaged players, data set");
+          console.log(damagedPlayers);
           setPlayerData(playerDataWithEffects);
           if (isMoveSubmitted) {
             setIsMoveSubmitted(false);
@@ -493,7 +487,9 @@ const Battle = () => {
             <div className="flex items-center flex-row">
               <ActionButton
                 imgUrl={attack}
-                handleClick={() => makeAMove(0, 999999)}
+                handleClick={() => {
+                  makeAMove(0, 999999);
+                }}
                 restStyles="mr-2 hover:border-yellow-400"
                 disabled={isMoveSubmitted}
               />
