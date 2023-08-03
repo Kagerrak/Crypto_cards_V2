@@ -61,6 +61,15 @@ contract BattleSkills is ERC1155Base {
         emit SkillMinted(_skillId, _caller);
     }
 
+    function burnSkill(uint256 _skillId, address _caller) public {
+        require(_skillId <= numSkills && _skillId != 0, "Invalid skill ID");
+        require(
+            balanceOf[_caller][_skillId] > 0,
+            "Caller does not own this skill"
+        );
+        _burn(_caller, _skillId, 1);
+    }
+
     function updateSkill(
         uint256 _skillId,
         string memory _name,
