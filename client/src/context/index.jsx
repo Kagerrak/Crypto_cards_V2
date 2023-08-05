@@ -5,28 +5,18 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ethers } from "ethers";
-import Web3Modal from "web3modal";
+import { ThirdwebSDK } from "@thirdweb-dev/sdk";
 import { useNavigate } from "react-router-dom";
-import { ApolloClient, InMemoryCache } from "@apollo/client";
 
-import { GET_CHARACTERS } from "../constants";
 import { GetParams } from "../utils/Onboard.js";
 import {
   characterContractAddress,
-  characterContractABI,
   battleSkillsAddress,
-  battleSkillsABI,
   battleItemsAddress,
-  battleItemsABI,
   battleContractAddress,
-  battleContractABI,
   battleEffectsAddress,
-  battleEffectsABI,
   compositeTokensAddress,
-  compositeTokensABI,
   equipManagementAddress,
-  equipManagementABI,
 } from "../contract";
 
 import { createEventListeners } from "./createEventListeners";
@@ -128,46 +118,33 @@ export const GlobalContextProvider = ({ children }) => {
   //* Set the smart contracts and provider to the state
   useEffect(() => {
     const setSmartContractsAndProvider = async () => {
-      const web3Modal = new Web3Modal();
-      const connection = await web3Modal.connect();
-      const newProvider = new ethers.providers.Web3Provider(connection);
-      const signer = newProvider.getSigner();
+      // const web3Modal = new Web3Modal();
+      // const connection = await web3Modal.connect();
+      // const newProvider = new ethers.providers.Web3Provider(connection);
+      // const signer = newProvider.getSigner();
 
-      const newCharacterContract = new ethers.Contract(
-        characterContractAddress,
-        characterContractABI,
-        signer
+      const sdk = new ThirdwebSDK("mumbai", {
+        clientId: "bff01b72dc0921cd7e72c3c69b40436e",
+      });
+      const newProvider = await sdk.getProvider();
+
+      const newCharacterContract = await sdk.getContract(
+        characterContractAddress
       );
-      const newBattleSkillsContract = new ethers.Contract(
-        battleSkillsAddress,
-        battleSkillsABI,
-        signer
+      const newBattleSkillsContract = await sdk.getContract(
+        battleSkillsAddress
       );
-      const newBattleItemsContract = new ethers.Contract(
-        battleItemsAddress,
-        battleItemsABI,
-        signer
+      const newBattleItemsContract = await sdk.getContract(battleItemsAddress);
+      const newBattleEffectsContract = await sdk.getContract(
+        battleEffectsAddress
       );
-      const newBattleEffectsContract = new ethers.Contract(
-        battleEffectsAddress,
-        battleEffectsABI,
-        signer
+      const newCompositeContract = await sdk.getContract(
+        compositeTokensAddress
       );
-      const newCompositeContract = new ethers.Contract(
-        compositeTokensAddress,
-        compositeTokensABI,
-        signer
+      const newEquipManagementContract = await sdk.getContract(
+        equipManagementAddress
       );
-      const newEquipManagementContract = new ethers.Contract(
-        equipManagementAddress,
-        equipManagementABI,
-        signer
-      );
-      const newBattleContract = new ethers.Contract(
-        battleContractAddress,
-        battleContractABI,
-        signer
-      );
+      const newBattleContract = await sdk.getContract(battleContractAddress);
 
       setProvider(newProvider);
       setCharacterContract(newCharacterContract);
@@ -192,7 +169,7 @@ export const GlobalContextProvider = ({ children }) => {
         let retries = 3;
         while (retries) {
           try {
-            activeBattlesId = await battleContract.getActiveBattlesId();
+            activeBattlesId = await contract.call("getActiveBattlesId");
             break;
           } catch (e) {
             if (retries === 1) throw e; // If it's the last retry, throw the error

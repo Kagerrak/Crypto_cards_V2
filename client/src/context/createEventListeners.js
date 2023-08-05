@@ -1,41 +1,8 @@
-import { ThirdwebSDK } from "@thirdweb-dev/sdk/evm";
-
-// import { ApolloClient, InMemoryCache } from "@apollo/client";
-
-// import { GET_CHARACTERS } from "../constants";
-// import { playAudio, sparcle } from "../utils/animation.js";
-// import { defenseSound } from "../assets";
-// import { GET_MOVE } from "../constants/subgraphQueries";
-
-// const client = new ApolloClient({
-//   uri: "https://api.studio.thegraph.com/query/37725/wiwa/version/latest",
-//   cache: new InMemoryCache(),
-// });
-
-// async function fetchData() {
-//   try {
-//     const { data } = await client.query({ query: GET_CHARACTERS });
-
-//     console.log(data);
-//   } catch (error) {
-//     console.error("An error occurred while fetching the data:", error);
-//   }
-// }
-
-// async function fetchMove() {
-//   try {
-//     const { data } = await client.query({ query: GET_MOVE });
-
-//     console.log(data);
-//   } catch (error) {
-//     console.error("An error occurred while fetching the data:", error);
-//   }
-// }
-
 export const createEventListeners = async ({
   navigate,
-  battleContractAddress,
-  characterContractAddress,
+  provider,
+  battleContract,
+  characterContract,
   walletAddress,
   setShowAlert,
   setUpdateGameData,
@@ -45,13 +12,6 @@ export const createEventListeners = async ({
   setBattleIsOver,
   setDamagedPlayers,
 }) => {
-  const sdk = new ThirdwebSDK("mumbai", {
-    clientId: "bff01b72dc0921cd7e72c3c69b40436e",
-  });
-  const provider = sdk.getProvider();
-  const battleContract = await sdk.getContract(battleContractAddress);
-  const characterContract = await sdk.getContract(characterContractAddress);
-
   // NewCharacter event listener
   characterContract.events.addEventListener("NewCharacter", (event) => {
     console.log("New player created!", event);

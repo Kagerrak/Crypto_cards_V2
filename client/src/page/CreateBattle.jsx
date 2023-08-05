@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  useOwnedNFTs,
-  useContract,
-  useContractRead,
-} from "@thirdweb-dev/react";
+import { useOwnedNFTs } from "@thirdweb-dev/react";
 
-import { characterContractAddress } from "../contract";
 import styles from "../styles";
 import { useGlobalContext } from "../context";
 import {
@@ -43,17 +38,18 @@ const CreateBattle = () => {
   //   }
   // }, [data]);
 
-  const { contract: charContract, isLoading: charLoad } = useContract(
-    characterContractAddress
+  const { data: ownedNfts, isLoading: charLoad } = useOwnedNFTs(
+    characterContract,
+    walletAddress
   );
-
-  const { data: ownedNfts } = useOwnedNFTs(charContract, walletAddress);
 
   useEffect(() => {
     if (!walletAddress || !characterContract) navigate("/");
 
     const checkPlayer = async () => {
-      const hasCharacter = await characterContract.balanceOf(walletAddress);
+      const hasCharacter = await characterContract.call("balanceOf", [
+        walletAddress,
+      ]);
       if (!hasCharacter) {
         navigate("/");
       }
@@ -107,7 +103,6 @@ const CreateBattle = () => {
           ownedNfts.length === 1 || selectedTokenID === nft.metadata.id
         }
         onSelect={(id) => setSelectedTokenID(id)}
-        contract={charContract}
       />
     ));
   } else {
@@ -125,10 +120,10 @@ const CreateBattle = () => {
     try {
       setIsLoading(true);
 
-      const tx = await battleContract.createBattle(
+      const tx = await battleContract.call("createBattle", [
         battleTempName,
-        selectedTokenID
-      );
+        selectedTokenID,
+      ]);
       await tx.wait(1);
 
       setBattleName(battleTempName);

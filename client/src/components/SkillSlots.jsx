@@ -2,12 +2,7 @@ import React, { useEffect } from "react";
 import SkillSlot from "./SkillSlot";
 import { useGlobalContext } from "../context";
 
-const SkillSlots = ({
-  charTWContract,
-  skillTWContract,
-  compositeTWContract,
-  tokenId,
-}) => {
+const SkillSlots = ({ tokenId }) => {
   const {
     characterContract,
     equippedSkills,
@@ -23,11 +18,12 @@ const SkillSlots = ({
   const handleUnequipSkill = async (_skillTokenId) => {
     setEquippedSkillLoading(true);
     try {
-      const unequipTx = await equipManagementContract.unequip(
+      const unequipTx = await equipManagementContract.call([
+        "unequip",
         tokenId,
         _skillTokenId,
-        _skillTokenId > 10000 ? 4 : 1
-      );
+        _skillTokenId > 10000 ? 4 : 1,
+      ]);
       await unequipTx.wait();
 
       setEquippedSkills((prevSkills) => {
@@ -56,12 +52,12 @@ const SkillSlots = ({
 
   useEffect(() => {
     const fetchEquippedSkills = async () => {
-      if (!charTWContract || !tokenId) {
+      if (!characterContract || !tokenId) {
         return;
       }
 
       try {
-        const fetchedSkills = await charTWContract.call(
+        const fetchedSkills = await characterContract.call(
           "getCharacterEquippedSkills",
           [tokenId]
         );
@@ -84,7 +80,7 @@ const SkillSlots = ({
     };
 
     if (
-      charTWContract &&
+      characterContract &&
       tokenId &&
       !equippedSkillLoading &&
       equippedSkills.every((skillId) => skillId === null)
@@ -92,7 +88,7 @@ const SkillSlots = ({
       fetchEquippedSkills();
     }
   }, [
-    charTWContract,
+    characterContract,
     tokenId,
     equippedSkills,
     setEquippedSkills,
@@ -108,8 +104,6 @@ const SkillSlots = ({
             key={index}
             index={index}
             skillId={skillId}
-            contract={skillTWContract}
-            contractComposite={compositeTWContract}
             handleUnequip={handleUnequipSkill}
           />
         ))}

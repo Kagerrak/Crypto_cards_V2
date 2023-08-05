@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ThirdwebNftMedia } from "@thirdweb-dev/react";
 
 import { badge } from "../assets";
+import { useGlobalContext } from "../context";
 
 const ProgressBar = ({ value, max, color, exp }) => {
   const percentage = max > 0 ? (value / max) * 100 : 0;
@@ -29,15 +30,23 @@ const NftItem = ({ metadata, isSelected, onSelect, contract }) => {
   const [maxExperience, setMaxExperience] = useState(null);
   const baseXP = 100;
 
+  const { characterContract } = useGlobalContext();
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const mana = await contract.call("getMana", [metadata.id]);
-        const stamina = await contract.call("getStamina", [metadata.id]);
-        const maxMana = await contract.call("getRecoveryStats", [metadata.id]);
-        const character = await contract.call("getCharacter", [metadata.id]);
-        const experience = character.experience;
-        const level = character.level;
+        const mana = await characterContract.call("getMana", [metadata.id]);
+        const stamina = await characterContract.call("getStamina", [
+          metadata.id,
+        ]);
+        const maxMana = await characterContract.call("getRecoveryStats", [
+          metadata.id,
+        ]);
+        const character = await characterContract.call("getCharacter", [
+          metadata.id,
+        ]);
+        const { experience } = character;
+        const { level } = character;
         const maxExp = level * baseXP;
 
         const totalExpUpToLevel = ((_level, _baseXP) => {

@@ -2,21 +2,18 @@ import React, { useEffect } from "react";
 import { useNFT, ThirdwebNftMedia } from "@thirdweb-dev/react";
 import { useGlobalContext } from "../context";
 
-const ItemSlot = ({
-  type,
-  itemId,
-  contract,
-  compositeTWContract,
-  handleUnequip,
-}) => {
+const ItemSlot = ({ type, itemId, handleUnequip }) => {
+  const { setAllOwnedItems, battleItemsContract, compositeContract } =
+    useGlobalContext();
+
   // Determine which contract to use based on the item ID
-  const contractToUse = itemId > 10000 ? compositeTWContract : contract;
+  const contractToUse =
+    itemId > 10000 ? compositeContract : battleItemsContract;
 
   const { data: nftItem, isLoading: itemNFTLoading } = useNFT(
     contractToUse,
     itemId
   );
-  const { setAllOwnedItems } = useGlobalContext();
 
   useEffect(() => {
     if (nftItem) {

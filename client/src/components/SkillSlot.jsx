@@ -2,15 +2,11 @@ import React, { useEffect } from "react";
 import { useNFT, ThirdwebNftMedia } from "@thirdweb-dev/react";
 import { useGlobalContext } from "../context";
 
-const SkillSlot = ({
-  index,
-  skillId,
-  contract,
-  contractComposite,
-  handleUnequip,
-}) => {
-  const { setAllOwnedSkills } = useGlobalContext();
-  const contractToUse = skillId > 10000 ? contractComposite : contract;
+const SkillSlot = ({ index, skillId, handleUnequip }) => {
+  const { setAllOwnedSkills, compositeContract, battleSkillsContract } =
+    useGlobalContext();
+  const contractToUse =
+    skillId > 10000 ? compositeContract : battleSkillsContract;
 
   const { data: nftSkill, isLoading: skillNFTLoading } = useNFT(
     contractToUse,

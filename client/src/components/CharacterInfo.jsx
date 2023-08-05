@@ -34,23 +34,22 @@ const CharacterInfo = (props) => {
   const mintCharacter = async () => {
     setLoading(true);
     try {
-      const isApproved = await battleSkillsContract.isApprovedForAll(
-        walletAddress,
-        equipManagementAddress
-      );
+      const isApproved = await battleSkillsContract.call("isApprovedForAll", [
+        { walletAddress, equipManagementAddress },
+      ]);
 
       if (!isApproved) {
-        const approvalTx = await battleSkillsContract.setApprovalForAll(
-          equipManagementAddress,
-          true
+        const approvalTx = await battleSkillsContract.call(
+          "setApprovalForAll",
+          [equipManagementAddress, true]
         );
 
         await approvalTx.wait();
       }
 
-      const mintTx = await characterContract.mintNewCharacterWithItemAndEquip(
-        characterInfo.characterType,
-        characterInfo.skillId
+      const mintTx = await characterContract.call(
+        "mintNewCharacterWithItemAndEquip",
+        [characterInfo.characterType, characterInfo.skillId]
       );
 
       await mintTx.wait();

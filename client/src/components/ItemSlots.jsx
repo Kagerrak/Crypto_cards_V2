@@ -2,12 +2,7 @@ import React, { useEffect } from "react";
 import ItemSlot from "./ItemSlot";
 import { useGlobalContext } from "../context";
 
-const ItemSlots = ({
-  charTWContract,
-  itemTWContract,
-  compositeTWContract,
-  tokenId,
-}) => {
+const ItemSlots = ({ tokenId }) => {
   const {
     characterContract,
     equipManagementContract,
@@ -30,11 +25,11 @@ const ItemSlots = ({
   const handleUnequipItem = async (_itemTokenId) => {
     setEquippedItemLoading(true);
     try {
-      const unequipTx = await equipManagementContract.unequip(
+      const unequipTx = await equipManagementContract.call("unequip", [
         tokenId,
         _itemTokenId,
-        _itemTokenId > 10000 ? 3 : 0
-      );
+        _itemTokenId > 10000 ? 3 : 0,
+      ]);
       await unequipTx.wait();
 
       setEquippedItems((prevItems) => {
@@ -71,14 +66,14 @@ const ItemSlots = ({
         const fetchedItems = await Promise.all(
           itemTypes.map(async ({ type, name }) => {
             if (
-              !charTWContract ||
+              !characterContract ||
               tokenId === undefined ||
               type === undefined
             ) {
               return { itemType: name, itemId: null };
             }
 
-            const fetchedItemId = await charTWContract.call(
+            const fetchedItemId = await characterContract.call(
               "getCharacterEquippedItem",
               [tokenId, type]
             );
@@ -104,7 +99,7 @@ const ItemSlots = ({
     };
 
     fetchEquippedItems();
-  }, [charTWContract, tokenId, equippedItems, equippedItemLoading]);
+  }, [characterContract, tokenId, equippedItems, equippedItemLoading]);
 
   return (
     <div className="mt-2">
@@ -115,8 +110,6 @@ const ItemSlots = ({
             key={name}
             type={name}
             itemId={equippedItems[name]}
-            contract={itemTWContract}
-            compositeTWContract={compositeTWContract}
             handleUnequip={handleUnequipItem}
           />
         ))}

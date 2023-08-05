@@ -23,7 +23,7 @@ const Home = () => {
   const handleClick = async () => {
     try {
       setIsLoading(true);
-      const tx = await characterContract.newCharacter(typeID);
+      const tx = await characterContract.call("newCharacter", [typeID]);
 
       await tx.wait(1);
 
@@ -57,7 +57,9 @@ const Home = () => {
 
   useEffect(() => {
     const createCharacter = async () => {
-      const hasCharacter = await characterContract.balanceOf(walletAddress);
+      const hasCharacter = await characterContract.call("balanceOf", [
+        walletAddress,
+      ]);
 
       if (hasCharacter.toNumber() > 0) navigate("/create-battle");
     };

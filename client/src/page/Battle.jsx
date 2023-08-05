@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useContract } from "@thirdweb-dev/react";
 import { useNavigate } from "react-router-dom";
 
-import { battleContractAddress } from "../contract";
 import styles from "../styles";
 import {
   ActionButton,
@@ -89,8 +87,6 @@ const Battle = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [battleSummary, setBattleSummary] = useState(null);
 
-  const { contract: battleTWContract } = useContract(battleContractAddress);
-
   const [playerData, setPlayerData] = useState({
     player1Data: null,
     player2Data: null,
@@ -99,13 +95,13 @@ const Battle = () => {
   const [isMoveSubmitted, setIsMoveSubmitted] = useState(false);
 
   const fetchPlayerDataAndEffects = async (battleId, playerAddress) => {
-    const playerDatas = await battleContract.getCharacterProxy(
+    const playerDatas = await battleContract.call("getCharacterProxy", [
       battleId,
-      playerAddress
-    );
-    const playerEffects = await battleContract.getCharacterProxyActiveEffects(
-      battleId,
-      playerAddress
+      playerAddress,
+    ]);
+    const playerEffects = await battleContract.call(
+      "getCharacterProxyActiveEffects",
+      [battleId, playerAddress]
     );
 
     return {
@@ -141,9 +137,7 @@ const Battle = () => {
   };
 
   const fetchSummary = async () => {
-    const rawSummary = await battleTWContract.call("getBattle", [
-      state.battleId,
-    ]);
+    const rawSummary = await battleContract.call("getBattle", [state.battleId]);
     console.log(rawSummary);
 
     // Create a new object with only the properties you need
@@ -414,11 +408,11 @@ const Battle = () => {
     );
 
     try {
-      const moveTx = await battleContract.submitMove(
+      const moveTx = await battleContract.call("submitMove", [
         state.battleId,
         choice,
-        skillId
-      );
+        skillId,
+      ]);
 
       await moveTx.wait();
       // fetchPlayerData();
