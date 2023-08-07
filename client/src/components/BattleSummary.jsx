@@ -7,24 +7,23 @@ Modal.setAppElement("#root"); // replace '#root' with the id of your root elemen
 
 const BattleSummaryModal = ({ isOpen, onRequestClose, battleSummary }) => {
   const navigate = useNavigate();
+
   const {
-    walletAddress,
     setShouldPoll,
     setShouldPollPlayerData,
     fetchGameData,
     setDamagedPlayers,
+    address,
   } = useGlobalContext();
   if (!battleSummary) {
     return null;
   }
 
-  const isWinner =
-    walletAddress.toLowerCase() === battleSummary.winner.toLowerCase();
-  const isLoser =
-    walletAddress.toLowerCase() === battleSummary.loser.toLowerCase();
+  const isWinner = address.toLowerCase() === battleSummary.winner.toLowerCase();
+  const isLoser = address.toLowerCase() === battleSummary.loser.toLowerCase();
 
   const isPlayerOne =
-    walletAddress.toLowerCase() === battleSummary.players[0].toLowerCase();
+    address.toLowerCase() === battleSummary.players[0].toLowerCase();
 
   return (
     <Modal

@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ConnectWallet } from "@thirdweb-dev/react";
+
 import styles from "../styles";
 import { logo } from "../assets";
 import CustomButton from "./CustomButton";
-import { useNavigate, useLocation } from "react-router-dom";
 import { useGlobalContext } from "../context";
 
 const Navbar = () => {
@@ -10,10 +12,10 @@ const Navbar = () => {
   const location = useLocation();
   const showNav = location.pathname.includes("battle/") ? false : true;
   const [showLinks, setShowLinks] = useState(false);
-  const { walletAddress, updateCurrentWalletAddress } = useGlobalContext();
+  const { address, updateCurrentWalletAddress } = useGlobalContext();
 
   // const lOwner = owner.toLowerCase();
-  // const lWalletAddress = walletAddress.toLowerCase();
+  // const lWalletAddress = address.toLowerCase();
 
   return (
     <>
@@ -37,12 +39,7 @@ const Navbar = () => {
             </a>
 
             <div className="flex md:order-2">
-              {!walletAddress && (
-                <CustomButton
-                  title="Connect Wallet"
-                  handleClick={updateCurrentWalletAddress}
-                />
-              )}
+              {!address && <ConnectWallet />}
 
               <button
                 onClick={() => setShowLinks(!showLinks)}

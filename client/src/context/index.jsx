@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useAddress } from "@thirdweb-dev/react";
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
 import { useNavigate } from "react-router-dom";
 
@@ -24,7 +25,6 @@ import { createEventListeners } from "./createEventListeners";
 const GlobalContext = createContext();
 
 export const GlobalContextProvider = ({ children }) => {
-  const [walletAddress, setWalletAddress] = useState("");
   const [battleGround, setBattleGround] = useState("bg-astral");
   const [characterContract, setCharacterContract] = useState(null);
   const [battleSkillsContract, setBattleSkillsContract] = useState(null);
@@ -67,6 +67,7 @@ export const GlobalContextProvider = ({ children }) => {
   const [shouldPollPlayerData, setShouldPollPlayerData] = useState(false);
 
   const navigate = useNavigate();
+  const address = useAddress();
 
   const intervalIdRef = useRef();
 
@@ -157,7 +158,7 @@ export const GlobalContextProvider = ({ children }) => {
     };
 
     setSmartContractsAndProvider();
-  }, [walletAddress]);
+  }, [address]);
 
   // Define fetchGameData
   const fetchGameData = async () => {
@@ -191,7 +192,7 @@ export const GlobalContextProvider = ({ children }) => {
         fetchedBattles.forEach((battle) => {
           if (
             battle.players.find(
-              (player) => player.toLowerCase() === walletAddress.toLowerCase()
+              (player) => player.toLowerCase() === address.toLowerCase()
             )
           ) {
             if (battle.winner.startsWith("0x00") && battle.battleStatus !== 2) {
@@ -259,7 +260,7 @@ export const GlobalContextProvider = ({ children }) => {
         intervalIdRef.current = null;
       }
     };
-  }, [shouldPoll, battleContract, updateGameData, walletAddress]); // Add dependencies
+  }, [shouldPoll, battleContract, updateGameData, address]); // Add dependencies
 
   //* Activate event listeners for the smart contract
   useEffect(() => {
@@ -269,7 +270,7 @@ export const GlobalContextProvider = ({ children }) => {
         battleContractAddress,
         characterContractAddress,
         provider,
-        walletAddress,
+        address,
         setShowAlert,
         setUpdateGameData,
         fetchGameData,
@@ -320,7 +321,7 @@ export const GlobalContextProvider = ({ children }) => {
         equipManagementContract,
         battleContract,
         gameData,
-        walletAddress,
+        address,
         updateCurrentWalletAddress,
         showAlert,
         setShowAlert,

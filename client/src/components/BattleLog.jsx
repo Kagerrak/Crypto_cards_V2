@@ -6,7 +6,7 @@ import { useGlobalContext } from "../context";
 const BattleLog = ({ battleId }) => {
   const ID = battleId;
   const [battleLog, setBattleLog] = useState([]);
-  const { walletAddress } = useGlobalContext();
+  const { address } = useGlobalContext();
 
   const { contract: battleTWContract } = useContract(battleContractAddress);
   const {
@@ -35,10 +35,7 @@ const BattleLog = ({ battleId }) => {
     };
 
     const getPlayerNumber = (player) => {
-      if (
-        walletAddress &&
-        player.toLowerCase() === walletAddress.toLowerCase()
-      ) {
+      if (address && player.toLowerCase() === address.toLowerCase()) {
         return "You are";
       } else {
         return "Opponent is";

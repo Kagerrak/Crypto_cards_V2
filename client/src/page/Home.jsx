@@ -8,7 +8,7 @@ import { useGlobalContext } from "../context";
 const Home = () => {
   const {
     characterContract,
-    walletAddress,
+    address,
     gameData,
     setShowAlert,
     setErrorMessage,
@@ -57,18 +57,16 @@ const Home = () => {
 
   useEffect(() => {
     const createCharacter = async () => {
-      const hasCharacter = await characterContract.call("balanceOf", [
-        walletAddress,
-      ]);
+      const hasCharacter = await characterContract.call("balanceOf", [address]);
 
       if (hasCharacter.toNumber() > 0) navigate("/create-battle");
     };
 
     if (characterContract) createCharacter();
-  }, [characterContract, walletAddress]);
+  }, [characterContract, address]);
 
   return (
-    walletAddress && (
+    address && (
       <>
         {isLoading || loadingGameData ? (
           <Loader message="Creating Character... Please wait..." />

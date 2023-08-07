@@ -20,7 +20,7 @@ const CreateBattle = () => {
     gameData,
     setBattleName,
     setErrorMessage,
-    walletAddress,
+    address,
     fetchGameData,
     setBattleIsOver,
   } = useGlobalContext();
@@ -40,16 +40,14 @@ const CreateBattle = () => {
 
   const { data: ownedNfts, isLoading: charLoad } = useOwnedNFTs(
     characterContract,
-    walletAddress
+    address
   );
 
   useEffect(() => {
-    if (!walletAddress || !characterContract) navigate("/");
+    if (!address || !characterContract) navigate("/");
 
     const checkPlayer = async () => {
-      const hasCharacter = await characterContract.call("balanceOf", [
-        walletAddress,
-      ]);
+      const hasCharacter = await characterContract.call("balanceOf", [address]);
       if (!hasCharacter) {
         navigate("/");
       }
@@ -69,7 +67,7 @@ const CreateBattle = () => {
     } else if (gameData?.activeBattle?.battleStatus === 1) {
       navigate(`/battle/${gameData.activeBattle.name}`);
     }
-  }, [gameData, walletAddress, characterContract]);
+  }, [gameData, address, characterContract]);
 
   useEffect(() => {
     if (Array.isArray(ownedNfts) && ownedNfts.length === 1) {

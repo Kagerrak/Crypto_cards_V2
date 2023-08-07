@@ -43,7 +43,7 @@ const Battle = () => {
     battleContract,
     gameData,
     battleGround,
-    walletAddress,
+    address,
     setErrorMessage,
     showAlert,
     setShowAlert,
@@ -158,10 +158,10 @@ const Battle = () => {
           : rawSummary.players[0],
     };
 
-    if (walletAddress.toLowerCase() === summary.winner.toLowerCase()) {
+    if (address.toLowerCase() === summary.winner.toLowerCase()) {
       setShowAlert({ status: true, type: "success", message: "You won!" });
       console.log("You won!");
-    } else if (walletAddress.toLowerCase() === summary.loser.toLowerCase()) {
+    } else if (address.toLowerCase() === summary.loser.toLowerCase()) {
       setShowAlert({ status: true, type: "failure", message: "You lost!" });
       console.log("You lost!");
     }
@@ -179,8 +179,7 @@ const Battle = () => {
       let player01Address = null;
       let player02Address = null;
       if (
-        gameData.activeBattle.players[0].toLowerCase() ===
-        walletAddress.toLowerCase()
+        gameData.activeBattle.players[0].toLowerCase() === address.toLowerCase()
       ) {
         player01Address = gameData.activeBattle.players[0];
         player02Address = gameData.activeBattle.players[1];
@@ -316,7 +315,7 @@ const Battle = () => {
     gameData, // Add gameData as a dependency
     battleContract,
     gameData.activeBattle,
-    walletAddress,
+    address,
   ]);
 
   useEffect(() => {
@@ -358,14 +357,14 @@ const Battle = () => {
         p1InitHP:
           gameData.activeBattle.battleStats.initialHealth[
             gameData.activeBattle.players[0].toLowerCase() ===
-            walletAddress.toLowerCase()
+            address.toLowerCase()
               ? 0
               : 1
           ].toNumber(),
         p2InitHP:
           gameData.activeBattle.battleStats.initialHealth[
             gameData.activeBattle.players[0].toLowerCase() ===
-            walletAddress.toLowerCase()
+            address.toLowerCase()
               ? 1
               : 0
           ].toNumber(),
@@ -374,7 +373,7 @@ const Battle = () => {
       };
       setState(newState);
     }
-  }, [playerData, gameData, walletAddress]);
+  }, [playerData, gameData, address]);
 
   useEffect(() => {
     if (

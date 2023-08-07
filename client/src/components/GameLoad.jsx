@@ -8,7 +8,7 @@ import { player01, player02 } from "../assets";
 import styles from "../styles";
 
 const GameLoad = () => {
-  const { walletAddress, battleContract, gameData, setErrorMessage } =
+  const { address, battleContract, gameData, setErrorMessage } =
     useGlobalContext();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ const GameLoad = () => {
             <div className={`${styles.flexCenter} flex-col`}>
               <img src={player01} className={styles.gameLoadPlayerImg} />
               <p className={styles.gameLoadPlayerText}>
-                {walletAddress.slice(0, 30)}
+                {address.slice(0, 30)}
               </p>
             </div>
 

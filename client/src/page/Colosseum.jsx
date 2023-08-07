@@ -14,14 +14,14 @@ const Colosseum = () => {
     setShowAlert,
     setBattleName,
     setErrorMessage,
-    walletAddress,
+    address,
   } = useGlobalContext();
 
   useEffect(() => {
-    if (!walletAddress) navigate("/");
+    if (!address) navigate("/");
 
     const checkPlayer = async () => {
-      const playerExists = await contract?.isPlayer(walletAddress);
+      const playerExists = await contract?.isPlayer(address);
       if (!playerExists) {
         navigate("/");
       }
@@ -66,7 +66,7 @@ const Colosseum = () => {
           gameData.pendingBattles
             .filter(
               (battle) =>
-                !battle.players.join().toLowerCase().includes(walletAddress) &&
+                !battle.players.join().toLowerCase().includes(address) &&
                 battle.battleStatus !== 1
             )
             .map((battle, index) => (
@@ -87,7 +87,7 @@ const Colosseum = () => {
         )}
       </div>
 
-      {walletAddress && (
+      {address && (
         <p
           className={styles.infoText}
           onClick={() => navigate("/create-battle")}

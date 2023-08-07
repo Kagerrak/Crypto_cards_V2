@@ -3,7 +3,7 @@ export const createEventListeners = async ({
   provider,
   battleContract,
   characterContract,
-  walletAddress,
+  address,
   setShowAlert,
   setUpdateGameData,
   fetchGameData,
@@ -18,7 +18,7 @@ export const createEventListeners = async ({
 
     // fetchData();
 
-    if (walletAddress === event.data.owner) {
+    if (address === event.data.owner) {
       setShowAlert({
         status: true,
         type: "success",
@@ -29,23 +29,23 @@ export const createEventListeners = async ({
 
   // BattleCreated event listener
   battleContract.events.addEventListener("BattleCreated", (event) => {
-    console.log("Battle created!", event, walletAddress);
+    console.log("Battle created!", event, address);
 
     setUpdateGameData((prevUpdateGameData) => prevUpdateGameData + 1);
   });
 
   // BattleCancelled event listener
   battleContract.events.addEventListener("BattleCancelled", (event) => {
-    console.log("Battle Cancelled!", event, walletAddress);
+    console.log("Battle Cancelled!", event, address);
 
     setUpdateGameData((prevUpdateGameData) => prevUpdateGameData + 1);
   });
 
   // NewBattle event listener
   battleContract.events.addEventListener("NewBattle", async (event) => {
-    console.log("New battle started!", event, walletAddress);
+    console.log("New battle started!", event, address);
 
-    if (walletAddress.toLowerCase() === event.data.player1.toLowerCase()) {
+    if (address.toLowerCase() === event.data.player1.toLowerCase()) {
       console.log("About to call fetchGameData");
 
       setBattleIsOver(false);
@@ -79,9 +79,9 @@ export const createEventListeners = async ({
 
   // QuitBattle event listener
   battleContract.events.addEventListener("BattleQuit", async (event) => {
-    console.log("Battle quit!", event, walletAddress);
+    console.log("Battle quit!", event, address);
 
-    if (walletAddress.toLowerCase() === event.data.quitter.toLowerCase()) {
+    if (address.toLowerCase() === event.data.quitter.toLowerCase()) {
       console.log("About to call fetchGameData");
 
       // Get the transaction hash from the event
@@ -117,7 +117,7 @@ export const createEventListeners = async ({
     const { move, player } = event.data;
 
     let message;
-    if (player.toLowerCase() !== walletAddress.toLowerCase()) {
+    if (player.toLowerCase() !== address.toLowerCase()) {
       message = `Opponent initiating ${
         move === 0 ? "attack" : move === 1 ? "defense" : "skill"
       }`;

@@ -22,7 +22,7 @@ const MyChampion = () => {
     setShowAlert,
     showAlert,
     characterContract,
-    walletAddress,
+    address,
   } = useGlobalContext();
   const [showInfo, setShowInfo] = useState(false);
   const [tokenId, setTokenId] = useState();
@@ -34,10 +34,7 @@ const MyChampion = () => {
   const { contract: skillTWContract } = useContract(battleSkillsAddress);
 
   // Fetch owner character NFTs
-  const { data: ownedNfts, isLoading } = useOwnedNFTs(
-    charTWContract,
-    walletAddress
-  );
+  const { data: ownedNfts, isLoading } = useOwnedNFTs(charTWContract, address);
 
   useEffect(() => {
     if (!characterContract) return;
@@ -53,7 +50,7 @@ const MyChampion = () => {
 
     const fetchCharacters = async () => {
       const results = await filter(characters, async (item) => {
-        const balance = await characterContract.balanceOf(walletAddress);
+        const balance = await characterContract.balanceOf(address);
         return balance.toNumber() > 0;
       });
 

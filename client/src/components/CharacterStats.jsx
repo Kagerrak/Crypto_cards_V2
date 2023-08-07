@@ -42,7 +42,7 @@ const CharacterStats = (props) => {
     equipManagementContract,
     setErrorMessage,
     setShowAlert,
-    walletAddress,
+    address,
     setEquippedSkills,
     setEquippedSkillLoading,
     localOwnedSkills,
@@ -56,14 +56,11 @@ const CharacterStats = (props) => {
     setAllOwnedItems,
   } = useGlobalContext();
 
-  const { data: ownedSkills } = useOwnedNFTs(
-    battleSkillsContract,
-    walletAddress
-  );
-  const { data: ownedItems } = useOwnedNFTs(battleItemsContract, walletAddress);
+  const { data: ownedSkills } = useOwnedNFTs(battleSkillsContract, address);
+  const { data: ownedItems } = useOwnedNFTs(battleItemsContract, address);
   const { data: ownedCompositeTokens } = useOwnedNFTs(
     compositeContract,
-    walletAddress
+    address
   );
 
   const contractReadResult = useContractRead(
@@ -230,7 +227,7 @@ const CharacterStats = (props) => {
       const tokenType = _skillId > 10000 ? 4 : 1;
 
       const isApproved = await contractToUse.call("isApprovedForAll", [
-        { walletAddress, equipManagementAddress },
+        { address, equipManagementAddress },
       ]);
       if (!isApproved) {
         const approvalTx = await contractToUse.call("setApprovalForAll", [
@@ -245,7 +242,7 @@ const CharacterStats = (props) => {
         tokenId,
         _skillId,
         tokenType,
-        walletAddress,
+        address,
       ]);
       console.log("Waiting for equip transaction to confirm...");
       await equipTx.wait(); // wait for the equip transaction to be mined
@@ -289,7 +286,7 @@ const CharacterStats = (props) => {
         _itemTokenId > 10000 ? compositeContract : battleItemsContract;
 
       const isApproved = await contractToUse.isApprovedForAll(
-        walletAddress,
+        address,
         equipManagementAddress
       );
       if (!isApproved) {
@@ -304,7 +301,7 @@ const CharacterStats = (props) => {
       const equipTx = await equipManagementContract.call("equip", [
         _itemTokenId,
         _itemTokenId > 10000 ? 3 : 0,
-        walletAddress,
+        address,
       ]);
       console.log("Waiting for equip transaction to confirm...");
       await equipTx.wait(); // wait for the equip transaction to be mined

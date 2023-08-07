@@ -18,7 +18,7 @@ const JoinBattle = () => {
     setShowAlert,
     setBattleName,
     setErrorMessage,
-    walletAddress,
+    address,
     fetchGameData,
   } = useGlobalContext();
 
@@ -26,7 +26,7 @@ const JoinBattle = () => {
     characterContractAddress
   );
 
-  const { data: ownedNfts } = useOwnedNFTs(charContract, walletAddress);
+  const { data: ownedNfts } = useOwnedNFTs(charContract, address);
 
   useEffect(() => {
     if (gameData) {
@@ -39,7 +39,7 @@ const JoinBattle = () => {
         navigate(`/battle/${gameData.activeBattle.name}`);
       }
     }
-  }, [gameData, walletAddress, battleContract]);
+  }, [gameData, address, battleContract]);
 
   useEffect(() => {
     if (Array.isArray(ownedNfts) && ownedNfts.length === 1) {
@@ -114,7 +114,7 @@ const JoinBattle = () => {
   }
 
   return (
-    walletAddress && (
+    address && (
       <>
         {isLoading || loadingGameData ? (
           <Loader message="Joining Battle..." />
@@ -131,10 +131,8 @@ const JoinBattle = () => {
                 gameData.pendingBattles
                   .filter(
                     (battle) =>
-                      !battle.players
-                        .join()
-                        .toLowerCase()
-                        .includes(walletAddress) && battle.battleStatus !== 1
+                      !battle.players.join().toLowerCase().includes(address) &&
+                      battle.battleStatus !== 1
                   )
                   .map((battle, index) => (
                     <div

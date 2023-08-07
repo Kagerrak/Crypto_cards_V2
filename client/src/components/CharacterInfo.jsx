@@ -23,7 +23,7 @@ const CharacterInfo = (props) => {
     gameData,
     setErrorMessage,
     setShowAlert,
-    walletAddress,
+    address,
   } = useGlobalContext();
   const tokenId = props?.tokenId;
   const characterInfo = characters.filter((item) => {
@@ -35,7 +35,7 @@ const CharacterInfo = (props) => {
     setLoading(true);
     try {
       const isApproved = await battleSkillsContract.call("isApprovedForAll", [
-        { walletAddress, equipManagementAddress },
+        { address, equipManagementAddress },
       ]);
 
       if (!isApproved) {

@@ -1,6 +1,7 @@
 /* eslint-disable react/jsx-no-bind */
 import { useState, useEffect } from "react";
 import Modal from "react-modal";
+import { ConnectWallet } from "@thirdweb-dev/react";
 
 import styles from "../styles";
 import CustomButton from "./CustomButton";
@@ -51,10 +52,7 @@ const OnboardModal = () => {
             <p className={styles.modalText}>
               You haven't connected your account to Core Wallet!
             </p>
-            <CustomButton
-              title="Connect Account"
-              handleClick={updateCurrentWalletAddress}
-            />
+            <ConnectWallet />
           </>
         );
 
