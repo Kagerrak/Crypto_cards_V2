@@ -39,7 +39,7 @@ const Navbar = () => {
             </a>
 
             <div className="flex md:order-2">
-              {!address && <ConnectWallet />}
+              <ConnectWallet theme="dark" />
 
               <button
                 onClick={() => setShowLinks(!showLinks)}
