@@ -1,6 +1,13 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { ThirdwebProvider } from "@thirdweb-dev/react";
+import {
+  ThirdwebProvider,
+  coinbaseWallet,
+  localWallet,
+  metamaskWallet,
+  smartWallet,
+  walletConnect,
+} from "@thirdweb-dev/react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ApolloProvider, ApolloClient, InMemoryCache } from "@apollo/client";
 import ErrorBoundary from "./utils/ErrorBoundary";
@@ -37,7 +44,20 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <ThirdwebProvider
         activeChain="mumbai"
-        clientId="bff01b72dc0921cd7e72c3c69b40436e"
+        clientId="ab87f3b4be1891736c59ded9276c10ea"
+        supportedWallets={[
+          smartWallet({
+            factoryAddress: "0xDC4e5d1243C20cb56f831625B17F99AD22FAe6e9",
+            thirdwebApiKey: "bff01b72dc0921cd7e72c3c69b40436e",
+            gasless: true,
+            personalWallets: [
+              metamaskWallet(),
+              coinbaseWallet(),
+              walletConnect(),
+              localWallet({ persist: true }),
+            ],
+          }),
+        ]}
         sdkOptions={{
           gatewayUrls: ["https://w3s.link/ipfs/"],
         }}
