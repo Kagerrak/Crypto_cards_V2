@@ -23,9 +23,8 @@ const Home = () => {
   const handleClick = async () => {
     try {
       setIsLoading(true);
-      const tx = await characterContract.call("newCharacter", [typeID]);
-
-      await tx.wait(1);
+      await characterContract.call("newCharacter", [typeID]);
+      console.log("run");
 
       setIsLoading(false);
 
@@ -38,6 +37,7 @@ const Home = () => {
       setTimeout(() => navigate("/create-battle"), 8000);
     } catch (error) {
       setErrorMessage(error);
+      console.log(error);
       setIsLoading(false);
     }
   };
@@ -56,8 +56,12 @@ const Home = () => {
   }, [gameData, navigate]);
 
   useEffect(() => {
+    if (characterContract === undefined) {
+      return;
+    }
     const createCharacter = async () => {
       const hasCharacter = await characterContract.call("balanceOf", [address]);
+      console.log(hasCharacter.toNumber());
 
       if (hasCharacter.toNumber() > 0) navigate("/create-battle");
     };
