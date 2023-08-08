@@ -5,8 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useAddress } from "@thirdweb-dev/react";
-import { ThirdwebSDK } from "@thirdweb-dev/sdk";
+import { useAddress, useSDK } from "@thirdweb-dev/react";
 import { useNavigate } from "react-router-dom";
 
 import { GetParams } from "../utils/Onboard.js";
@@ -68,6 +67,7 @@ export const GlobalContextProvider = ({ children }) => {
 
   const navigate = useNavigate();
   const address = useAddress();
+  const sdk = useSDK();
 
   const intervalIdRef = useRef();
 
@@ -118,15 +118,15 @@ export const GlobalContextProvider = ({ children }) => {
 
   //* Set the smart contracts and provider to the state
   useEffect(() => {
+    if (sdk === undefined) {
+      return;
+    }
     const setSmartContractsAndProvider = async () => {
       // const web3Modal = new Web3Modal();
       // const connection = await web3Modal.connect();
       // const newProvider = new ethers.providers.Web3Provider(connection);
       // const signer = newProvider.getSigner();
 
-      const sdk = new ThirdwebSDK("mumbai", {
-        clientId: "bff01b72dc0921cd7e72c3c69b40436e",
-      });
       const newProvider = await sdk.getProvider();
 
       const newCharacterContract = await sdk.getContract(
@@ -170,7 +170,7 @@ export const GlobalContextProvider = ({ children }) => {
         let retries = 3;
         while (retries) {
           try {
-            activeBattlesId = await contract.call("getActiveBattlesId");
+            activeBattlesId = await battleContract.call("getActiveBattlesId");
             break;
           } catch (e) {
             if (retries === 1) throw e; // If it's the last retry, throw the error
