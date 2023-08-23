@@ -21,7 +21,9 @@ contract BattleEffects is ERC1155Base {
     mapping(uint256 => StatusEffect) public statusEffects;
     uint256 public numEffects;
 
-    constructor() ERC1155Base("StatusEffectNFT", "SE", address(0), 0) {
+    constructor()
+        ERC1155Base(msg.sender, "StatusEffectNFT", "SE", address(0), 0)
+    {
         nextTokenIdToMint_ = 1;
     }
 

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 
 import "./Character.sol";
-import "hardhat/console.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@thirdweb-dev/contracts/extension/Ownable.sol";
 import "./StructsLibrary.sol";
@@ -130,14 +129,12 @@ contract Battle is Ownable {
     );
 
     modifier onlyParticipant(uint256 battleId) {
-        console.log(battles[battleId].players[0]);
-        console.log(battles[battleId].players[1]);
         address player0 = battles[battleId].players[0];
         address player1 = battles[battleId].players[1];
 
         require(
             msg.sender == player0 || msg.sender == player1,
-            "Only participants can call this function"
+            "Only participants"
         );
         _;
     }
@@ -172,16 +169,15 @@ contract Battle is Ownable {
         ];
         p.id = tokenId;
         p.owner = player;
+        p.stats.level = battleData.level;
+        p.stats.dexterity = battleData.dexterity;
+        p.stats.accuracy = battleData.accuracy;
         p.stats.health = battleData.health;
         p.stats.attack = battleData.attack;
         p.stats.defense = battleData.defense;
         p.stats.mana = battleData.mana;
         p.stats.typeId = battleData.typeId;
         p.equippedSkills = battleData.equippedSkills;
-
-        console.log("Character proxy created for player", player);
-        console.log("Health:", p.stats.health);
-        console.log("Mana:", p.stats.mana);
 
         StructsLibrary.BattleData storage battle = battles[battleId];
         if (player == battle.players[0]) {
@@ -216,7 +212,7 @@ contract Battle is Ownable {
         );
         require(
             playerOngoingBattle[msg.sender] == 0,
-            "Player already participating in another battle"
+            "Player in another battle"
         );
 
         uint256 battleId = battleCounter;
@@ -609,9 +605,6 @@ contract Battle is Ownable {
         );
 
         uint256 rawDamage = (player.attackMultiplier * skill.damage) / 1000;
-        console.log(player.attackMultiplier);
-        console.log(skill.damage);
-        console.log(rawDamage);
 
         if (opponentMove == uint256(StructsLibrary.Move.DEFEND)) {
             rawDamage = rawDamage > opponent.stats.defense
@@ -627,7 +620,6 @@ contract Battle is Ownable {
         if (rawDamage > 0) {
             if (opponent.stats.health > rawDamage) {
                 opponent.stats.health -= rawDamage;
-                console.log(opponent.stats.health);
             } else {
                 opponent.stats.health = 0;
             }
@@ -733,7 +725,7 @@ contract Battle is Ownable {
         uint256 winnerIndex = _winner == player1 ? 0 : 1;
         uint256 loserIndex = _loser == player1 ? 0 : 1;
 
-        _consumeUsedMana(_battleId, battle, winnerIndex, loserIndex);
+        // _consumeUsedMana(_battleId, battle, winnerIndex, loserIndex);
 
         // Check if the health of one of the players is 0, indicating the battle was fought
         uint256 player1Health = characterProxies[
@@ -769,35 +761,35 @@ contract Battle is Ownable {
         delete battleIdToActiveIndex[_battleId];
     }
 
-    function _consumeUsedMana(
-        uint256 _battleId,
-        StructsLibrary.BattleData storage battle,
-        uint256 winnerIndex,
-        uint256 loserIndex
-    ) internal {
-        // Calculate used mana for each player's character
-        address winner = battle.players[winnerIndex];
-        address loser = battle.players[loserIndex];
+    // function _consumeUsedMana(
+    //     uint256 _battleId,
+    //     StructsLibrary.BattleData storage battle,
+    //     uint256 winnerIndex,
+    //     uint256 loserIndex
+    // ) internal {
+    //     // Calculate used mana for each player's character
+    //     address winner = battle.players[winnerIndex];
+    //     address loser = battle.players[loserIndex];
 
-        uint256 usedManaWinner = battle.battleStats.initialMana[winnerIndex] -
-            characterProxies[keccak256(abi.encodePacked(_battleId, winner))][
-                winner
-            ].stats.mana;
-        uint256 usedManaLoser = battle.battleStats.initialMana[loserIndex] -
-            characterProxies[keccak256(abi.encodePacked(_battleId, loser))][
-                loser
-            ].stats.mana;
+    //     uint256 usedManaWinner = battle.battleStats.initialMana[winnerIndex] -
+    //         characterProxies[keccak256(abi.encodePacked(_battleId, winner))][
+    //             winner
+    //         ].stats.mana;
+    //     uint256 usedManaLoser = battle.battleStats.initialMana[loserIndex] -
+    //         characterProxies[keccak256(abi.encodePacked(_battleId, loser))][
+    //             loser
+    //         ].stats.mana;
 
-        // Consume used mana for each player's character
-        characterContract.consumeMana(
-            battle.characterIds[winnerIndex],
-            usedManaWinner
-        );
-        characterContract.consumeMana(
-            battle.characterIds[loserIndex],
-            usedManaLoser
-        );
-    }
+    //     // Consume used mana for each player's character
+    //     characterContract.consumeMana(
+    //         battle.characterIds[winnerIndex],
+    //         usedManaWinner
+    //     );
+    //     characterContract.consumeMana(
+    //         battle.characterIds[loserIndex],
+    //         usedManaLoser
+    //     );
+    // }
 
     function getBattle(
         uint256 _battleId
@@ -893,6 +885,18 @@ contract Battle is Ownable {
     function updateStaminaCost(uint256 newCost) external onlyOwner {
         staminaCost = newCost;
     }
+
+    // function battleFee() public view returns (uint256) {
+    //     (, int256 answer, , , ) = priceFeed.latestRoundData();
+    //     uint256 price = uint256(answer * 10000000000); // convert int256 value to uint256
+    //     uint256 usdAmount = 0.05 * 10 ** 18; // convert 0.05 USD to wei
+    //     return uint256((usdAmount * (10 ** 18)) / price); // convert wei to ether
+    // }
+
+    // function storeStamina(uint256 _tokenId1, uint256 _tokenId2) public {
+    //     characterContract.restoreStaminaToFull(_tokenId1);
+    //     characterContract.restoreStaminaToFull(_tokenId2);
+    // }
 
     fallback() external payable {}
 

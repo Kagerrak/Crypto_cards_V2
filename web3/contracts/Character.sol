@@ -10,21 +10,10 @@ import "./CharacterManagement.sol";
 import "./Class.sol";
 import "./CharData.sol";
 
-import "@thirdweb-dev/contracts/openzeppelin-presets/utils/ERC1155/ERC1155Holder.sol";
 import "@thirdweb-dev/contracts/lib/TWStrings.sol";
 
-contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ERC721Base, ERC1155Receiver) returns (bool) {
-        return
-            ERC721Base.supportsInterface(interfaceId) ||
-            ERC1155Receiver.supportsInterface(interfaceId);
-    }
-
+contract Character is ERC721Base, CharacterManagement {
     using TWStrings for uint256;
-
-    // enum TokenType { Item, Skill, CompositeItem, CompositeSkill }
 
     event NewCharacter(
         address indexed player,
@@ -91,7 +80,7 @@ contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
     }
 
     constructor()
-        ERC721Base("Character", "CNFT", msg.sender, 0)
+        ERC721Base(msg.sender, "Character", "CNFT", msg.sender, 0)
         CharacterManagement(msg.sender)
     {}
 
@@ -121,11 +110,11 @@ contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
         _setTokenURI(_tokenId, _tokenURI);
     }
 
-    function newCharacter(uint256 _typeId) public {
+    function newCharacter(uint256 _typeId, address _caller) public {
         require(_typeId < charTypes.length, "Invalid character type ID");
 
         // Mint the new token with the specified owner and quantity
-        _safeMint(msg.sender, 1);
+        _safeMint(_caller, 1);
 
         // Set the token URI for the new token
         console.log(charTypes[_typeId].uri);
@@ -329,20 +318,16 @@ contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
 
     function mintNewCharacterWithItemAndEquip(
         uint256 _typeId,
+        address _caller,
         uint256 _skillTokenId
     ) external {
         // Mint a new character
-        newCharacter(_typeId);
+        newCharacter(_typeId, _caller);
 
         // Mint a new item
         battleSkills.mintSkill(_skillTokenId, msg.sender);
 
         // Equip the item to the new character
-        equipManagement.equip(
-            numCharacters - 1,
-            _skillTokenId,
-            CharData.TokenType.Skill,
-            msg.sender
-        );
+        // equipManagement.equip(numCharacters - 1, _skillTokenId, CharData.TokenType.Skill, msg.sender);
     }
 }

@@ -56,6 +56,21 @@ interface ICompositeTokens {
         bytes calldata data
     ) external;
 
+    function createCompositeToken(
+        uint256 tokenId1,
+        uint256 tokenId2,
+        CompositeType _compositeType
+    ) external returns (uint256);
+
+    function mintCompositeToken(
+        uint256 _compositeTokenId,
+        address _caller
+    ) external;
+
+    function burnComposite(uint256 _compositeId, address _caller) external;
+
+    function burnCompositeToken(uint256 tokenId) external;
+
     function setApprovalForAll(address operator, bool approved) external;
     // Add other function signatures as required
 }

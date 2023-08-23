@@ -41,18 +41,18 @@ contract CompositeTokens is ERC1155Base {
         address _battleSkillsAddress,
         address _battleItemsAddress,
         address _battleEffectsAddress
-    ) ERC1155Base("CompositeTokens", "CT", address(0), 0) {
+    ) ERC1155Base(msg.sender, "CompositeTokens", "CT", address(0), 0) {
         battleSkills = BattleSkills(_battleSkillsAddress);
         battleItems = BattleItems(_battleItemsAddress);
         battleEffects = BattleEffects(_battleEffectsAddress);
         nextTokenIdToMint_ = 10001;
     }
 
-    function mintCompositeToken(
+    function createCompositeToken(
         uint256 tokenId1,
         uint256 tokenId2,
         CompositeType _compositeType
-    ) public {
+    ) public returns (uint256) {
         (address contract1, address contract2) = getContracts(_compositeType);
         require(
             ERC1155(contract1).balanceOf(msg.sender, tokenId1) > 0,
@@ -92,7 +92,7 @@ contract CompositeTokens is ERC1155Base {
         // If this combination of tokens has been used before, mint the existing token
         if (existingTokenId != 0) {
             _mint(msg.sender, existingTokenId, 1, "");
-            return;
+            return existingTokenId;
         }
 
         CompositeTokenDetails memory details = getDetails(
@@ -111,18 +111,34 @@ contract CompositeTokens is ERC1155Base {
         // Get the URI of the first token
         string memory uri = ERC1155(contract1).uri(tokenId1);
 
+        uint256 newCompositeTokenId = _compositeCount;
         mintTo(msg.sender, tokenId, uri, 1);
         _compositeCount++;
+
+        return newCompositeTokenId;
     }
 
-    function burnComposite(uint256 _compositeId, address _caller) internal {
+    function mintCompositeToken(
+        uint256 _compositeTokenId,
+        address _caller
+    ) public {
+        require(
+            _compositeTokenId <= _compositeCount && _compositeTokenId != 0,
+            "Composite token does not exist"
+        );
+
+        // Mint the composite token to the specified address
+        _mint(_caller, _compositeTokenId, 1, "");
+    }
+
+    function burnComposite(uint256 _compositeId, address _caller) public {
         require(
             _compositeId <= _compositeCount && _compositeId != 0,
-            "Invalid skill ID"
+            "Invalid composite ID"
         );
         require(
             balanceOf[_caller][_compositeId] > 0,
-            "Caller does not own this skill"
+            "Caller does not own this token"
         );
         _burn(_caller, _compositeId, 1);
     }
@@ -137,26 +153,32 @@ contract CompositeTokens is ERC1155Base {
             tokenId
         );
 
-        // Mint the original tokens
-        if (details.itemId != 0) {
+        // Mint the original tokens back
+        if (details.compositeItemId != 0) {
+            mintCompositeToken(details.compositeItemId, msg.sender); // Assuming a mintCompositeToken function
+        }
+        if (details.compositeSkillId != 0) {
+            mintCompositeToken(details.compositeSkillId, msg.sender); // Assuming a mintCompositeToken function
+        }
+        if (details.itemId != 0 && details.compositeItemId == 0) {
             BattleItems(address(battleItems)).mintItem(
                 details.itemId,
                 msg.sender
             );
         }
-        if (details.battleSkillId != 0) {
+        if (details.battleSkillId != 0 && details.compositeSkillId == 0) {
             BattleSkills(address(battleSkills)).mintSkill(
                 details.battleSkillId,
                 msg.sender
             );
         }
-        if (details.itemEffectId != 0) {
+        if (details.itemEffectId != 0 && details.compositeItemId == 0) {
             BattleEffects(address(battleEffects)).mintEffect(
                 details.itemEffectId,
                 msg.sender
             );
         }
-        if (details.skillEffectId != 0) {
+        if (details.skillEffectId != 0 && details.compositeSkillId == 0) {
             BattleEffects(address(battleEffects)).mintEffect(
                 details.skillEffectId,
                 msg.sender

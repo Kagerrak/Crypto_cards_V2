@@ -41,6 +41,9 @@ library CharData {
     }
 
     struct CharBattleData {
+        uint256 level;
+        uint256 dexterity;
+        uint256 accuracy;
         uint256 health;
         uint256 attack;
         uint256 defense;

@@ -27,9 +27,9 @@ contract BattleSkills is ERC1155Base {
         uint256 damage,
         uint256 manaCost
     );
-    event SkillMinted(uint256 skillId, address caller);
+    event SkillMinted(uint256 skillId, address caller, address txSender);
 
-    constructor() ERC1155Base("BattleSkills", "BS", address(0), 0) {
+    constructor() ERC1155Base(msg.sender, "BattleSkills", "BS", address(0), 0) {
         nextTokenIdToMint_ = 1;
     }
 
@@ -58,7 +58,7 @@ contract BattleSkills is ERC1155Base {
         _mint(_caller, tokenId, 1, "");
 
         // Emit the SkillMinted event
-        emit SkillMinted(_skillId, _caller);
+        emit SkillMinted(_skillId, _caller, msg.sender);
     }
 
     function burnSkill(uint256 _skillId, address _caller) public {

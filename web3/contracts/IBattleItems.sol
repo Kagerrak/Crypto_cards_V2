@@ -25,7 +25,7 @@ interface IBattleItems {
         string memory _tokenURI
     ) external;
 
-    function mintItem(uint256 _itemId) external;
+    function mintItem(uint256 _itemId, address _caller) external;
 
     function burnItem(uint256 _itemId, address _caller) external;
 

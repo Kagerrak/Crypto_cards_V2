@@ -7,6 +7,9 @@ library BattleResolutionLibrary {
     using StructsLibrary for StructsLibrary.BattleData;
     using StructsLibrary for StructsLibrary.CharacterProxy;
 
+    // Constants
+    uint256 constant MAX_PERCENT = 100; // Represents 100% in our calculations
+
     function handleDefend(
         StructsLibrary.BattleData storage battle,
         StructsLibrary.CharacterProxy storage proxyA,
@@ -30,6 +33,12 @@ library BattleResolutionLibrary {
         address[2] memory damagedPlayers;
         uint256[2] memory damageDealt;
 
+        // Chance to hit calculations
+        bool doesAHit = (random() % MAX_PERCENT) <
+            calculateChanceToHit(proxyA, proxyB);
+        bool doesBHit = (random() % MAX_PERCENT) <
+            calculateChanceToHit(proxyB, proxyA);
+
         uint256 moveA = battle.moves[0];
         uint256 moveB = battle.moves[1];
 
@@ -41,7 +50,9 @@ library BattleResolutionLibrary {
             (damageDealt, damagedPlayers) = handleAttackAttack(
                 battle,
                 proxyA,
-                proxyB
+                proxyB,
+                doesAHit,
+                doesBHit
             );
         }
         // Player 1 attacks, player 2 defends
@@ -52,7 +63,8 @@ library BattleResolutionLibrary {
             (damageDealt, damagedPlayers) = handleAttackDefend(
                 battle,
                 proxyA,
-                proxyB
+                proxyB,
+                doesAHit
             );
         }
         // Player 2 attacks, player 1 defends
@@ -63,7 +75,8 @@ library BattleResolutionLibrary {
             (damageDealt, damagedPlayers) = handleDefendAttack(
                 battle,
                 proxyA,
-                proxyB
+                proxyB,
+                doesBHit
             );
         }
         // Player 1 attacks, player 2 does nothing
@@ -74,7 +87,8 @@ library BattleResolutionLibrary {
             (damageDealt, damagedPlayers) = handleAttackDoNothing(
                 battle,
                 proxyA,
-                proxyB
+                proxyB,
+                doesAHit
             );
         }
         // Player 1 does nothing, player 2 attacks
@@ -85,7 +99,8 @@ library BattleResolutionLibrary {
             (damageDealt, damagedPlayers) = handleDoNothingAttack(
                 battle,
                 proxyA,
-                proxyB
+                proxyB,
+                doesBHit
             );
         }
         // Player 1 attacks, player 2 uses skill
@@ -96,7 +111,8 @@ library BattleResolutionLibrary {
             (damageDealt, damagedPlayers) = handleAttackSkill(
                 battle,
                 proxyA,
-                proxyB
+                proxyB,
+                doesAHit
             );
         }
         // Player 1 uses skill, player 2 attacks
@@ -107,7 +123,8 @@ library BattleResolutionLibrary {
             (damageDealt, damagedPlayers) = handleSkillAttack(
                 battle,
                 proxyA,
-                proxyB
+                proxyB,
+                doesBHit
             );
         }
 
@@ -117,7 +134,9 @@ library BattleResolutionLibrary {
     function handleAttackAttack(
         StructsLibrary.BattleData storage battle,
         StructsLibrary.CharacterProxy storage proxyA,
-        StructsLibrary.CharacterProxy storage proxyB
+        StructsLibrary.CharacterProxy storage proxyB,
+        bool doesAHit,
+        bool doesBHit
     )
         internal
         returns (
@@ -125,28 +144,33 @@ library BattleResolutionLibrary {
             address[2] memory damagedPlayers
         )
     {
-        uint256 damageA = (proxyA.stats.attack * proxyA.attackMultiplier) /
-            1000;
-        uint256 damageB = (proxyB.stats.attack * proxyB.attackMultiplier) /
-            1000;
+        uint256 damageA = doesAHit
+            ? (proxyA.stats.attack * proxyA.attackMultiplier) / 1000
+            : 0;
+        uint256 damageB = doesBHit
+            ? (proxyB.stats.attack * proxyB.attackMultiplier) / 1000
+            : 0;
+
         proxyB.stats.health = proxyB.stats.health > damageA
             ? proxyB.stats.health - damageA
             : 0;
         proxyA.stats.health = proxyA.stats.health > damageB
             ? proxyA.stats.health - damageB
             : 0;
+
         proxyA.stats.mana -= 3;
         proxyB.stats.mana -= 3;
+
         damagedPlayers = [battle.players[0], battle.players[1]];
         damageDealt = [damageA, damageB];
         return (damageDealt, damagedPlayers);
     }
 
-    // Player 1 attacks, player 2 defends
     function handleAttackDefend(
         StructsLibrary.BattleData storage battle,
         StructsLibrary.CharacterProxy storage proxyA,
-        StructsLibrary.CharacterProxy storage proxyB
+        StructsLibrary.CharacterProxy storage proxyB,
+        bool doesAHit
     )
         internal
         returns (
@@ -154,9 +178,10 @@ library BattleResolutionLibrary {
             address[2] memory damagedPlayers
         )
     {
-        damageDealt = [uint256(0), uint256(0)]; // Initialize to zeros
-        uint256 damageA = (proxyA.stats.attack * proxyA.attackMultiplier) /
-            1000;
+        uint256 damageA = doesAHit
+            ? (proxyA.stats.attack * proxyA.attackMultiplier) / 1000
+            : 0;
+
         if (proxyB.stats.defense < damageA) {
             uint256 damage = damageA - proxyB.stats.defense;
             proxyB.stats.health = proxyB.stats.health > damage
@@ -164,18 +189,18 @@ library BattleResolutionLibrary {
                 : 0;
             damagedPlayers[0] = battle.players[1];
             damageDealt[0] = damage;
-            battle.battleStats.damageReduced[1] += proxyB.stats.defense; // Update damageReduced for player 2
         }
-        battle.battleStats.damageReduced[1] += damageA;
+
         proxyA.stats.mana -= 3;
+
         return (damageDealt, damagedPlayers);
     }
 
-    // Player 2 attacks, player 1 defends
     function handleDefendAttack(
         StructsLibrary.BattleData storage battle,
         StructsLibrary.CharacterProxy storage proxyA,
-        StructsLibrary.CharacterProxy storage proxyB
+        StructsLibrary.CharacterProxy storage proxyB,
+        bool doesBHit
     )
         internal
         returns (
@@ -183,28 +208,29 @@ library BattleResolutionLibrary {
             address[2] memory damagedPlayers
         )
     {
-        damageDealt = [uint256(0), uint256(0)]; // Initialize to zeros
-        uint256 damageB = (proxyB.stats.attack * proxyB.attackMultiplier) /
-            1000;
+        uint256 damageB = doesBHit
+            ? (proxyB.stats.attack * proxyB.attackMultiplier) / 1000
+            : 0;
+
         if (proxyA.stats.defense < damageB) {
             uint256 damage = damageB - proxyA.stats.defense;
             proxyA.stats.health = proxyA.stats.health > damage
                 ? proxyA.stats.health - damage
                 : 0;
-            damagedPlayers[0] = battle.players[0];
+            damagedPlayers[1] = battle.players[0];
             damageDealt[1] = damage;
-            battle.battleStats.damageReduced[0] += proxyA.stats.defense; // Update damageReduced for player 1
         }
-        battle.battleStats.damageReduced[0] += damageB;
+
         proxyB.stats.mana -= 3;
+
         return (damageDealt, damagedPlayers);
     }
 
-    // Player 1 attacks, player 2 does nothing
     function handleAttackDoNothing(
         StructsLibrary.BattleData storage battle,
         StructsLibrary.CharacterProxy storage proxyA,
-        StructsLibrary.CharacterProxy storage proxyB
+        StructsLibrary.CharacterProxy storage proxyB,
+        bool doesAHit
     )
         internal
         returns (
@@ -212,22 +238,26 @@ library BattleResolutionLibrary {
             address[2] memory damagedPlayers
         )
     {
-        uint256 damageA = (proxyA.stats.attack * proxyA.attackMultiplier) /
-            1000;
+        uint256 damageA = doesAHit
+            ? (proxyA.stats.attack * proxyA.attackMultiplier) / 1000
+            : 0;
+
         proxyB.stats.health = proxyB.stats.health > damageA
             ? proxyB.stats.health - damageA
             : 0;
         damagedPlayers[0] = battle.players[1];
         damageDealt[0] = damageA;
+
         proxyA.stats.mana -= 3;
+
         return (damageDealt, damagedPlayers);
     }
 
-    // Player 1 does nothing, player 2 attacks
     function handleDoNothingAttack(
         StructsLibrary.BattleData storage battle,
         StructsLibrary.CharacterProxy storage proxyA,
-        StructsLibrary.CharacterProxy storage proxyB
+        StructsLibrary.CharacterProxy storage proxyB,
+        bool doesBHit
     )
         internal
         returns (
@@ -235,21 +265,26 @@ library BattleResolutionLibrary {
             address[2] memory damagedPlayers
         )
     {
-        uint256 damageB = (proxyB.stats.attack * proxyB.attackMultiplier) /
-            1000;
+        uint256 damageB = doesBHit
+            ? (proxyB.stats.attack * proxyB.attackMultiplier) / 1000
+            : 0;
+
         proxyA.stats.health = proxyA.stats.health > damageB
             ? proxyA.stats.health - damageB
             : 0;
-        damagedPlayers[0] = battle.players[0];
+        damagedPlayers[1] = battle.players[0];
         damageDealt[1] = damageB;
+
         proxyB.stats.mana -= 3;
+
         return (damageDealt, damagedPlayers);
     }
 
     function handleAttackSkill(
         StructsLibrary.BattleData storage battle,
-        StructsLibrary.CharacterProxy storage attacker,
-        StructsLibrary.CharacterProxy storage skillUser
+        StructsLibrary.CharacterProxy storage proxyA,
+        StructsLibrary.CharacterProxy storage proxyB,
+        bool doesAHit
     )
         internal
         returns (
@@ -257,21 +292,28 @@ library BattleResolutionLibrary {
             address[2] memory damagedPlayers
         )
     {
-        uint256 damageA = (attacker.stats.attack * attacker.attackMultiplier) /
-            1000;
-        skillUser.stats.health = skillUser.stats.health > damageA
-            ? skillUser.stats.health - damageA
+        uint256 damageA = doesAHit
+            ? (proxyA.stats.attack * proxyA.attackMultiplier) / 1000
+            : 0;
+
+        proxyB.stats.health = proxyB.stats.health > damageA
+            ? proxyB.stats.health - damageA
             : 0;
         damagedPlayers[0] = battle.players[1];
         damageDealt[0] = damageA;
-        attacker.stats.mana -= 3;
+
+        proxyA.stats.mana -= 3;
+
+        // Here, you might want to also handle the effects of the skill used by proxyB.
+
         return (damageDealt, damagedPlayers);
     }
 
     function handleSkillAttack(
         StructsLibrary.BattleData storage battle,
-        StructsLibrary.CharacterProxy storage skillUser,
-        StructsLibrary.CharacterProxy storage attacker
+        StructsLibrary.CharacterProxy storage proxyA,
+        StructsLibrary.CharacterProxy storage proxyB,
+        bool doesBHit
     )
         internal
         returns (
@@ -279,14 +321,51 @@ library BattleResolutionLibrary {
             address[2] memory damagedPlayers
         )
     {
-        uint256 damageB = (attacker.stats.attack * attacker.attackMultiplier) /
-            1000;
-        skillUser.stats.health = skillUser.stats.health > damageB
-            ? skillUser.stats.health - damageB
+        uint256 damageB = doesBHit
+            ? (proxyB.stats.attack * proxyB.attackMultiplier) / 1000
+            : 0;
+
+        proxyA.stats.health = proxyA.stats.health > damageB
+            ? proxyA.stats.health - damageB
             : 0;
         damagedPlayers[1] = battle.players[0];
         damageDealt[1] = damageB;
-        attacker.stats.mana -= 3;
+
+        proxyB.stats.mana -= 3;
+
+        // Here, you might want to also handle the effects of the skill used by proxyA.
+
         return (damageDealt, damagedPlayers);
+    }
+
+    function calculateChanceToHit(
+        StructsLibrary.CharacterProxy storage attacker,
+        StructsLibrary.CharacterProxy storage defender
+    ) internal view returns (uint256) {
+        int256 differenceInLevels = int256(attacker.stats.level) -
+            int256(defender.stats.level);
+
+        int256 baseChance = differenceInLevels +
+            int256(defender.stats.level * 2);
+
+        int256 chanceToHit = baseChance +
+            int256(attacker.stats.accuracy) -
+            int256(defender.stats.dexterity);
+
+        // Ensure the chance doesn't exceed 100% or drop below 0%
+        if (chanceToHit > 100) {
+            return 100;
+        } else if (chanceToHit < 0) {
+            return 0;
+        } else {
+            return uint256(chanceToHit);
+        }
+    }
+
+    function random() internal view returns (uint256) {
+        return
+            uint256(
+                keccak256(abi.encodePacked(block.difficulty, block.timestamp))
+            );
     }
 }

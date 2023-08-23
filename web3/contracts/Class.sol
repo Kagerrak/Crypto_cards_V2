@@ -16,7 +16,9 @@ contract CharacterClass is ERC1155Base {
     mapping(uint256 => Class) public classes;
     uint256 public numClasses;
 
-    constructor() ERC1155Base("ClassContract", "CC", address(0), 0) {}
+    constructor()
+        ERC1155Base(msg.sender, "ClassContract", "CC", address(0), 0)
+    {}
 
     function createClass(
         string memory _name,
