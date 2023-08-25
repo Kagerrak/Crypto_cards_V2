@@ -8,7 +8,8 @@ async function copyContracts(
   battleItemsAddress: string,
   battleEffectsAddress: string,
   compositeTokensAddress: string,
-  equipManagementAddress: string
+  equipManagementAddress: string,
+  dappAccountFactoryAddress: string
 ) {
   const outputDir = path.join(
     __dirname,
@@ -78,6 +79,14 @@ async function copyContracts(
       "EquipManagement.sol",
       "EquipManagement.json"
     ),
+    DappAccountFactory: path.join(
+      __dirname,
+      "..",
+      "artifacts",
+      "contracts",
+      "DappAccountFactory.sol",
+      "DappAccountFactory.json"
+    ),
   };
 
   // Output paths
@@ -89,6 +98,7 @@ async function copyContracts(
     BattleEffects: path.join(outputDir, "battleEffects.json"),
     CompositeTokens: path.join(outputDir, "compositeTokens.json"),
     EquipManagement: path.join(outputDir, "equipManagement.json"),
+    DappAccountFactory: path.join(outputDir, "dappAccountFactory.json"),
   };
 
   // Copy artifact files
@@ -108,6 +118,7 @@ async function copyContracts(
     import battleEffects from "./battleEffects.json";
     import compositeTokens from "./compositeTokens.json";
     import equipManagement from "./equipManagement.json";
+    import dappAccountFactory from "./dappAccountFactory.json";
     
     export const characterContractAddress = "${characterAddress}";
     export const characterContractABI = characterContract.abi;
@@ -129,6 +140,9 @@ async function copyContracts(
 
     export const equipManagementAddress = "${equipManagementAddress}";
     export const equipManagementABI = equipManagement.abi;
+
+    export const dappAccountFactoryAddress = "${dappAccountFactoryAddress}";
+    export const dappAccountFactoryABI = dappAccountFactory.abi;
   `;
 
   fs.writeFileSync(outputPathIndex, indexFileContent);

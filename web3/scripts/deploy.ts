@@ -204,6 +204,14 @@ async function main() {
     "Approved character contract address for approved operator account"
   );
 
+  const entryPointAddress = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"; // You might need to provide the appropriate EntryPoint address here.
+  const DappAccountFactory = await ethers.getContractFactory(
+    "DappAccountFactory"
+  );
+  const dappAccountFactory = await DappAccountFactory.deploy(entryPointAddress);
+  await dappAccountFactory.deployed();
+  console.log("DappAccountFactory deployed to:", dappAccountFactory.address);
+
   // Copy contract artifacts to client directory
   await copyContracts(
     battle.address,
@@ -212,7 +220,8 @@ async function main() {
     battleItems.address,
     battleEffects.address,
     compositeTokens.address,
-    equipManagement.address
+    equipManagement.address,
+    dappAccountFactory.address
   );
 
   await verify(character.address, []);
@@ -235,6 +244,7 @@ async function main() {
     battleSkills.address,
     compositeTokens.address,
   ]);
+  await verify(dappAccountFactory.address, [entryPointAddress]);
 }
 
 main()
