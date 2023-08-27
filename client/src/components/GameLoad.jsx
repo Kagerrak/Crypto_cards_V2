@@ -19,8 +19,7 @@ const GameLoad = () => {
       setIsLoading(true);
       const { battleId } = gameData.activeBattle;
       console.log(battleId);
-      const tx = await battleContract.cancelBattle(battleId);
-      await tx.wait(1);
+      await battleContract.call("cancelBattle", [battleId]);
       setIsLoading(false);
       navigate("/create-battle");
       refresh();

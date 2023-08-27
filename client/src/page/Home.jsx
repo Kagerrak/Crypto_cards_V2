@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { Web3Button } from "@thirdweb-dev/react";
+
 import { CustomButton, PageHOC, Loader } from "../components";
 import { characters } from "../assets";
 import { useGlobalContext } from "../context";
@@ -8,6 +10,7 @@ import { useGlobalContext } from "../context";
 const Home = () => {
   const {
     characterContract,
+    battleSkillsContract,
     address,
     gameData,
     setShowAlert,
@@ -23,8 +26,42 @@ const Home = () => {
   const handleClick = async () => {
     try {
       setIsLoading(true);
-      await characterContract.call("newCharacter", [typeID]);
+      await characterContract.call("newCharacter", [typeID, address]);
       console.log("run");
+
+      setIsLoading(false);
+
+      setShowAlert({
+        status: true,
+        type: "info",
+        message: `A ${charName} character is being created!`,
+      });
+
+      setTimeout(() => navigate("/create-battle"), 8000);
+    } catch (error) {
+      setErrorMessage(error);
+      console.log(error);
+      setIsLoading(false);
+    }
+  };
+
+  const handleMintSkill = async () => {
+    try {
+      setIsLoading(true);
+      console.log("preparing");
+      const mintTx = await battleSkillsContract.prepare("mintSkill", [
+        1,
+        address,
+      ]);
+
+      const encodedTx = await mintTx.encode();
+      console.log(encodedTx);
+
+      console.log("prepared");
+
+      // const signTx = await mintTx.sign();
+
+      // const TxReceipt = await mintTx.execute();
 
       setIsLoading(false);
 
@@ -111,7 +148,22 @@ const Home = () => {
                 title="Create Character"
                 handleClick={handleClick}
                 restStyles="mt-6"
+                loading={!characterContract}
               />
+
+              <CustomButton
+                title=" Mint"
+                handleClick={handleMintSkill}
+                restStyles="mt-6"
+              />
+              <Web3Button
+                contractAddress="0xA9B86e27e91255eeFc409C0eA0408c5dE8720106"
+                action={(contract) => {
+                  contract.call("newCharacter", [0]);
+                }}
+              >
+                newCharacter
+              </Web3Button>
             </div>
           </div>
         )}

@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useAddress, useSDK } from "@thirdweb-dev/react";
+import { useAddress, useSDK, useWallet, useSigner } from "@thirdweb-dev/react";
 import { useNavigate } from "react-router-dom";
 
 import { GetParams } from "../utils/Onboard.js";
@@ -32,6 +32,8 @@ export const GlobalContextProvider = ({ children }) => {
   const [compositeContract, setCompositeContract] = useState(null);
   const [equipManagementContract, setEquipManagementContract] = useState(null);
   const [battleContract, setBattleContract] = useState(null);
+  const [wallet, setWallet] = useState(null);
+  const [signer, setSigner] = useState(null);
   const [provider, setProvider] = useState(null);
   const [step, setStep] = useState(1);
   const [gameData, setGameData] = useState({
@@ -67,8 +69,9 @@ export const GlobalContextProvider = ({ children }) => {
 
   const navigate = useNavigate();
   const address = useAddress();
+  const newWallet = useWallet();
+  const newSigner = useSigner();
   const sdk = useSDK();
-
   const intervalIdRef = useRef();
 
   const [battleIsOver, setBattleIsOver] = useState(false);
@@ -121,6 +124,9 @@ export const GlobalContextProvider = ({ children }) => {
     if (sdk === undefined) {
       return;
     }
+    console.log(sdk);
+    console.log(newWallet);
+    console.log(newSigner);
     const setSmartContractsAndProvider = async () => {
       // const web3Modal = new Web3Modal();
       // const connection = await web3Modal.connect();
@@ -132,9 +138,11 @@ export const GlobalContextProvider = ({ children }) => {
       const newCharacterContract = await sdk.getContract(
         characterContractAddress
       );
+
       const newBattleSkillsContract = await sdk.getContract(
         battleSkillsAddress
       );
+      console.log(newBattleSkillsContract);
       const newBattleItemsContract = await sdk.getContract(battleItemsAddress);
       const newBattleEffectsContract = await sdk.getContract(
         battleEffectsAddress
@@ -155,6 +163,8 @@ export const GlobalContextProvider = ({ children }) => {
       setBattleEffectsContract(newBattleEffectsContract);
       setCompositeContract(newCompositeContract);
       setEquipManagementContract(newEquipManagementContract);
+      setWallet(newWallet);
+      setSigner(newSigner);
     };
 
     setSmartContractsAndProvider();
@@ -183,7 +193,7 @@ export const GlobalContextProvider = ({ children }) => {
         }
 
         const fetchedBattles = await Promise.all(
-          activeBattlesId.map((id) => battleContract.getBattle(id))
+          activeBattlesId.map((id) => battleContract.call("getBattle", [id]))
         );
         const pendingBattles = fetchedBattles.filter(
           (battle) => battle.battleStatus === 0
@@ -264,11 +274,11 @@ export const GlobalContextProvider = ({ children }) => {
 
   //* Activate event listeners for the smart contract
   useEffect(() => {
-    if (step === -1 && battleContract) {
+    if (step === -1 && battleContract && characterContract) {
       createEventListeners({
         navigate,
-        battleContractAddress,
-        characterContractAddress,
+        battleContract,
+        characterContract,
         provider,
         address,
         setShowAlert,
@@ -353,6 +363,7 @@ export const GlobalContextProvider = ({ children }) => {
         shouldPollPlayerData,
         setShouldPollPlayerData,
         setShouldPoll,
+        wallet,
       }}
     >
       {children}

@@ -50,7 +50,7 @@ const MyChampion = () => {
 
     const fetchCharacters = async () => {
       const results = await filter(characters, async (item) => {
-        const balance = await characterContract.balanceOf(address);
+        const balance = await characterContract.call("balanceOf", [address]);
         return balance.toNumber() > 0;
       });
 

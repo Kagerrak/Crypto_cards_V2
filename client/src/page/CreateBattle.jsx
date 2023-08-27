@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useOwnedNFTs } from "@thirdweb-dev/react";
+import { useOwnedNFTs, useSigner } from "@thirdweb-dev/react";
+
+import MyCustomSigner from "../utils/MyCustomSigner";
 
 import styles from "../styles";
 import { useGlobalContext } from "../context";
@@ -16,6 +18,8 @@ import {
 const CreateBattle = () => {
   const {
     characterContract,
+    battleSkillsContract,
+    setShowAlert,
     battleContract,
     gameData,
     setBattleName,
@@ -30,6 +34,10 @@ const CreateBattle = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  console.log(address);
+  const signer = useSigner();
+  console.log(signer);
+
   // const { loading, error, data } = useQuery(GET_BATTLES);
 
   // useEffect(() => {
@@ -42,6 +50,10 @@ const CreateBattle = () => {
     characterContract,
     address
   );
+
+  const originalSigner = signer;
+  // Wrap it with your custom signer
+  const customSigner = new MyCustomSigner(originalSigner);
 
   useEffect(() => {
     if (!address || !characterContract) navigate("/");
@@ -130,6 +142,41 @@ const CreateBattle = () => {
       setWaitBattle(true);
     } catch (error) {
       setErrorMessage(error);
+      setIsLoading(false);
+    }
+  };
+
+  const handleMintSkill = async () => {
+    try {
+      setIsLoading(true);
+      console.log("preparing");
+      const mintTx = await battleSkillsContract.prepare("mintSkill", [
+        1,
+        address,
+      ]);
+
+      const encodedTx = await mintTx.encode();
+      console.log(encodedTx);
+
+      console.log("prepared");
+
+      const signTx = await customSigner.signMessage(encodedTx);
+      console.log(signTx);
+
+      // const TxReceipt = await mintTx.execute();
+
+      setIsLoading(false);
+
+      setShowAlert({
+        status: true,
+        type: "info",
+        message: `A  character is being created!`,
+      });
+
+      setTimeout(() => navigate("/create-battle"), 8000);
+    } catch (error) {
+      setErrorMessage(error);
+      console.log(error);
       setIsLoading(false);
     }
   };

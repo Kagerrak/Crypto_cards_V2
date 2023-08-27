@@ -13,6 +13,7 @@ export const createEventListeners = async ({
   setDamagedPlayers,
 }) => {
   // NewCharacter event listener
+  console.log(characterContract);
   characterContract.events.addEventListener("NewCharacter", (event) => {
     console.log("New player created!", event);
 
