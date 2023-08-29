@@ -41,7 +41,7 @@ contract CompositeTokens is ERC1155Base {
         address _battleSkillsAddress,
         address _battleItemsAddress,
         address _battleEffectsAddress
-    ) ERC1155Base("CompositeTokens", "CT", address(0), 0) {
+    ) ERC1155Base(msg.sender, "CompositeTokens", "CT", address(0), 0) {
         battleSkills = BattleSkills(_battleSkillsAddress);
         battleItems = BattleItems(_battleItemsAddress);
         battleEffects = BattleEffects(_battleEffectsAddress);

@@ -39,13 +39,17 @@ library StructsLibrary {
         bool[2] moveSubmitted;
         uint256 round;
         BattleStats battleStats;
+        uint256 roundStartTime;
     }
 
     struct CharacterStats {
+        uint256 level;
         uint256 health;
         uint256 attack;
         uint256 defense;
         uint256 mana;
+        uint256 dexterity;
+        uint256 accuracy;
         uint256 typeId;
     }
 

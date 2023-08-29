@@ -8,7 +8,8 @@ async function copyContracts(
   battleItemsAddress: string,
   battleEffectsAddress: string,
   compositeTokensAddress: string,
-  equipManagementAddress: string
+  equipManagementAddress: string,
+  battleHelperAddress: string
 ) {
   const outputDir = path.join(
     __dirname,
@@ -78,6 +79,14 @@ async function copyContracts(
       "EquipManagement.sol",
       "EquipManagement.json"
     ),
+    BattleHelper: path.join(
+      __dirname,
+      "..",
+      "artifacts",
+      "contracts",
+      "BattleHelper.sol",
+      "BattleHelper.json"
+    ),
   };
 
   // Output paths
@@ -89,6 +98,7 @@ async function copyContracts(
     BattleEffects: path.join(outputDir, "battleEffects.json"),
     CompositeTokens: path.join(outputDir, "compositeTokens.json"),
     EquipManagement: path.join(outputDir, "equipManagement.json"),
+    BattleHelper: path.join(outputDir, "battleHelper.json"),
   };
 
   // Copy artifact files
@@ -105,6 +115,7 @@ async function copyContracts(
     import battleSkills from "./battleSkills.json";
     import battleItems from "./battleItems.json";
     import battleContract from "./battleContract.json";
+    import battleHelper from "./battleHelper.json";
     import battleEffects from "./battleEffects.json";
     import compositeTokens from "./compositeTokens.json";
     import equipManagement from "./equipManagement.json";
@@ -120,6 +131,9 @@ async function copyContracts(
     
     export const battleContractAddress = "${battleAddress}";
     export const battleContractABI = battleContract.abi;
+
+    export const battleHelperAddress = "${battleHelperAddress}";
+    export const battleHelperABI = battleHelper.abi;
     
     export const battleEffectsAddress = "${battleEffectsAddress}";
     export const battleEffectsABI = battleEffects.abi;

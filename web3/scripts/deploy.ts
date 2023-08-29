@@ -114,17 +114,33 @@ async function main() {
   //   "ipfs://QmUyWmpry8Sri9BmsHSQMDBPtnPZkoX6GS7w8ZizpnFX7v"
   // );
 
-  // Deploy Battle contract
-  // Re-deploy Battle contract with new constructor arguments
+  // Deploy Battle contract with new constructor arguments
   const Battle = await ethers.getContractFactory("Battle");
-  const battle = await Battle.deploy(
+  const battle = await Battle.deploy(character.address);
+  await battle.deployed();
+  console.log("Battle deployed to:", battle.address);
+
+  // Deploy BattleHelper contract with new constructor arguments
+  const BattleHelper = await ethers.getContractFactory("BattleHelper");
+  const battleHelper = await BattleHelper.deploy(
     character.address,
     battleSkills.address,
     battleEffects.address,
     compositeTokens.address
   );
-  await battle.deployed();
-  console.log("Battle deployed to:", battle.address);
+
+  const owner1 = await battleHelper.owner();
+  console.log("owner", owner1)
+  await battleHelper.deployed();
+  console.log("BattleHelper deployed to:", battleHelper.address);
+
+  // Set the Battle contract address in BattleHelper
+  await battleHelper.setBattleContractAddress(battle.address);
+  console.log("Battle contract address set in BattleHelper contract:", battle.address);
+  
+  // Set the BattleHelper contract address in Battle contract
+  await battle.setBattleHelperContractAddress(battleHelper.address);
+  console.log("BattleHelper contract address set in Battle contract:", battleHelper.address);
 
   // Deploy EquipManagement contract
   const EquipManagement = await ethers.getContractFactory("EquipManagement");
@@ -213,6 +229,7 @@ async function main() {
     battleEffects.address,
     compositeTokens.address,
     equipManagement.address
+    battleHelper.address
   );
 
   await verify(character.address, []);
@@ -224,12 +241,11 @@ async function main() {
     battleItems.address,
     battleEffects.address,
   ]);
-  await verify(battle.address, [
-    character.address,
+  await verify(battle.address, [character.address]);
+  await verify(battleHelper.address, [character.address,
     battleSkills.address,
     battleEffects.address,
-    compositeTokens.address,
-  ]);
+    compositeTokens.address]);
   await verify(equipManagement.address, [
     battleItems.address,
     battleSkills.address,

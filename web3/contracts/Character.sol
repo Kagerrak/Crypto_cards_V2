@@ -10,7 +10,7 @@ import "./CharacterManagement.sol";
 import "./Class.sol";
 import "./CharData.sol";
 
-import "@thirdweb-dev/contracts/openzeppelin-presets/utils/ERC1155/ERC1155Holder.sol";
+import "@thirdweb-dev/contracts/external-deps/openzeppelin/utils/ERC1155/ERC1155Holder.sol";
 import "@thirdweb-dev/contracts/lib/TWStrings.sol";
 
 contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
@@ -91,7 +91,7 @@ contract Character is ERC721Base, ERC1155Holder, CharacterManagement {
     }
 
     constructor()
-        ERC721Base("Character", "CNFT", msg.sender, 0)
+        ERC721Base(msg.sender, "Character", "CNFT", msg.sender, 0)
         CharacterManagement(msg.sender)
     {}
 

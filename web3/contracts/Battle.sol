@@ -6,12 +6,10 @@ import "hardhat/console.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@thirdweb-dev/contracts/extension/Ownable.sol";
 import "./StructsLibrary.sol";
-import "./BattleResolutionLibrary.sol";
-import "./StatusEffectsLibrary.sol";
-import "./BattleEffects.sol";
-import "./ICompositeTokens.sol";
+import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
+import "./BattleHelper.sol";
 
-contract Battle is Ownable {
+contract Battle is Ownable, AutomationCompatibleInterface {
     function _canSetOwner() internal view virtual override returns (bool) {
         return true;
     }
@@ -21,34 +19,14 @@ contract Battle is Ownable {
     uint256 public leagueRewards; // variable to track league rewards
     uint256 public staminaCost = 10;
 
-    using BattleResolutionLibrary for StructsLibrary.BattleData;
-    using BattleResolutionLibrary for StructsLibrary.CharacterProxy;
-    using StatusEffectsLibrary for StructsLibrary.BattleData;
-    using StatusEffectsLibrary for StructsLibrary.CharacterProxy;
-
     mapping(uint256 => StructsLibrary.BattleData) public battles;
     uint256[] public activeBattlesId;
     mapping(uint256 => uint256) private battleIdToActiveIndex;
 
     mapping(address => uint256) public playerOngoingBattle;
-    mapping(bytes32 => mapping(address => StructsLibrary.CharacterProxy))
-        private characterProxies;
     uint256 public battleCounter;
 
     mapping(address => uint256) public playerCredit; // mapping of player addresses to the number of player
-
-    event CharacterProxyData(
-        uint256 battleId,
-        address player,
-        uint256 id,
-        address owner,
-        uint256 health,
-        uint256 attack,
-        uint256 defense,
-        uint256 mana,
-        uint256 typeId,
-        uint256[] equippedSkills
-    );
 
     event BattleCreated(
         uint256 indexed battleId,
@@ -63,13 +41,7 @@ contract Battle is Ownable {
         uint256 characterId
     );
     event BattleCancelled(uint256 indexed battleId, address indexed player);
-    event RoundEnded(
-        uint256 indexed battleId,
-        address[2] damagedPlayers,
-        uint256[2] damageDealt,
-        uint256[2] damageTaken,
-        uint256 indexed round
-    );
+
     event BattleEnded(
         string battleName,
         uint256 indexed battleId,
@@ -82,35 +54,6 @@ contract Battle is Ownable {
         StructsLibrary.Move move,
         uint256 round
     );
-    event HealthUpdated(
-        uint256 indexed battleId,
-        address indexed player1,
-        uint256 health1,
-        address indexed player2,
-        uint256 health2
-    );
-    event DiceRolled(
-        uint256 indexed battleId,
-        address indexed player,
-        uint256 round,
-        uint256 diceNumber
-    );
-    event SkillExecuted(
-        uint256 indexed battleId,
-        uint256 round,
-        address indexed player,
-        uint256 skillId,
-        string skillName,
-        uint256 totalDamage
-    );
-
-    event StatusEffectApplied(
-        uint256 indexed battleId,
-        uint256 round,
-        address indexed character,
-        string statusEffectName,
-        uint256 duration
-    );
 
     event BattleQuit(
         uint256 indexed battleId,
@@ -118,92 +61,38 @@ contract Battle is Ownable {
         address indexed quitter
     );
 
-    event StatusEffectResolved(
-        uint256 indexed battleId,
-        address indexed player,
-        uint256 effectId,
-        string effectName,
-        string effectType,
-        uint256 effectValue,
-        uint256 round,
-        uint256 duration
-    );
-
     modifier onlyParticipant(uint256 battleId) {
-        console.log(battles[battleId].players[0]);
-        console.log(battles[battleId].players[1]);
         address player0 = battles[battleId].players[0];
         address player1 = battles[battleId].players[1];
 
         require(
             msg.sender == player0 || msg.sender == player1,
-            "Only participants can call this function"
+            "Only participants"
+        );
+        _;
+    }
+
+    // Modifier to allow only the BattleHelper contract to execute certain functions
+    modifier onlyBattleHelper() {
+        require(
+            msg.sender == address(battleHelper),
+            "Only BattleHelper can call this function"
         );
         _;
     }
 
     Character private characterContract;
-    BattleSkills private battleSkillsContract;
-    BattleEffects private battleEffectsContract;
-    ICompositeTokens private compositeContract;
+    BattleHelper private battleHelper;
 
-    constructor(
-        address _characterContractAddress,
-        address _battleSkillsContractAddress,
-        address _battleEffectsContractAddress,
-        address _compositeTokensContractAddress
-    ) {
+    constructor(address _characterContractAddress) {
+        _setupOwner(msg.sender);
         characterContract = Character(_characterContractAddress);
-        battleSkillsContract = BattleSkills(_battleSkillsContractAddress);
-        battleEffectsContract = BattleEffects(_battleEffectsContractAddress);
-        compositeContract = ICompositeTokens(_compositeTokensContractAddress);
     }
 
-    function createCharacterProxies(
-        uint256 tokenId,
-        address player,
-        uint256 battleId
-    ) private {
-        bytes32 battleKey = keccak256(abi.encodePacked(battleId, player));
-        CharData.CharBattleData memory battleData = characterContract
-            .getCharacterInfo(tokenId);
-        StructsLibrary.CharacterProxy storage p = characterProxies[battleKey][
-            player
-        ];
-        p.id = tokenId;
-        p.owner = player;
-        p.stats.health = battleData.health;
-        p.stats.attack = battleData.attack;
-        p.stats.defense = battleData.defense;
-        p.stats.mana = battleData.mana;
-        p.stats.typeId = battleData.typeId;
-        p.equippedSkills = battleData.equippedSkills;
-
-        console.log("Character proxy created for player", player);
-        console.log("Health:", p.stats.health);
-        console.log("Mana:", p.stats.mana);
-
-        StructsLibrary.BattleData storage battle = battles[battleId];
-        if (player == battle.players[0]) {
-            battle.battleStats.initialHealth[0] = p.stats.health;
-            battle.battleStats.initialMana[0] = p.stats.mana; // Populate initialMana for player 1
-        } else {
-            battle.battleStats.initialHealth[1] = p.stats.health;
-            battle.battleStats.initialMana[1] = p.stats.mana; // Populate initialMana for player 2
-        }
-
-        emit CharacterProxyData(
-            battleId,
-            player,
-            p.id,
-            p.owner,
-            p.stats.health,
-            p.stats.attack,
-            p.stats.defense,
-            p.stats.mana,
-            p.stats.typeId,
-            p.equippedSkills
-        );
+    function setBattleHelperContractAddress(
+        address _battleHelperContractAddress
+    ) external onlyOwner {
+        battleHelper = BattleHelper(_battleHelperContractAddress);
     }
 
     function createBattle(
@@ -216,7 +105,7 @@ contract Battle is Ownable {
         );
         require(
             playerOngoingBattle[msg.sender] == 0,
-            "Player already participating in another battle"
+            "Player in another battle"
         );
 
         uint256 battleId = battleCounter;
@@ -242,17 +131,25 @@ contract Battle is Ownable {
                 leagueBattlePointsEarned: [uint256(0), uint256(0)] // New field
             }),
             moveSubmitted: [false, false],
-            round: 1
+            round: 1,
+            roundStartTime: block.timestamp
         });
 
         battles[battleId] = newBattle;
         activeBattlesId.push(battleId);
         battleIdToActiveIndex[battleId] = activeBattlesId.length - 1;
-
         playerOngoingBattle[msg.sender] = battleId;
 
-        // Populate the CharacterProxy for player 1
-        createCharacterProxies(_characterTokenId, msg.sender, battleId);
+        // Populate the CharacterProxy for player 1 using BattleHelper
+        (uint256 health, uint256 mana) = battleHelper.createCharacterProxies(
+            _characterTokenId,
+            msg.sender,
+            battleId
+        );
+
+        // Update the initial health and mana for player 1 in the battle
+        battles[battleId].battleStats.initialHealth[0] = health;
+        battles[battleId].battleStats.initialMana[0] = mana;
 
         // Consume stamina for player 1
         characterContract.consumeStamina(_characterTokenId, staminaCost);
@@ -315,19 +212,23 @@ contract Battle is Ownable {
         battle.characterIds[1] = characterTokenId;
         battle.players[1] = msg.sender;
         battle.battleStatus = StructsLibrary.BattleStatus.STARTED;
+        battle.roundStartTime = block.timestamp;
 
         playerOngoingBattle[msg.sender] = battleId;
 
-        // Populate the CharacterProxy for player 2
-        createCharacterProxies(characterTokenId, msg.sender, battleId);
+        // Populate the CharacterProxy for player 2 using BattleHelper
+        (uint256 health, uint256 mana) = battleHelper.createCharacterProxies(
+            characterTokenId,
+            msg.sender,
+            battleId
+        );
+
+        // Update the initial health and mana for player 2 in the battle
+        battle.battleStats.initialHealth[1] = health;
+        battle.battleStats.initialMana[1] = mana;
 
         // Consume stamina for player 2
         characterContract.consumeStamina(characterTokenId, staminaCost);
-
-        // // Collect 50% of the fee for the league rewards
-        // leagueRewards += msg.value / 2;
-        // // Collect 50% of the fee for the feeCollector
-        // feeCollected += msg.value / 2;
 
         emit NewBattle(
             battle.name,
@@ -363,10 +264,8 @@ contract Battle is Ownable {
         );
 
         // Fetch the player's CharacterProxy
-        bytes32 battleKey = keccak256(abi.encodePacked(battleId, msg.sender));
-        StructsLibrary.CharacterProxy storage p = characterProxies[battleKey][
-            msg.sender
-        ];
+        StructsLibrary.CharacterProxyView memory p = battleHelper
+            .getCharacterProxy(battleId, msg.sender);
 
         // Emit the MoveSubmitted event first
         emit MoveSubmitted(battleId, msg.sender, move, battle.round);
@@ -376,14 +275,10 @@ contract Battle is Ownable {
             move != StructsLibrary.Move.DEFEND &&
             move != StructsLibrary.Move.DO_NOTHING
         ) {
-            p.attackMultiplier = _generateAttackMultiplier();
-
-            // Emit the DiceRolled event with the generated attackMultiplier
-            emit DiceRolled(
+            battleHelper.generateAndSetAttackMultiplier(
                 battleId,
                 msg.sender,
-                battle.round,
-                p.attackMultiplier
+                battle.round
             );
         }
 
@@ -406,293 +301,130 @@ contract Battle is Ownable {
         if (move == StructsLibrary.Move.USE_SKILL) {
             battle.skillIndices[playerIndex] = skillId;
         }
-
-        // Check if both moves have been submitted
-        if (battle.moveSubmitted[0] && battle.moveSubmitted[1]) {
-            _resolveRound(
-                battleId,
-                battle.skillIndices[0],
-                battle.skillIndices[1]
-            );
-        }
+        console.log("move submitted");
     }
 
-    function _resolveRound(
-        uint256 battleId,
-        uint256 _skillId0,
-        uint256 _skillId1
-    ) private {
-        StructsLibrary.BattleData storage battle = battles[battleId];
+    // Chainlink Keeper-compatible checkUpkeep function
+    function checkUpkeep(
+        bytes calldata /* checkData */
+    )
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory performData)
+    {
+        uint256[] memory activeBattles = getActiveBattlesId();
+        uint256[] memory upkeepNeededFor = new uint256[](activeBattles.length);
+        uint256 counter = 0;
 
-        StructsLibrary.CharacterProxy storage proxyA = _getCharacterProxy(
-            battleId,
-            battle.players[0]
-        );
-        StructsLibrary.CharacterProxy storage proxyB = _getCharacterProxy(
-            battleId,
-            battle.players[1]
-        );
-
-        address[2] memory damagedPlayers;
-        uint256[2] memory damageDealt;
-
-        uint256[2] memory statusEffectDamage;
-
-        // Call the resolveStatusEffects function from the StatusEffectsLibrary
-        statusEffectDamage[0] = _resolveStatusEffects(
-            battleId,
-            battle.round,
-            proxyA
-        );
-
-        statusEffectDamage[1] = _resolveStatusEffects(
-            battleId,
-            battle.round,
-            proxyB
-        );
-
-        // Simplify stun logic
-        if (proxyA.isStunned) {
-            battle.moves[0] = uint256(StructsLibrary.Move.DO_NOTHING);
-        }
-        if (proxyB.isStunned) {
-            battle.moves[1] = uint256(StructsLibrary.Move.DO_NOTHING);
+        for (uint256 i = 0; i < activeBattles.length; i++) {
+            uint256 battleId = activeBattles[i];
+            StructsLibrary.BattleData storage battle = battles[battleId];
+            if (
+                battle.battleStatus == StructsLibrary.BattleStatus.STARTED &&
+                ((battle.moveSubmitted[0] && battle.moveSubmitted[1]) ||
+                    (block.timestamp >= battle.roundStartTime + 60)) // 60 seconds = 1 minute
+            ) {
+                upkeepNeededFor[counter] = battleId;
+                counter++;
+            }
         }
 
-        // Handle moves
-        battle.handleDefend(proxyA, proxyB);
-
-        // Handle ATTACK logic in a new separate function.
-        if (
-            !(battle.moves[0] == uint256(StructsLibrary.Move.USE_SKILL) &&
-                battle.moves[1] == uint256(StructsLibrary.Move.USE_SKILL))
-        ) {
-            (damageDealt, damagedPlayers) = battle.handleAttackLogic(
-                proxyA,
-                proxyB
-            );
+        uint256[] memory trimmedUpkeepNeededFor = new uint256[](counter);
+        for (uint256 i = 0; i < counter; i++) {
+            trimmedUpkeepNeededFor[i] = upkeepNeededFor[i];
         }
 
-        // USE_SKILL logic here.
-        if (battle.moves[0] == uint256(StructsLibrary.Move.USE_SKILL)) {
-            (damagedPlayers[0], damageDealt[0]) = _executeSkill(
-                battle,
-                battle.round,
-                proxyA,
-                _skillId0,
-                proxyB,
-                battle.moves[1], // passing opponent's move here
-                1
-            );
-        }
-
-        if (battle.moves[1] == uint256(StructsLibrary.Move.USE_SKILL)) {
-            (damagedPlayers[1], damageDealt[1]) = _executeSkill(
-                battle,
-                battle.round,
-                proxyB,
-                _skillId1,
-                proxyA,
-                battle.moves[0], // passing opponent's move here
-                0
-            );
-        }
-
-        // Handle status effect damage
-        StatusEffectsLibrary.handleStatusEffectDamage(
-            statusEffectDamage,
-            proxyA,
-            proxyB,
-            damageDealt,
-            damagedPlayers
-        );
-
-        // Reset multiplier
-        proxyA.attackMultiplier = 1;
-        proxyB.attackMultiplier = 1;
-
-        // Update total damage dealt and taken
-        battle.battleStats.totalDamageDealt[0] += damageDealt[0];
-        battle.battleStats.totalDamageDealt[1] += damageDealt[1];
-        battle.battleStats.totalDamageTaken[0] += damageDealt[1]; // Player 0 takes the damage dealt by player 1
-        battle.battleStats.totalDamageTaken[1] += damageDealt[0]; // Player 1 takes the damage dealt by player 0
-
-        emit RoundEnded(
-            battleId,
-            damagedPlayers,
-            damageDealt,
-            [damageDealt[1], damageDealt[0]], // Damage taken is the damage dealt by the opponent
-            battle.round
-        );
-
-        // Check if the battle has ended and declare a winner
-        if (proxyA.stats.health == 0 || proxyB.stats.health == 0) {
-            address winner = proxyA.stats.health > proxyB.stats.health
-                ? battle.players[0]
-                : battle.players[1];
-            _endBattle(battleId, winner);
-            return;
-        } else {
-            // If no character has lost all their health, reset the move submissions for the next round.
-            battle.moveSubmitted[0] = false;
-            battle.moveSubmitted[1] = false;
-            battle.round += 1;
-        }
+        upkeepNeeded = counter > 0;
+        performData = abi.encode(trimmedUpkeepNeededFor);
+        return (upkeepNeeded, performData);
     }
 
-    function _getCharacterProxy(
-        uint256 battleId,
-        address player
-    ) private view returns (StructsLibrary.CharacterProxy storage) {
-        bytes32 battleKey = keccak256(abi.encodePacked(battleId, player));
-        return characterProxies[battleKey][player];
+    // Chainlink Keeper-compatible performUpkeep function
+    function performUpkeep(bytes calldata performData) external override {
+        uint256[] memory battleIds = abi.decode(performData, (uint256[]));
+        for (uint256 i = 0; i < battleIds.length; i++) {
+            uint256 battleId = battleIds[i];
+            StructsLibrary.BattleData storage battle = battles[battleId];
+            if (
+                battle.battleStatus == StructsLibrary.BattleStatus.STARTED &&
+                ((battle.moveSubmitted[0] && battle.moveSubmitted[1]) ||
+                    (block.timestamp >= battle.roundStartTime + 60)) // 60 seconds = 1 minute
+            ) {
+                // Logic to resolve the battle round
+                battleHelper.resolveRound(battleId);
+
+                // Reset the timer for the next round
+                battle.roundStartTime = block.timestamp;
+            }
+        }
     }
 
     function _generateAttackMultiplier() private view returns (uint256) {
         uint256 randomNumber = (uint256(
             keccak256(
-                abi.encodePacked(block.difficulty, block.timestamp, msg.sender)
+                abi.encodePacked(block.prevrandao, block.timestamp, msg.sender)
             )
         ) % 20) + 1;
         return 1000 + randomNumber * 100;
     }
 
-    function _handleStatusEffect(
-        uint256 battleId,
-        uint256 round,
-        StructsLibrary.CharacterProxy storage affectedPlayer,
-        uint256 statusEffectId
-    ) private {
-        BattleEffects.StatusEffect memory statusEffect = battleEffectsContract
-            .getStatusEffect(statusEffectId);
-
-        affectedPlayer.applyStatusEffect(
-            statusEffect.effectId,
-            statusEffect.duration
-        );
-
-        emit StatusEffectApplied(
-            battleId,
-            round,
-            affectedPlayer.owner,
-            statusEffect.name,
-            statusEffect.duration
-        );
+    function endBattle(
+        uint256 _battleId,
+        address _winner
+    ) public onlyBattleHelper {
+        _endBattle(_battleId, _winner);
     }
 
-    function _executeSkill(
-        StructsLibrary.BattleData storage battle,
-        uint256 round,
-        StructsLibrary.CharacterProxy storage player,
-        uint256 tokenId,
-        StructsLibrary.CharacterProxy storage opponent,
-        uint256 opponentMove,
-        uint256 opponentIndex
-    ) private returns (address, uint256) {
-        uint256 battleSkillId;
-        uint256 skillEffectId;
+    function _endBattle(uint256 _battleId, address _winner) internal {
+        StructsLibrary.BattleData storage battle = battles[_battleId];
 
-        // Check the tokenId to determine how to get the battleSkillId
-        if (tokenId > 10000) {
-            ICompositeTokens.CompositeTokenDetails
-                memory compositeTokenDetails = compositeContract
-                    .getCompositeTokenDetails(tokenId);
-            battleSkillId = compositeTokenDetails.battleSkillId;
-            skillEffectId = compositeTokenDetails.skillEffectId; // Get the skill effect ID here
-        } else {
-            battleSkillId = tokenId;
-            skillEffectId = 0;
+        // Only set these if they have not been set yet.
+        if (battle.battleStatus != StructsLibrary.BattleStatus.ENDED) {
+            battle.winner = _winner;
+            battle.battleStatus = StructsLibrary.BattleStatus.ENDED;
         }
 
-        BattleSkills.Skill memory skill = battleSkillsContract.getSkill(
-            battleSkillId
-        );
+        // Additional code to update mappings or perform other tasks
+        _updateBattleIdMapping(_battleId);
 
-        uint256 rawDamage = (player.attackMultiplier * skill.damage) / 1000;
-        console.log(player.attackMultiplier);
-        console.log(skill.damage);
-        console.log(rawDamage);
+        // Update the playerOngoingBattle mapping for both players
+        address player1 = battle.players[0];
+        address player2 = battle.players[1];
+        playerOngoingBattle[player1] = 0;
+        playerOngoingBattle[player2] = 0;
 
-        if (opponentMove == uint256(StructsLibrary.Move.DEFEND)) {
-            rawDamage = rawDamage > opponent.stats.defense
-                ? rawDamage - opponent.stats.defense
-                : 0;
-            battle.battleStats.damageReduced[opponentIndex] += opponent
-                .stats
-                .health > rawDamage
-                ? rawDamage
-                : opponent.stats.defense;
+        // Determine the loser
+        address _loser = (_winner == player1) ? player2 : player1;
+        uint256 winnerIndex = (_winner == player1) ? 0 : 1;
+        uint256 loserIndex = (_loser == player1) ? 0 : 1;
+
+        // Optional: Consume used mana or perform other tasks
+        // _consumeUsedMana(_battleId, battle, winnerIndex, loserIndex);
+
+        // Get CharacterProxy data for each player
+        StructsLibrary.CharacterProxyView memory player1Proxy = battleHelper
+            .getCharacterProxy(_battleId, player1);
+        StructsLibrary.CharacterProxyView memory player2Proxy = battleHelper
+            .getCharacterProxy(_battleId, player2);
+
+        // Check if the health of one of the players is 0, indicating the battle was fought
+        uint256 player1Health = player1Proxy.health;
+        uint256 player2Health = player2Proxy.health;
+        bool battleFought = (player1Health == 0) || (player2Health == 0);
+
+        // If the battle was fought, grant experience points
+        if (battleFought) {
+            characterContract.gainXP(battle.characterIds[winnerIndex], 100);
+            characterContract.gainXP(battle.characterIds[loserIndex], 30);
+
+            // Update expReceived field in battleStats
+            battle.battleStats.expReceived[winnerIndex] = 100;
+            battle.battleStats.expReceived[loserIndex] = 30;
         }
 
-        if (rawDamage > 0) {
-            if (opponent.stats.health > rawDamage) {
-                opponent.stats.health -= rawDamage;
-                console.log(opponent.stats.health);
-            } else {
-                opponent.stats.health = 0;
-            }
-        }
-
-        emit SkillExecuted(
-            battle.battleId,
-            round,
-            player.owner,
-            battleSkillId,
-            skill.name,
-            rawDamage
-        );
-
-        player.stats.mana -= skill.manaCost;
-
-        if (skillEffectId != 0) {
-            _handleStatusEffect(
-                battle.battleId,
-                round,
-                battleEffectsContract.getStatusEffect(skillEffectId).isPositive
-                    ? player
-                    : opponent,
-                skillEffectId
-            );
-        }
-
-        return (rawDamage > 0 ? opponent.owner : address(0), rawDamage);
-    }
-
-    function _resolveStatusEffects(
-        uint256 battleId,
-        uint256 round,
-        StructsLibrary.CharacterProxy storage character
-    ) private returns (uint256) {
-        (
-            uint256 totalDamage,
-            bool isStunned,
-            uint256[] memory effectIds,
-            string[] memory effectNames,
-            string[] memory effectTypes,
-            uint256[] memory effectValues,
-            uint256[] memory effectRounds,
-            uint256[] memory effectDurations
-        ) = character.resolveStatusEffects(battleEffectsContract, round);
-
-        for (uint256 i = 0; i < effectIds.length; i++) {
-            if (
-                isStunned &&
-                keccak256(abi.encodePacked(effectTypes[i])) ==
-                keccak256(abi.encodePacked("stun"))
-            ) {
-                emit StatusEffectResolved(
-                    battleId,
-                    character.owner,
-                    effectIds[i],
-                    effectNames[i],
-                    effectTypes[i],
-                    effectValues[i],
-                    effectRounds[i],
-                    effectDurations[i]
-                );
-            }
-        }
-        return (totalDamage);
+        // Emit the BattleEnded event
+        emit BattleEnded(battle.name, _battleId, _winner, _loser);
     }
 
     function quitBattle(uint256 _battleId) public {
@@ -713,49 +445,6 @@ contract Battle is Ownable {
         _battle.players[0] == msg.sender
             ? _endBattle(_battleId, _battle.players[1])
             : _endBattle(_battleId, _battle.players[0]);
-    }
-
-    function _endBattle(uint256 _battleId, address _winner) internal {
-        StructsLibrary.BattleData storage battle = battles[_battleId];
-        battle.winner = _winner;
-        battle.battleStatus = StructsLibrary.BattleStatus.ENDED;
-
-        _updateBattleIdMapping(_battleId);
-
-        // Update the playerOngoingBattle mapping for both players
-        address player1 = battle.players[0];
-        address player2 = battle.players[1];
-        playerOngoingBattle[player1] = 0;
-        playerOngoingBattle[player2] = 0;
-
-        // Determine the loser
-        address _loser = _winner == player1 ? player2 : player1;
-        uint256 winnerIndex = _winner == player1 ? 0 : 1;
-        uint256 loserIndex = _loser == player1 ? 0 : 1;
-
-        _consumeUsedMana(_battleId, battle, winnerIndex, loserIndex);
-
-        // Check if the health of one of the players is 0, indicating the battle was fought
-        uint256 player1Health = characterProxies[
-            keccak256(abi.encodePacked(_battleId, player1))
-        ][player1].stats.health;
-        uint256 player2Health = characterProxies[
-            keccak256(abi.encodePacked(_battleId, player2))
-        ][player2].stats.health;
-        bool battleFought = player1Health == 0 || player2Health == 0;
-
-        // If the battle was actually fought, grant experience points to the winner and the loser
-        if (battleFought) {
-            characterContract.gainXP(battle.characterIds[winnerIndex], 100);
-            characterContract.gainXP(battle.characterIds[loserIndex], 30);
-
-            // Update expReceived field
-            battle.battleStats.expReceived[winnerIndex] = 100;
-            battle.battleStats.expReceived[loserIndex] = 30;
-        }
-
-        // Emit the updated BattleEnded event
-        emit BattleEnded(battle.name, _battleId, _winner, _loser);
     }
 
     function _updateBattleIdMapping(uint256 _battleId) internal {
@@ -780,13 +469,9 @@ contract Battle is Ownable {
         address loser = battle.players[loserIndex];
 
         uint256 usedManaWinner = battle.battleStats.initialMana[winnerIndex] -
-            characterProxies[keccak256(abi.encodePacked(_battleId, winner))][
-                winner
-            ].stats.mana;
+            battleHelper.getCharacterProxy(_battleId, winner).mana;
         uint256 usedManaLoser = battle.battleStats.initialMana[loserIndex] -
-            characterProxies[keccak256(abi.encodePacked(_battleId, loser))][
-                loser
-            ].stats.mana;
+            battleHelper.getCharacterProxy(_battleId, loser).mana;
 
         // Consume used mana for each player's character
         characterContract.consumeMana(
@@ -799,10 +484,28 @@ contract Battle is Ownable {
         );
     }
 
+    // Setter for moveSubmitted field in BattleData
+    function setMoveSubmitted(
+        uint256 battleId,
+        uint256 playerIndex,
+        bool value
+    ) external onlyBattleHelper {
+        battles[battleId].moveSubmitted[playerIndex] = value;
+    }
+
     function getBattle(
         uint256 _battleId
     ) external view returns (StructsLibrary.BattleData memory) {
         return battles[_battleId];
+    }
+
+    // TO DO ADD AUTH LOGIC
+    function setBattleData(
+        uint256 battleId,
+        StructsLibrary.BattleData calldata data
+    ) external onlyBattleHelper {
+        // Authorization checks or other logic
+        battles[battleId] = data;
     }
 
     function getActiveBattlesId() public view returns (uint256[] memory) {
@@ -819,60 +522,6 @@ contract Battle is Ownable {
         return battles[battleId].players;
     }
 
-    function getCharacterProxy(
-        uint256 battleId,
-        address player
-    ) public view returns (StructsLibrary.CharacterProxyView memory) {
-        bytes32 battleKey = keccak256(abi.encodePacked(battleId, player));
-        StructsLibrary.CharacterProxy storage proxy = characterProxies[
-            battleKey
-        ][player];
-
-        StructsLibrary.CharacterProxyView memory proxyView = StructsLibrary
-            .CharacterProxyView({
-                id: proxy.id,
-                owner: proxy.owner,
-                health: proxy.stats.health,
-                attack: proxy.stats.attack,
-                defense: proxy.stats.defense,
-                mana: proxy.stats.mana,
-                typeId: proxy.stats.typeId,
-                equippedSkills: proxy.equippedSkills
-            });
-
-        return proxyView;
-    }
-
-    function getCharacterProxyActiveEffects(
-        uint256 battleId,
-        address player
-    )
-        public
-        view
-        returns (uint256[] memory effectIds, uint256[] memory durations)
-    {
-        bytes32 battleKey = keccak256(abi.encodePacked(battleId, player));
-        StructsLibrary.CharacterProxy storage proxy = characterProxies[
-            battleKey
-        ][player];
-
-        // Get the number of active effects
-        uint256 activeEffectsCount = proxy.activeEffectIds.length;
-
-        // Create arrays for effectIds and durations
-        effectIds = new uint256[](activeEffectsCount);
-        durations = new uint256[](activeEffectsCount);
-
-        // Fill the arrays with the active effectIds and their durations
-        for (uint256 i = 0; i < activeEffectsCount; i++) {
-            uint256 effectId = proxy.activeEffectIds[i];
-            effectIds[i] = effectId;
-            durations[i] = proxy.activeEffectDurations[effectId];
-        }
-
-        return (effectIds, durations);
-    }
-
     function getBattleMoves(
         uint256 battleId
     ) external view returns (uint256[2] memory) {
@@ -880,18 +529,30 @@ contract Battle is Ownable {
         return [battle.moves[0], battle.moves[1]];
     }
 
-    function getCharacterHealth(
-        uint256 battleId,
-        address player
-    ) public view returns (uint256) {
-        return
-            characterProxies[keccak256(abi.encodePacked(battleId, player))][
-                player
-            ].stats.health;
-    }
+    // function getCharacterHealth(
+    //     uint256 battleId,
+    //     address player
+    // ) public view returns (uint256) {
+    //     return
+    //         characterProxies[keccak256(abi.encodePacked(battleId, player))][
+    //             player
+    //         ].stats.health;
+    // }
 
     function updateStaminaCost(uint256 newCost) external onlyOwner {
         staminaCost = newCost;
+    }
+
+    function battleFee() public view returns (uint256) {
+        (, int256 answer, , , ) = priceFeed.latestRoundData();
+        uint256 price = uint256(answer * 10000000000); // convert int256 value to uint256
+        uint256 usdAmount = 0.05 * 10 ** 18; // convert 0.05 USD to wei
+        return uint256((usdAmount * (10 ** 18)) / price); // convert wei to ether
+    }
+
+    function storeStamina(uint256 _tokenId1, uint256 _tokenId2) public {
+        characterContract.restoreStaminaToFull(_tokenId1);
+        characterContract.restoreStaminaToFull(_tokenId2);
     }
 
     fallback() external payable {}

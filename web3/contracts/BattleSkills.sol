@@ -29,7 +29,7 @@ contract BattleSkills is ERC1155Base {
     );
     event SkillMinted(uint256 skillId, address caller);
 
-    constructor() ERC1155Base("BattleSkills", "BS", address(0), 0) {
+    constructor() ERC1155Base(msg.sender, "BattleSkills", "BS", address(0), 0) {
         nextTokenIdToMint_ = 1;
     }
 

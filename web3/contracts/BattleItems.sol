@@ -35,7 +35,7 @@ contract BattleItems is ERC1155Base {
         uint256 mana
     );
 
-    constructor() ERC1155Base("ItemContract", "IC", address(0), 0) {
+    constructor() ERC1155Base(msg.sender, "ItemContract", "IC", address(0), 0) {
         nextTokenIdToMint_ = 1;
     }
 
