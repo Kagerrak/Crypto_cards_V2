@@ -111,6 +111,7 @@ const Home = () => {
                 title="Create Character"
                 handleClick={handleClick}
                 restStyles="mt-6"
+                loading={!characterContract}
               />
             </div>
           </div>
