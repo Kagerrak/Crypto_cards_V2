@@ -3,6 +3,7 @@ export const createEventListeners = async ({
   provider,
   battleContract,
   characterContract,
+  battleHelperContract,
   address,
   setShowAlert,
   setUpdateGameData,
@@ -137,7 +138,7 @@ export const createEventListeners = async ({
   });
 
   // Listen for new RoundEnded events
-  battleContract.events.addEventListener("RoundEnded", async (event) => {
+  battleHelperContract.events.addEventListener("RoundEnded", async (event) => {
     // Get the transaction hash from the event
     const { transactionHash } = event.transaction;
 
@@ -153,13 +154,16 @@ export const createEventListeners = async ({
         const { battleId, round } = event.data;
 
         // Fetch the event with the specific battleId and round
-        const events = await battleContract.events.getEvents("RoundEnded", {
-          fromBlock: event.transaction.blockNumber,
-          filters: {
-            battleId: battleId,
-            round: round,
-          },
-        });
+        const events = await battleHelperContract.events.getEvents(
+          "RoundEnded",
+          {
+            fromBlock: event.transaction.blockNumber,
+            filters: {
+              battleId: battleId,
+              round: round,
+            },
+          }
+        );
 
         // Process each event (there should only be one)
         events.forEach((e) => {
