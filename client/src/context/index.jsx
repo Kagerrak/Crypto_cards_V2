@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useAddress, useSDK } from "@thirdweb-dev/react";
+import { useAddress, useSDK, useWallet, useSigner } from "@thirdweb-dev/react";
 import { useNavigate } from "react-router-dom";
 
 import { GetParams } from "../utils/Onboard.js";
@@ -17,6 +17,7 @@ import {
   battleEffectsAddress,
   compositeTokensAddress,
   equipManagementAddress,
+  battleHelperAddress,
 } from "../contract";
 
 import { createEventListeners } from "./createEventListeners";
@@ -32,6 +33,7 @@ export const GlobalContextProvider = ({ children }) => {
   const [compositeContract, setCompositeContract] = useState(null);
   const [equipManagementContract, setEquipManagementContract] = useState(null);
   const [battleContract, setBattleContract] = useState(null);
+  const [battleHelperContract, setBattleHelperContract] = useState(null);
   const [provider, setProvider] = useState(null);
   const [step, setStep] = useState(1);
   const [gameData, setGameData] = useState({
@@ -68,7 +70,6 @@ export const GlobalContextProvider = ({ children }) => {
   const navigate = useNavigate();
   const address = useAddress();
   const sdk = useSDK();
-
   const intervalIdRef = useRef();
 
   const [battleIsOver, setBattleIsOver] = useState(false);
@@ -132,9 +133,11 @@ export const GlobalContextProvider = ({ children }) => {
       const newCharacterContract = await sdk.getContract(
         characterContractAddress
       );
+
       const newBattleSkillsContract = await sdk.getContract(
         battleSkillsAddress
       );
+      console.log(newBattleSkillsContract);
       const newBattleItemsContract = await sdk.getContract(battleItemsAddress);
       const newBattleEffectsContract = await sdk.getContract(
         battleEffectsAddress
@@ -146,12 +149,16 @@ export const GlobalContextProvider = ({ children }) => {
         equipManagementAddress
       );
       const newBattleContract = await sdk.getContract(battleContractAddress);
+      const newBattleHelperContract = await sdk.getContract(
+        battleHelperAddress
+      );
 
       setProvider(newProvider);
       setCharacterContract(newCharacterContract);
       setBattleSkillsContract(newBattleSkillsContract);
       setBattleItemsContract(newBattleItemsContract);
       setBattleContract(newBattleContract);
+      setBattleHelperContract(newBattleHelperContract);
       setBattleEffectsContract(newBattleEffectsContract);
       setCompositeContract(newCompositeContract);
       setEquipManagementContract(newEquipManagementContract);
@@ -183,7 +190,7 @@ export const GlobalContextProvider = ({ children }) => {
         }
 
         const fetchedBattles = await Promise.all(
-          activeBattlesId.map((id) => battleContract.getBattle(id))
+          activeBattlesId.map((id) => battleContract.call("getBattle", [id]))
         );
         const pendingBattles = fetchedBattles.filter(
           (battle) => battle.battleStatus === 0
@@ -264,11 +271,12 @@ export const GlobalContextProvider = ({ children }) => {
 
   //* Activate event listeners for the smart contract
   useEffect(() => {
-    if (step === -1 && battleContract) {
+    if (step === -1 && battleContract && characterContract) {
       createEventListeners({
         navigate,
-        battleContractAddress,
-        characterContractAddress,
+        battleContract,
+        characterContract,
+        battleHelperContract,
         provider,
         address,
         setShowAlert,
@@ -320,6 +328,7 @@ export const GlobalContextProvider = ({ children }) => {
         compositeContract,
         equipManagementContract,
         battleContract,
+        battleHelperContract,
         gameData,
         address,
         updateCurrentWalletAddress,
@@ -353,6 +362,7 @@ export const GlobalContextProvider = ({ children }) => {
         shouldPollPlayerData,
         setShouldPollPlayerData,
         setShouldPoll,
+        wallet,
       }}
     >
       {children}
