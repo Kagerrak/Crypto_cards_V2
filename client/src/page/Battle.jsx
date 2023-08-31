@@ -41,6 +41,7 @@ const Player = {
 const Battle = () => {
   const {
     battleContract,
+    battleHelperContract,
     gameData,
     battleGround,
     address,
@@ -95,11 +96,11 @@ const Battle = () => {
   const [isMoveSubmitted, setIsMoveSubmitted] = useState(false);
 
   const fetchPlayerDataAndEffects = async (battleId, playerAddress) => {
-    const playerDatas = await battleContract.call("getCharacterProxy", [
+    const playerDatas = await battleHelperContract.call("getCharacterProxy", [
       battleId,
       playerAddress,
     ]);
-    const playerEffects = await battleContract.call(
+    const playerEffects = await battleHelperContract.call(
       "getCharacterProxyActiveEffects",
       [battleId, playerAddress]
     );
@@ -175,7 +176,7 @@ const Battle = () => {
   };
 
   const fetchPlayerData = async () => {
-    if (gameData.activeBattle && battleContract) {
+    if (gameData.activeBattle && battleContract && battleHelperContract) {
       let player01Address = null;
       let player02Address = null;
       if (
@@ -314,6 +315,7 @@ const Battle = () => {
     shouldPollPlayerData,
     gameData, // Add gameData as a dependency
     battleContract,
+    battleHelperContract,
     gameData.activeBattle,
     address,
   ]);
