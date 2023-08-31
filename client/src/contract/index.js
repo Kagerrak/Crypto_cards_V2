@@ -8,30 +8,30 @@ import compositeTokens from "./compositeTokens.json";
 import equipManagement from "./equipManagement.json";
 
 export const characterContractAddress =
-  "0xC76d02d1Aebd83c12bd7d236A75d7D43Eb71bA77";
+  "0xE15e9c62aF07aBFdf53C38EDd1dC0d746e2bfb93";
 export const characterContractABI = characterContract.abi;
 
-export const battleSkillsAddress = "0x4Ed7d09AC9ef28102d04D938a29B5776a2eC627B";
+export const battleSkillsAddress = "0xf8Dadf218E7b9695bDF91cBe7B46D9eCb07e4eD7";
 export const battleSkillsABI = battleSkills.abi;
 
-export const battleItemsAddress = "0x22B3810C353106BdaC9e9E10c7E67eEa81d96324";
+export const battleItemsAddress = "0xa118E54CBCA716706367bDe93d114d20545f9FB3";
 export const battleItemsABI = battleItems.abi;
 
 export const battleContractAddress =
-  "0x31145C21f215e9b47F5d76678b49Da865E2767eF";
+  "0x65fC661B40C0f33ab453cBC6D48F6c0bE88C9CbB";
 export const battleContractABI = battleContract.abi;
 
-export const battleHelperAddress = "0xDEa443C0a7aE3FB4c51A407E3c84Dd956594f3a9";
+export const battleHelperAddress = "0xE3570A9174B98AFe2633AE77Ed0223676716e668";
 export const battleHelperABI = battleHelper.abi;
 
 export const battleEffectsAddress =
-  "0x5C3f599Ab360e24451e3c8531B40Be24d4205D02";
+  "0x60C7E61a277b635bDC2F7bC458755bf110c5b70f";
 export const battleEffectsABI = battleEffects.abi;
 
 export const compositeTokensAddress =
-  "0x64575A440977BB0BFF83cfcD1dFA40fa5344955C";
+  "0x8CF6E2ad1700aD1c8e6dF302291A7E8494e0f079";
 export const compositeTokensABI = compositeTokens.abi;
 
 export const equipManagementAddress =
-  "0x6f402c398756C634F64F00A91056Bf71BFa67488";
+  "0x97179fD0763cd784B034631b6c5AD45243467FE7";
 export const equipManagementABI = equipManagement.abi;
