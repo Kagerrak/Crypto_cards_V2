@@ -323,7 +323,7 @@ contract Battle is Ownable, AutomationCompatibleInterface {
             if (
                 battle.battleStatus == StructsLibrary.BattleStatus.STARTED &&
                 ((battle.moveSubmitted[0] && battle.moveSubmitted[1]) ||
-                    (block.timestamp >= battle.roundStartTime + 60)) // 60 seconds = 1 minute
+                    (block.timestamp >= battle.roundStartTime + 1 minutes)) // 60 seconds = 1 minute
             ) {
                 upkeepNeededFor[counter] = battleId;
                 counter++;
