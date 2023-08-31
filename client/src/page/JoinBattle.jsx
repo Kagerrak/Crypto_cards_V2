@@ -54,14 +54,11 @@ const JoinBattle = () => {
     try {
       setIsLoading(true);
       console.log("Joining battle...");
-      const tx = await battleContract.joinBattle(
+      console.log(battleContract);
+      await battleContract.call("joinBattle", [
         battleId.toNumber(),
-        characterId
-      );
-      console.log("Waiting for tx to be mined...");
-      await tx.wait();
-      console.log("Tx mined successfully!");
-
+        characterId,
+      ]);
       console.log("Updating game data...");
       await fetchGameData();
 
@@ -151,6 +148,7 @@ const JoinBattle = () => {
                             selectedTokenID
                           )
                         }
+                        loading={!battleContract}
                       />
                     </div>
                   ))
