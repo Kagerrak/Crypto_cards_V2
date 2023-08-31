@@ -228,7 +228,7 @@ async function main() {
     battleItems.address,
     battleEffects.address,
     compositeTokens.address,
-    equipManagement.address
+    equipManagement.address,
     battleHelper.address
   );
 
