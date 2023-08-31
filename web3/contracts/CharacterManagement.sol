@@ -96,9 +96,9 @@ contract CharacterManagement {
                 100,
                 100,
                 10,
+                10,
                 100,
-                100,
-                100,
+                12,
                 100,
                 100,
                 100,
@@ -114,9 +114,9 @@ contract CharacterManagement {
                 100,
                 100,
                 10,
+                10,
                 100,
-                100,
-                100,
+                12,
                 100,
                 100,
                 100,
@@ -131,10 +131,10 @@ contract CharacterManagement {
                 0,
                 100,
                 100,
+                10,
+                10,
                 100,
-                100,
-                100,
-                100,
+                12,
                 100,
                 100,
                 100,
@@ -362,6 +362,9 @@ contract CharacterManagement {
         uint256 tokenId
     ) public view returns (CharData.CharBattleData memory battleData) {
         CharData.CharacterStats storage hero = characterStats[tokenId];
+        battleData.level = hero.level;
+        battleData.dexterity = hero.dexterity;
+        battleData.accuracy = hero.accuracy;
         battleData.health = hero.health;
         battleData.attack = hero.attack;
         battleData.defense = hero.defense;
