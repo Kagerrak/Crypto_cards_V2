@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useAddress, useSDK, useWallet, useSigner } from "@thirdweb-dev/react";
+import { useAddress, useSDK } from "@thirdweb-dev/react";
 import { useNavigate } from "react-router-dom";
 
 import { GetParams } from "../utils/Onboard.js";
@@ -100,22 +100,22 @@ export const GlobalContextProvider = ({ children }) => {
     window?.ethereum?.on("accountsChanged", () => resetParams());
   }, []);
 
-  //* Set the wallet address to the state
-  const updateCurrentWalletAddress = async () => {
-    const accounts = await window?.ethereum?.request({
-      method: "eth_requestAccounts",
-    });
+  // //* Set the wallet address to the state
+  // const updateCurrentWalletAddress = async () => {
+  //   const accounts = await window?.ethereum?.request({
+  //     method: "eth_requestAccounts",
+  //   });
 
-    if (accounts) setWalletAddress(accounts[0]);
+  //   if (accounts) setWalletAddress(accounts[0]);
 
-    navigate("/");
-  };
+  //   navigate("/");
+  // };
 
-  useEffect(() => {
-    updateCurrentWalletAddress();
+  // useEffect(() => {
+  //   updateCurrentWalletAddress();
 
-    window?.ethereum?.on("accountsChanged", updateCurrentWalletAddress);
-  }, []);
+  //   window?.ethereum?.on("accountsChanged", updateCurrentWalletAddress);
+  // }, []);
 
   //* Set the smart contracts and provider to the state
   useEffect(() => {
@@ -331,7 +331,7 @@ export const GlobalContextProvider = ({ children }) => {
         battleHelperContract,
         gameData,
         address,
-        updateCurrentWalletAddress,
+        // updateCurrentWalletAddress,
         showAlert,
         setShowAlert,
         battleName,
@@ -362,7 +362,7 @@ export const GlobalContextProvider = ({ children }) => {
         shouldPollPlayerData,
         setShouldPollPlayerData,
         setShouldPoll,
-        wallet,
+        // wallet,
       }}
     >
       {children}

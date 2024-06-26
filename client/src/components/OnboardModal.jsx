@@ -5,12 +5,12 @@ import { ConnectWallet } from "@thirdweb-dev/react";
 
 import styles from "../styles";
 import CustomButton from "./CustomButton";
-import { useGlobalContext } from "../context";
+// import { useGlobalContext } from "../context";
 import { GetParams, SwitchNetwork } from "../utils/Onboard.js";
 
 const OnboardModal = () => {
   const [modalIsOpen, setIsOpen] = useState(false);
-  const { updateCurrentWalletAddress } = useGlobalContext();
+  // const { updateCurrentWalletAddress } = useGlobalContext();
   const [step, setStep] = useState(-1);
 
   async function resetParams() {
